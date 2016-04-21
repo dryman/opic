@@ -7,7 +7,7 @@ static void maybe_m_return(base_s* self, void* data);
 static void maybe_m_bind(base_s* self, m_bind_callback cb, base_s* next);
 static void maybe_f_fmap(base_s* self, base_s* next, f_fmap_callback cb);
 static void maybe_a_pure(base_s* self, void* data);
-static void maybe_a_ap(base_s* self, base_s* next);
+static void maybe_a_ap(base_s* self, base_s* a, base_s* b);
 
 static void init_maybe(maybe_s* self);
 static inline bool is_nothing(maybe_s* self);
@@ -67,11 +67,12 @@ static void maybe_a_pure(base_s* _self, void* data)
   self->data = data;
 }
   
-static void maybe_a_ap(base_s* _self, base_s* _next)
+static void maybe_a_ap(base_s* _self, base_s* _a, base_s* _b)
 {
   maybe_s* self = (maybe_s*) _self;
-  maybe_s* next = (maybe_s*) _next;
-  self->apply(self->data, &next->data);
+  maybe_s* a = (maybe_s*) _a;
+  maybe_s* b = (maybe_s*) _b;
+  self->apply(a->data, &b->data);
 }
 
 

@@ -48,12 +48,12 @@ typedef struct functor_s {
 // pure :: a -> f a 
 // (<*>) :: f (a -> b) -> f a -> f b
 int a_pure(base_s* self, void* data);
-int a_ap(base_s* self, base_s* next);
+int a_ap(base_s* self, base_s* a, base_s* b);
 
 typedef struct applicative_s {
   struct trait_s;
   void (*a_pure)(base_s* self, void* data);
-  void (*a_ap)(base_s* self, base_s* next);
+  void (*a_ap)(base_s* self, base_s* a, base_s* b);
 } applicative_s;
 
 
