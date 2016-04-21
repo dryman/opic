@@ -3,17 +3,20 @@
 #include "trait.h"
 
 #define TRAIT_FACTORY(trait_type, trait_str, trait_func, ...)           \
-  trait_s** trait = self->traits;                                       \
-  while(trait) {                                                        \
-    if (!strcmp((*trait)->trait_name, trait_str)) {                     \
-      trait_type* instance = *(trait_type**) trait;                     \
-      instance->trait_func( __VA_ARGS__ );                              \
-      return TRAIT_SUCCESS;                                             \
-    } else {                                                            \
-      trait++;                                                          \
+  do {                                                                  \
+    trait_s** trait = self->traits;                                     \
+    while(trait) {                                                      \
+      if (!strcmp((*trait)->trait_name, trait_str)) {                   \
+        trait_type* instance = *(trait_type**) trait;                   \
+        instance->trait_func( __VA_ARGS__ );                            \
+        return TRAIT_SUCCESS;                                           \
+      } else {                                                          \
+        trait++;                                                        \
+      }                                                                 \
     }                                                                   \
     return TRAIT_NOT_FOUND;                                             \
-  }                                                                   
+  }                                                                     \
+  while(0)
 
 
 
