@@ -10,9 +10,7 @@ static void maybe_a_pure(base_s* self, void* data);
 static void maybe_a_ap(base_s* self, base_s* a, base_s* b);
 
 static void init_maybe(maybe_s* self);
-static inline bool is_nothing(maybe_s* self);
 
-int data_marker = 0;
 
 void just(maybe_s* self, void* data)
 {
@@ -27,7 +25,6 @@ void nothing(maybe_s* self)
   self->maybe_e = MAYBE_NOTHING;
 }
 
-
 void maybe_m_return(base_s* _self, void* data)
 {
   maybe_s* self = (maybe_s*) _self;
@@ -39,10 +36,11 @@ void maybe_m_bind(base_s* _self, m_bind_callback cb, base_s* _next)
 {
   maybe_s* self = (maybe_s*) _self;
   maybe_s* next = (maybe_s*) _next;
-  if (is_nothing(self) && self != next && !is_nothing(next)) {
-    next->maybe_e = MAYBE_NOTHING;
-    if (next->data > &data_marker) free(next->data);
-    next->data = NULL;
+  if (is_nothing(self) && self != next) {
+    // check if it is ok to overwrite next
+    // should we implement dealloc for next?
+    // assert next->data == NULL?
+    nothing(next);
     return;
   }
   cb(self->data, _next);
@@ -52,10 +50,8 @@ static void maybe_f_fmap(base_s* _self, base_s* _next, f_fmap_callback cb)
 {
   maybe_s* self = (maybe_s*) _self;
   maybe_s* next = (maybe_s*) _next;
-  if (is_nothing(self) && self != next && !is_nothing(next)) {
-    next->maybe_e = MAYBE_NOTHING;
-    if (next->data > &data_marker) free(next->data);
-    next->data = NULL;
+  if (is_nothing(self) && self != next) {
+    nothing(next);
     return;
   }
   cb(self->data, &next->data);
@@ -70,9 +66,7 @@ static void maybe_a_pure(base_s* _self, void* data)
 static void maybe_a_ap(base_s* _self, base_s* _a, base_s* _b)
 {
   maybe_s* self = (maybe_s*) _self;
-  maybe_s* a = (maybe_s*) _a;
-  maybe_s* b = (maybe_s*) _b;
-  self->apply(a->data, &b->data);
+  maybe_f_fmap(_a, _b, self->apply);
 }
 
 
@@ -100,7 +94,7 @@ static void init_maybe(maybe_s* self)
 
 }
 
-static inline bool is_nothing(maybe_s* self) 
+bool is_nothing(maybe_s* self) 
 {
   return self->maybe_e == MAYBE_NOTHING;
 }

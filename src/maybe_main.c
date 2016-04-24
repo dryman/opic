@@ -19,8 +19,14 @@ int main (int argc, char** argv)
   maybe_s maybe_applicative = {};
   just(&maybe_applicative, &my_fmap);
   a_ap((base_s*)&maybe_applicative, (base_s*)&maybe, (base_s*)&maybe);
-  
-  printf("just %d\n", *(int*)maybe.data);
+
+  maybe_s maybe_nothing = {};
+  nothing(&maybe_nothing);
+
+  a_ap((base_s*)&maybe_applicative, (base_s*)&maybe_nothing, (base_s*)&maybe);
+
+  print_maybe(maybe, "%d", int);
+  // printf("just %d\n", *(int*)maybe.data);
   return 0;
 }
   
