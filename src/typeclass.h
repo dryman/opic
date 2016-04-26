@@ -110,44 +110,6 @@ TC_DECLARE_METHOD(m_bind, TCObject* self, m_bind_callback cb, TCObject* next);
 TC_DECLARE_METHOD(m_then, TCObject* self, TCObject* next);
 TC_DECLARE_TYPECLASS(Monad);
 
-void m_return(TCObject* self, void* data) {
-  TC_TYPECLASS_METHOD_FACTORY(Monad, m_return, self->isa, self, data);
-}
-
-void m_bind(TCObject* self, m_bind_callback cb, TCObject* next) {
-  TC_TYPECLASS_METHOD_FACTORY(Monad, m_bind,  self->isa, self, cb, next);
-}
-
-void m_then(TCObject* self, TCObject* next) {
-  TC_TYPECLASS_METHOD_FACTORY(Monad, m_then, self->isa, self, next);
-}
-
-enum maybe_e {
-  MAYBE_JUST,
-  MAYBE_NOTHING,
-};
-
-typedef struct Maybe {
-  struct TCObject;
-  enum maybe_e maybe_e;
-  union {
-    void* data;
-    void (*apply)(void*, void**);
-  };
-} Maybe;
-
-static pthread_once_t _Maybe_pthread_once = PTHREAD_ONCE_INIT;
-static Class _Maybe_klass;
-static void _Maybe_klass_init();
-void Maybe_new(Maybe* self) {
-  pthread_once( &_Maybe_pthread_once, &_Maybe_klass_init);
-  self->isa = &_Maybe_klass;
-}
-
-static (void)_Maybe_klass_init() {
-  _Maybe_klass.traits = calloc(sizeof(void*), 2);
-  TC_CLASS_ADD_TYPECLASS(_Maybe_klass, Monad, 0);
-}
  
 #ifdef __cplusplus
 }
