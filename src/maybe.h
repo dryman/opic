@@ -25,6 +25,8 @@ typedef struct Maybe {
 } Maybe;
 
 void Maybe_new(Maybe* self);
+void just(Maybe* self, void* data);
+void nothing(Maybe* self);
 
 void Maybe_m_return(TCObject* _self, void* data);
 void Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next);

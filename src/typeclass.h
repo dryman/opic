@@ -1,6 +1,7 @@
 #ifndef TYPECLASS_H
 #define TYPECLASS_H 1
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -65,10 +66,16 @@ typedef _Atomic ClassMethod AtomicClassMethod;
 
 // Simple fast universal hasing
 // possible way to avoid collision: linear probing + simple tabular hasing
+// size_t idx = ((size_t)ISA * 31) >> (sizeof(size_t)*8 - 16);
+      /*
+      In future we should use debug flag to enable these
+      printf("ISA matched. ISA: %p, fn: %p\n", method.isa, method.fn); \
+      printf("ISA mismatch.\n"); \
+      */
 #define TC_TYPECLASS_METHOD_FACTORY(TC_TYPE, METHOD, ISA,...)        \
   do { \
     static AtomicClassMethod method_cache[16]; \
-    size_t idx = ((size_t)ISA * 31) >> (sizeof(size_t)*8 - 16); \
+    size_t idx = ((size_t)ISA >> 3) & 0x0F; \
     ClassMethod method; \
     method = atomic_load(&method_cache[idx]); \
     TC_METHOD_TYPE(METHOD)* fn = NULL; \
