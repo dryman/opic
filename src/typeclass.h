@@ -104,13 +104,6 @@ typedef _Atomic ClassMethod AtomicClassMethod;
   } while (0);
 
 
-typedef void (*m_bind_callback)(void*, TCObject*);
-
-#define Monad_TC_METHODS m_return, m_bind, m_then
-TC_DECLARE_METHOD(m_return, TCObject* self, void* data);
-TC_DECLARE_METHOD(m_bind, TCObject* self, m_bind_callback cb, TCObject* next);
-TC_DECLARE_METHOD(m_then, TCObject* self, TCObject* next);
-TC_DECLARE_TYPECLASS(Monad);
 
  
 #ifdef __cplusplus

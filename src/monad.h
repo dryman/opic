@@ -3,25 +3,26 @@
 
 #include "typeclass.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // return :: a -> m a
 // (>>=) :: m a -> (a -> m b) -> m b
 // (>>) :: m a -> m b -> m b
 
-#define MONAD_SIG "Monad"
+typedef void (*m_bind_callback)(void*, TCObject*);
 
-typedef void (*m_bind_callback)(void*, Object*);
-int m_return(void* data, Object* next);
-int m_bind(Object* self, m_bind_callback cb, Object* next);
-int m_then(Object* self, Object* next);
+#define Monad_TC_METHODS m_return, m_bind, m_then
+TC_DECLARE_METHOD(m_return, TCObject* self, void* data);
+TC_DECLARE_METHOD(m_bind, TCObject* self, m_bind_callback cb, TCObject* next);
+TC_DECLARE_METHOD(m_then, TCObject* self, TCObject* next);
+TC_DECLARE_TYPECLASS(Monad);
 
-typedef struct Monad {
-  struct Typeclass;
-  void (*m_return)(void* data, Object* next);
-  void (*m_bind)(Object* self, m_bind_callback cb, Object* next);
-  void (*m_then)(Object* self, Object* next);
-} Monad;
+void default_m_then(TCObject* self, TCObject* next);
 
-void default_m_then(base_s* self, Object* next);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif

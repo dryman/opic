@@ -1,100 +1,79 @@
 #include <stdbool.h>
-#include <stdlib.h>
-#include "trait.h"
+#include <pthread.h>
+#include <stdio.h>
+#include "typeclass.h"
 #include "maybe.h"
 
-static void maybe_m_return(base_s* self, void* data);
-static void maybe_m_bind(base_s* self, m_bind_callback cb, base_s* next);
-static void maybe_f_fmap(base_s* self, base_s* next, f_fmap_callback cb);
-static void maybe_a_pure(base_s* self, void* data);
-static void maybe_a_ap(base_s* self, base_s* a, base_s* b);
+static pthread_once_t _Maybe_pthread_once = PTHREAD_ONCE_INIT;
+static Class _Maybe_klass;
+static void _Maybe_klass_init();
 
-static void init_maybe(maybe_s* self);
+void Maybe_new(Maybe* self) {
+  pthread_once( &_Maybe_pthread_once, &_Maybe_klass_init);
+  self->isa = &_Maybe_klass;
+}
 
+static void _Maybe_klass_init() {
+  _Maybe_klass.traits = calloc(sizeof(void*), 2);
+  TC_CLASS_ADD_TYPECLASS(Maybe,_Maybe_klass, Monad, 0);
+}
 
-void just(maybe_s* self, void* data)
-{
-  if (!self->traits) init_maybe(self);
+void just(Maybe* self, void* data) {
+  Maybe_new(self);
   self->maybe_e = MAYBE_JUST;
   self->data = data;
 }
 
-void nothing(maybe_s* self)
-{
-  if (!self->traits) init_maybe(self);
+void nothing(Maybe* self) {
+  Maybe_new(self);
   self->maybe_e = MAYBE_NOTHING;
 }
 
-void maybe_m_return(base_s* _self, void* data)
+bool is_nothing(Maybe* self) 
 {
-  maybe_s* self = (maybe_s*) _self;
+  return self->maybe_e == MAYBE_NOTHING;
+}
+
+
+void Maybe_m_return(TCObject* _self, void* data)
+{
+  Maybe* self = (Maybe*) _self;
   self->maybe_e = MAYBE_JUST;
   self->data = data;
 }
 
-void maybe_m_bind(base_s* _self, m_bind_callback cb, base_s* _next)
+void Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next)
 {
-  maybe_s* self = (maybe_s*) _self;
-  maybe_s* next = (maybe_s*) _next;
+  Maybe* self = (Maybe*) _self;
+  Maybe* next = (Maybe*) _next;
   if (is_nothing(self) && self != next) {
-    // check if it is ok to overwrite next
-    // should we implement dealloc for next?
-    // assert next->data == NULL?
     nothing(next);
     return;
   }
   cb(self->data, _next);
 }
 
-static void maybe_f_fmap(base_s* _self, base_s* _next, f_fmap_callback cb)
+void Maybe_m_then(TCObject* self, TCObject* next) { }
+
+void Maybe_f_fmap(TCObject* _self, TCObject* _next, f_fmap_callback cb)
 {
-  maybe_s* self = (maybe_s*) _self;
-  maybe_s* next = (maybe_s*) _next;
+  Maybe* self = (Maybe*) _self;
+  Maybe* next = (Maybe*) _next;
   if (is_nothing(self) && self != next) {
     nothing(next);
     return;
   }
   cb(self->data, &next->data);
 }
-
-static void maybe_a_pure(base_s* _self, void* data)
+  
+void Maybe_a_pure(TCObject* _self, void* data)
 {
-  maybe_s* self = (maybe_s*) _self;
+  Maybe* self = (Maybe*) _self;
   self->data = data;
 }
-  
-static void maybe_a_ap(base_s* _self, base_s* _a, base_s* _b)
+
+void Maybe_a_ap(TCObject* _self, TCObject* _a, TCObject* _b)
 {
-  maybe_s* self = (maybe_s*) _self;
-  maybe_f_fmap(_a, _b, self->apply);
-}
-
-
-static void init_maybe(maybe_s* self)
-{
-  self->traits = calloc(sizeof(void*),4);
-  
-  monad_s* monad = malloc(sizeof(monad_s));
-  monad->trait_name = MONAD_TRAIT;
-  monad->m_return = &maybe_m_return;
-  monad->m_bind = &maybe_m_bind;
-  monad->m_then = &default_m_then;
-  self->traits[0] = (trait_s*) monad;
-
-  functor_s* functor = malloc(sizeof(functor_s));
-  functor->trait_name = FUNCTOR_TRAIT;
-  functor->f_fmap = &maybe_f_fmap;
-  self->traits[1] = (trait_s*) functor;
-
-  applicative_s* applicative = malloc(sizeof(applicative_s));
-  applicative->trait_name = APPLICATIVE_TRAIT;
-  applicative->a_pure = &maybe_a_pure;
-  applicative->a_ap = &maybe_a_ap;
-  self->traits[2] = (trait_s*)applicative;
-
-}
-
-bool is_nothing(maybe_s* self) 
-{
-  return self->maybe_e == MAYBE_NOTHING;
+  Maybe* self = (Maybe*) _self;
+  Maybe_f_fmap(_a, _b, self->apply);
 }

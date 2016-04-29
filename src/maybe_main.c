@@ -1,32 +1,21 @@
+#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include "trait.h"
+#include "typeclass.h"
 #include "maybe.h"
 
-void my_fmap(void* _a, void**_b) {
+static void my_bind(void* _a, TCObject*_b) {
   int* a = (int*) _a;
-  int** b = (int**) _b;
-  **b = *a +1;
+  Maybe* b = (Maybe*) _b;
+  int* b_data = (int*)b->data;
+  *b_data = *a + 1;
 }
 
-int main (int argc, char** argv) 
-{
-  maybe_s maybe = {};
+int main(int argc, char** argv) {
+  Maybe a = {};
   int x = 3;
-  just(&maybe, &x);
-  f_fmap((base_s*)&maybe, (base_s*)&maybe, &my_fmap);
-
-  maybe_s maybe_applicative = {};
-  just(&maybe_applicative, &my_fmap);
-  a_ap((base_s*)&maybe_applicative, (base_s*)&maybe, (base_s*)&maybe);
-
-  maybe_s maybe_nothing = {};
-  nothing(&maybe_nothing);
-
-  a_ap((base_s*)&maybe_applicative, (base_s*)&maybe_nothing, (base_s*)&maybe);
-
-  print_maybe(maybe, "%d", int);
-  // printf("just %d\n", *(int*)maybe.data);
-  return 0;
+  just(&a,&x);
+  m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
+  m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
+  m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
+  printf("%d\n",*(int*)a.data);
 }
-  
