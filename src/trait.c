@@ -53,6 +53,6 @@ int a_pure(base_s* self, void* data) {
   APPLICATIVE_FACTORY(a_pure, self, data);
 }
 
-int a_ap(base_s* self, base_s* next) {
-  APPLICATIVE_FACTORY(a_ap, self, next);
+int a_ap(base_s* self, base_s* a, base_s* b) {
+  APPLICATIVE_FACTORY(a_ap, self, a, b);
 }

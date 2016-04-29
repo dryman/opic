@@ -1,23 +1,42 @@
 #ifndef MAYBE_H
 #define MAYBE_H 1
 
-#include "trait.h"
+#include "typeclass.h"
+#include "monad.h"
+#include "functor.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 enum maybe_e {
   MAYBE_JUST,
   MAYBE_NOTHING,
 };
 
-typedef struct maybe_s {
-  struct base_s;
+typedef struct Maybe {
+  struct TCObject;
   enum maybe_e maybe_e;
   union {
     void* data;
     void (*apply)(void*, void**);
   };
-} maybe_s;
+} Maybe;
 
-void just(maybe_s* self, void* data);
-void nothing(maybe_s* self);
+void Maybe_new(Maybe* self);
+void just(Maybe* self, void* data);
+void nothing(Maybe* self);
+
+void Maybe_m_return(TCObject* _self, void* data);
+void Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next);
+void Maybe_m_then(TCObject* self, TCObject* next);
+void Maybe_f_fmap(TCObject* self, TCObject* next, f_fmap_callback cb);
+void Maybe_a_pure(TCObject* self, void* data);
+void Maybe_a_ap(TCObject* self, TCObject* a, TCObject* b);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MAYBE_H */
