@@ -7,11 +7,12 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <assert.h>
-#include "foreach.h"
+#include "mr_macro.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 typedef struct TypeClass
 {
@@ -27,6 +28,7 @@ typedef struct TypeClass
 // Maybe we don't need it at all
 typedef struct Class
 {
+  const char* classname; // useful for debugging
   TypeClass** traits;
   // methods should be struct extending class
 } Class;
@@ -55,13 +57,13 @@ typedef _Atomic ClassMethod AtomicClassMethod;
   TC_METHOD_TYPE(METHOD) METHOD;
 
 
-#define _TC_METHOD_DECLARE_FIELD(METHOD) \
-  TC_METHOD_TYPE(METHOD)* METHOD;
+#define _TC_METHOD_DECLARE_FIELD(METHOD,...) \
+  TC_METHOD_TYPE(METHOD)* METHOD
 
 #define TC_DECLARE_TYPECLASS(TC_TYPE)       \
   typedef struct TC_TYPE {                    \
     struct TypeClass;                         \
-    FOR_EACH_A1(_TC_METHOD_DECLARE_FIELD,TC_TYPECLASS_METHODS(TC_TYPE)) \
+    TC_MAP_SC_S0(_TC_METHOD_DECLARE_FIELD, TC_TYPECLASS_METHODS(TC_TYPE)); \
   } TC_TYPE;
 
 // Simple fast universal hasing
@@ -98,15 +100,16 @@ typedef _Atomic ClassMethod AtomicClassMethod;
   } while (0);
 
 
-#define _TC_METHOD_ASSIGN_IMPL(TC_TYPE,KLASS_TYPE,METHOD) \
-  TC_TYPE##_var->METHOD = &KLASS_TYPE##_##METHOD;
+#define _TC_METHOD_ASSIGN_IMPL(METHOD,I,TC_TYPE,KLASS_TYPE,...) \
+  TC_TYPE##_var->METHOD = &KLASS_TYPE##_##METHOD
 
 #define TC_CLASS_ADD_TYPECLASS(KLASS_TYPE, KLASS_OBJ, TC_TYPE, SLOT) \
   do { \
     TC_TYPE* TC_TYPE##_var = malloc(sizeof(TC_TYPE)); \
     TC_TYPE##_var->name = #TC_TYPE; \
-    FOR_EACH_A3(_TC_METHOD_ASSIGN_IMPL,TC_TYPE,KLASS_TYPE, \
-                TC_TYPECLASS_METHODS(TC_TYPE)) \
+    TC_MAP_SC_S2(_TC_METHOD_ASSIGN_IMPL, \
+      TC_TYPE, KLASS_TYPE, \
+      TC_TYPECLASS_METHODS(TC_TYPE)); \
     KLASS_OBJ.traits[SLOT] = (TypeClass*) TC_TYPE##_var; \
   } while (0);
 

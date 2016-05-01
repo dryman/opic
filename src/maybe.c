@@ -14,6 +14,7 @@ void Maybe_new(Maybe* self) {
 }
 
 static void _Maybe_klass_init() {
+  _Maybe_klass.classname = "Maybe";
   _Maybe_klass.traits = calloc(sizeof(void*), 4);
   TC_CLASS_ADD_TYPECLASS(Maybe,_Maybe_klass, Monad, 0);
   TC_CLASS_ADD_TYPECLASS(Maybe,_Maybe_klass, Functor, 1);
