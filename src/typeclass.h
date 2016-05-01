@@ -7,7 +7,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <assert.h>
-#include "mr_macro.h"
+#include "common_macro.h"
 
 #ifdef __cplusplus
 extern "C" {
