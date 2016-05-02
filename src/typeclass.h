@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdatomic.h>
-#include <assert.h>
-#include "mr_macro.h"
+#include "tc_assert.h"
+#include "common_macros.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,14 +85,15 @@ typedef _Atomic ClassMethod AtomicClassMethod;
       fn = (TC_METHOD_TYPE(METHOD)*) method.fn; \
     } else {  \
       TypeClass** trait_it = ISA->traits; \
-      for (TypeClass** trait_it = ISA->traits; trait_it; trait_it++) {\
+      int i=0; \
+      for (TypeClass** trait_it = ISA->traits; *trait_it; trait_it++) {\
         if(!strcmp((*trait_it)->name, #TC_TYPE)) { \
           TC_TYPE* tc = *(TC_TYPE**) trait_it; \
           fn = tc->METHOD; \
           break; \
         } \
       } \
-      assert(fn); \
+      tc_assert(fn,"Class %s does implement %s.%s\n", ISA->classname,#TC_TYPE,#METHOD); \
       method = (ClassMethod){.isa = ISA, .fn = (void*) fn}; \
       atomic_store(&method_cache[idx], method); \
     } \
