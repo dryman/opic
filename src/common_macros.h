@@ -1,5 +1,5 @@
-#ifndef COMMON_MACRO_H
-#define COMMON_MACRO_H 1
+#ifndef COMMON_MACROS_H
+#define COMMON_MACROS_H 1
 
 /* copied from sys/cdefs.h */
 #if defined(__cplusplus)
@@ -22,6 +22,13 @@
 #define unlikely(x) (x)
 #endif
 
+#ifndef INLINE
+# if __GNUC__ && !__GNUC_STDC_INLINE__
+#  define INLINE extern inline
+# else
+#  define INLINE inline
+# endif
+#endif
 
 #define _TC_GET_MACRO_BY_ARGS(_01,_02,_03,_04,_05,_06,_07,_08,_09,_10, \
                               _11,_12,_13,_14,_15,_16,_17,_18,_19,_20, \
@@ -273,4 +280,4 @@
 #define _TC_CNT_111111111111111111111111111111111111 36
 
 
-#endif /* COMMON_MACRO_H */
+#endif /* COMMON_MACROS_H */
