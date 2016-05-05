@@ -1,13 +1,13 @@
-#ifndef COMMON_MACROS_H
-#define COMMON_MACROS_H 1
+#ifndef TC_COMMON_MACROS_H
+#define TC_COMMON_MACROS_H 1
 
 /* copied from sys/cdefs.h */
 #if defined(__cplusplus)
-#define BEGIN_DECLS   extern "C" {
-#define END_DECLS }
+#define TC_BEGIN_DECLS   extern "C" {
+#define TC_END_DECLS }
 #else
-#define BEGIN_DECLS
-#define END_DECLS
+#define TC_BEGIN_DECLS
+#define TC_END_DECLS
 #endif
 /* clang */
 #ifndef __has_builtin
@@ -15,11 +15,11 @@
 #endif
 
 #if defined __GNUC__ || __has_builtin(__builtin_expect)
-#define likely(x) __builtin_expect ((x), 1)
-#define unlikely(x) __builtin_expect ((x), 0)
+#define tc_likely(x) __builtin_expect ((x), 1)
+#define tc_unlikely(x) __builtin_expect ((x), 0)
 #else
-#define likely(x) (x)
-#define unlikely(x) (x)
+#define tc_likely(x) (x)
+#define tc_unlikely(x) (x)
 #endif
 
 #ifndef INLINE
@@ -376,4 +376,4 @@
 #define TC_MR_35_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_34_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
 #define TC_MR_36_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_35_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
 
-#endif /* COMMON_MACROS_H */
+#endif /* TC_COMMON_MACROS_H */

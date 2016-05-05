@@ -1,12 +1,12 @@
 #ifndef MAYBE_H
 #define MAYBE_H 1
 
-#include "../include/common_macros.h"
+#include "../include/tc_common_macros.h"
 #include "../include/typeclass.h"
 #include "monad.h"
 #include "functor.h"
 
-BEGIN_DECLS
+TC_BEGIN_DECLS
 
 enum maybe_e {
   MAYBE_JUST,
@@ -32,6 +32,6 @@ void Maybe_f_fmap(TCObject* self, TCObject* next, f_fmap_callback cb);
 void Maybe_a_pure(TCObject* self, void* data);
 void Maybe_a_ap(TCObject* self, TCObject* a, TCObject* b);
 
-END_DECLS
+TC_END_DECLS
 
 #endif /* MAYBE_H */

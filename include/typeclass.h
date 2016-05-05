@@ -7,9 +7,9 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include "tc_assert.h"
-#include "common_macros.h"
+#include "tc_common_macros.h"
 
-BEGIN_DECLS
+TC_BEGIN_DECLS
 
 typedef struct TypeClass
 {
@@ -43,7 +43,7 @@ typedef struct ClassMethod
 
 typedef _Atomic ClassMethod AtomicClassMethod;
 
-END_DECLS
+TC_END_DECLS
 
 #define TC_METHOD_TYPE(METHOD) METHOD ## _type
 

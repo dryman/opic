@@ -3,7 +3,7 @@
 #include <execinfo.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include "common_macros.h"
+#include "tc_common_macros.h"
 
 #ifndef TC_ASSERT_H
 #define TC_ASSERT_H 1
@@ -33,7 +33,7 @@
 
 #define tc_assert(X, ...) \
  do{ \
-   if (unlikely(!(X))) { \
+   if (tc_unlikely(!(X))) { \
      fprintf(stderr,"Assertion failed: %s (%s:%d)\n", __func__, __FILE__, __LINE__); \
      fprintf(stderr,"Error message: " __VA_ARGS__); \
      tc_stacktrace(stderr); \
@@ -43,7 +43,7 @@
 
 #define tc_assert_diagnose(X,cb, ...) \
   do { \
-   if (unlikely(!(X))) { \
+   if (tc_unlikely(!(X))) { \
      fprintf(stderr,"Assertion failed: %s (%s:%d)\n", __func__, __FILE__, __LINE__); \
      (cb)(__VA_ARGS__); \
      tc_stacktrace(stderr); \
