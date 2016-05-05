@@ -1,8 +1,8 @@
 #ifndef MAYBE_H
 #define MAYBE_H 1
 
-#include "common_macros.h"
-#include "typeclass.h"
+#include "../include/common_macros.h"
+#include "../include/typeclass.h"
 #include "monad.h"
 #include "functor.h"
 

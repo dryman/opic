@@ -1,6 +1,8 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include "typeclass.h"
+#include "../include/typeclass.h"
+#include "monad.h"
+#include "functor.h"
 #include "maybe.h"
 
 static void my_bind(void* _a, TCObject*_b) {
@@ -22,7 +24,7 @@ int main(int argc, char** argv) {
   just(&a,&x);
   Maybe b = {};
   m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
-  a_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
+  m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
   m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
   f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);
   f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);

@@ -1,7 +1,7 @@
 #ifndef MONAD_H
 #define MONAD_H 1
 
-#include "typeclass.h"
+#include "../include/typeclass.h"
 
 #ifdef __cplusplus
 extern "C" {

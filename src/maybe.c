@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <stdio.h>
-#include "typeclass.h"
+#include "../include/typeclass.h"
 #include "maybe.h"
 #include "monad.h"
 #include "functor.h"

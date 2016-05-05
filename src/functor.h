@@ -1,6 +1,6 @@
 #ifndef FUNCTOR_H
 #define FUNCTOR_H 1
-#include "typeclass.h"
+#include "../include/typeclass.h"
 
 // fmap :: (a -> b) -> f a -> f b
 typedef void (*f_fmap_callback)(void* a, void** b);
