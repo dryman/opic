@@ -1,14 +1,12 @@
 #ifndef MAYBE_H
 #define MAYBE_H 1
 
+#include "common_macros.h"
 #include "typeclass.h"
 #include "monad.h"
 #include "functor.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+BEGIN_DECLS
 
 enum maybe_e {
   MAYBE_JUST,
@@ -24,7 +22,6 @@ typedef struct Maybe {
   };
 } Maybe;
 
-void Maybe_new(Maybe* self);
 void just(Maybe* self, void* data);
 void nothing(Maybe* self);
 
@@ -35,8 +32,6 @@ void Maybe_f_fmap(TCObject* self, TCObject* next, f_fmap_callback cb);
 void Maybe_a_pure(TCObject* self, void* data);
 void Maybe_a_ap(TCObject* self, TCObject* a, TCObject* b);
 
-#ifdef __cplusplus
-}
-#endif
+END_DECLS
 
 #endif /* MAYBE_H */

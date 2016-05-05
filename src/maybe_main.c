@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
   Maybe a = {};
   int x = 3;
   just(&a,&x);
+  Maybe b = {};
   m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
   m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
   m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);

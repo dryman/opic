@@ -9,10 +9,7 @@
 #include "tc_assert.h"
 #include "common_macros.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+BEGIN_DECLS
 
 typedef struct TypeClass
 {
@@ -46,7 +43,7 @@ typedef struct ClassMethod
 
 typedef _Atomic ClassMethod AtomicClassMethod;
 
-
+END_DECLS
 
 #define TC_METHOD_TYPE(METHOD) METHOD ## _type
 
@@ -78,6 +75,7 @@ typedef _Atomic ClassMethod AtomicClassMethod;
   do { \
     static AtomicClassMethod method_cache[16]; \
     size_t idx = ((size_t)ISA >> 3) & 0x0F; \
+    tc_assert((ISA), "Class ISA is null\n"); \
     ClassMethod method; \
     method = atomic_load(&method_cache[idx]); \
     TC_METHOD_TYPE(METHOD)* fn = NULL; \
@@ -101,24 +99,44 @@ typedef _Atomic ClassMethod AtomicClassMethod;
   } while (0);
 
 
-#define _TC_METHOD_ASSIGN_IMPL(METHOD,I,TC_TYPE,KLASS_TYPE,...) \
-  TC_TYPE##_var->METHOD = &KLASS_TYPE##_##METHOD
 
-#define TC_CLASS_ADD_TYPECLASS(KLASS_TYPE, KLASS_OBJ, TC_TYPE, SLOT) \
+/*
+#define TC_CLASS_DECLARE_TC_METHODS(KLASS) \
+  void KLASS ## _init(KLASS*); \
+  TC_MAP_SC_S1(_TC_CLASS_DECLARE_TC_METHOD,KLASS,
+
+#define _TC_CLASS_DECLARE_TC_METHOD(METHOD,I,KLASS,...) \
+  TC_METHOD_TYPE(METHOD) KLASS ## METHOD;
+ */ 
+
+#define TC_CLASS_OBJ(KLASS) KLASS ## _klass_
+#define TC_CLASS_PONCE_VAR(KLASS) KLASS ## _pthread_once_ 
+
+#define TC_CLASS_INIT_FACTORY(KLASS,...) \
+static pthread_once_t TC_CLASS_PONCE_VAR(KLASS) = PTHREAD_ONCE_INIT; \
+static Class TC_CLASS_OBJ(KLASS); \
+static void KLASS##_pthread_once_init_() { \
+  TC_CLASS_OBJ(KLASS).classname = #KLASS; \
+  TC_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), TC_LENGTH(__VA_ARGS__) + 1); \
+  TC_MAP_SC_S1(TC_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__); \
+} \
+void KLASS##_init(KLASS* self) { \
+  pthread_once( &TC_CLASS_PONCE_VAR(KLASS), &KLASS##_pthread_once_init_); \
+  self->isa = &TC_CLASS_OBJ(KLASS); \
+} \
+  
+#define TC_CLASS_ADD_TYPECLASS(TC_TRAIT_TYPE, SLOT, KLASS_TYPE,...) \
   do { \
-    TC_TYPE* TC_TYPE##_var = malloc(sizeof(TC_TYPE)); \
-    TC_TYPE##_var->name = #TC_TYPE; \
-    TC_MAP_SC_S2(_TC_METHOD_ASSIGN_IMPL, \
-      TC_TYPE, KLASS_TYPE, \
-      TC_TYPECLASS_METHODS(TC_TYPE)); \
-    KLASS_OBJ.traits[SLOT] = (TypeClass*) TC_TYPE##_var; \
+    TC_TRAIT_TYPE* TC_TRAIT_TYPE##_var = malloc(sizeof(TC_TRAIT_TYPE)); \
+    TC_TRAIT_TYPE##_var->name = #TC_TRAIT_TYPE; \
+    TC_MAP_SC_S2_(_TC_METHOD_ASSIGN_IMPL, \
+      TC_TRAIT_TYPE, KLASS_TYPE, \
+      TC_TYPECLASS_METHODS(TC_TRAIT_TYPE)); \
+    TC_CLASS_OBJ(KLASS_TYPE).traits[SLOT] = (TypeClass*) TC_TRAIT_TYPE##_var; \
   } while (0);
 
+#define _TC_METHOD_ASSIGN_IMPL(METHOD,I,TC_TRAIT_TYPE,KLASS_TYPE,...) \
+  TC_TRAIT_TYPE##_var->METHOD = &KLASS_TYPE##_##METHOD
 
-
- 
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* TYPECLASS_H */
