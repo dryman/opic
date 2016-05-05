@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
   just(&a,&x);
   Maybe b = {};
   m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
-  m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
+  a_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
   m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
   f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);
   f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);

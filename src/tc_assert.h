@@ -5,6 +5,19 @@
 #include <stdarg.h>
 #include "common_macros.h"
 
+#ifndef TC_ASSERT_H
+#define TC_ASSERT_H 1
+#define tc_stacktrace(stream) \
+  do {\
+    void* stack[TC_ASSERT_STACK_LIMIT]; \
+    size_t size; \
+    char **strings; \
+    size = backtrace(stack, TC_ASSERT_STACK_LIMIT); \
+    backtrace_symbols_fd(stack,size,fileno(stream)); \
+    abort(); \
+  } while(0)
+
+#endif /* TC_ASSERT_H */
 
 /*
  * Unlike other ANSI header files, <tc_assert.h> may usefully be included
@@ -23,30 +36,17 @@
    if (unlikely(!(X))) { \
      fprintf(stderr,"Assertion failed: %s (%s:%d)\n", __func__, __FILE__, __LINE__); \
      fprintf(stderr,"Error message: " __VA_ARGS__); \
-     _tc_stacktrace; \
+     tc_stacktrace(stderr); \
    } \
  } while(0)
 
-#define _tc_stacktrace \
-  do {\
-    void* stack[TC_ASSERT_STACK_LIMIT]; \
-    size_t size, i; \
-    char **strings; \
-    size = backtrace(stack, TC_ASSERT_STACK_LIMIT); \
-    strings = backtrace_symbols(stack, size); \
-    for(i=0;i<size;i++){ \
-      fprintf(stderr,"%s\n",strings[i]); \
-    } \
-    free(strings); \
-    abort(); \
-  } while(0)
 
 #define tc_assert_diagnose(X,cb, ...) \
   do { \
    if (unlikely(!(X))) { \
      fprintf(stderr,"Assertion failed: %s (%s:%d)\n", __func__, __FILE__, __LINE__); \
      (cb)(__VA_ARGS__); \
-     _tc_stacktrace; \
+     tc_stacktrace(stderr); \
    } \
   } while(0)
 
