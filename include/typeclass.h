@@ -25,7 +25,7 @@ typedef struct TypeClass
 // Maybe we don't need it at all
 typedef struct Class
 {
-  const char* classname; // useful for debugging
+  const char* const classname; // useful for debugging
   TypeClass** traits;
   // methods should be struct extending class
 } Class;
@@ -98,8 +98,6 @@ TC_END_DECLS
     fn(__VA_ARGS__); \
   } while (0);
 
-
-
 /*
 #define TC_CLASS_DECLARE_TC_METHODS(KLASS) \
   void KLASS ## _init(KLASS*); \
@@ -114,14 +112,16 @@ TC_END_DECLS
 
 #define TC_CLASS_INIT_FACTORY(KLASS,...) \
 static pthread_once_t TC_CLASS_PONCE_VAR(KLASS) = PTHREAD_ONCE_INIT; \
-static Class TC_CLASS_OBJ(KLASS); \
+Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS }; \
 static void KLASS##_pthread_once_init_() { \
-  TC_CLASS_OBJ(KLASS).classname = #KLASS; \
   TC_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), TC_LENGTH(__VA_ARGS__) + 1); \
   TC_MAP_SC_S1(TC_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__); \
 } \
-void KLASS##_init(KLASS* self) { \
+void KLASS##_init_class() { \
   pthread_once( &TC_CLASS_PONCE_VAR(KLASS), &KLASS##_pthread_once_init_); \
+} \
+void KLASS##_init(KLASS* self) { \
+  KLASS##_init_class(self); \
   self->isa = &TC_CLASS_OBJ(KLASS); \
 } \
   
