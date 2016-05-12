@@ -1,4 +1,4 @@
-#include "typeclass.h"
+#include "../include/typeclass.h"
 #include "functor.h"
 
 void f_fmap(TCObject* self, TCObject* next, f_fmap_callback cb)

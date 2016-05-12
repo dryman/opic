@@ -1,1 +1,1 @@
-SUBDIRS = src
+SUBDIRS = monad_example include

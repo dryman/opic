@@ -1,13 +1,13 @@
-#ifndef COMMON_MACROS_H
-#define COMMON_MACROS_H 1
+#ifndef TC_COMMON_MACROS_H
+#define TC_COMMON_MACROS_H 1
 
 /* copied from sys/cdefs.h */
 #if defined(__cplusplus)
-#define BEGIN_DECLS   extern "C" {
-#define END_DECLS }
+#define TC_BEGIN_DECLS   extern "C" {
+#define TC_END_DECLS }
 #else
-#define BEGIN_DECLS
-#define END_DECLS
+#define TC_BEGIN_DECLS
+#define TC_END_DECLS
 #endif
 /* clang */
 #ifndef __has_builtin
@@ -15,11 +15,11 @@
 #endif
 
 #if defined __GNUC__ || __has_builtin(__builtin_expect)
-#define likely(x) __builtin_expect ((x), 1)
-#define unlikely(x) __builtin_expect ((x), 0)
+#define tc_likely(x) __builtin_expect ((x), 1)
+#define tc_unlikely(x) __builtin_expect ((x), 0)
 #else
-#define likely(x) (x)
-#define unlikely(x) (x)
+#define tc_likely(x) (x)
+#define tc_unlikely(x) (x)
 #endif
 
 #ifndef INLINE
@@ -47,6 +47,7 @@
 #define TC_MR_S3(M,R,S1,S2,S3,      ...) TC_MR_S4(M,R,S1,S2,S3,,__VA_ARGS__)
 #define TC_MR_S4(M,R,S1,S2,S3,S4,   ...) TC_MR_S5(M,R,S1,S2,S3,S4,,__VA_ARGS__)
 #define TC_MR_S5(M,R,S1,S2,S3,S4,S5,...) TC_MR_S6(M,R,S1,S2,S3,S4,S5,,__VA_ARGS__)
+
 
 #define TC_M_IDENTITY(X,...) X
 #define TC_R_SPACE(X,ACC,...) X ACC
@@ -127,7 +128,7 @@
    TC_LEN_16, TC_LEN_15, TC_LEN_14, TC_LEN_13, \
    TC_LEN_12, TC_LEN_11, TC_LEN_10, TC_LEN_09, \
    TC_LEN_08, TC_LEN_07, TC_LEN_06, TC_LEN_05, \
-   TC_LEN_04, TC_LEN_03, TC_LEN_02, TC_LEN_01,)(__VA_ARGS__)
+   TC_LEN_04, TC_LEN_03, TC_LEN_02, TC_LEN_01,)
 
 #define TC_MR_01(I, M, R, S1, S2, S3, S4, S5, S6, X)        M(X,I,S1,S2,S3,S4,S5,S6)
 #define TC_MR_02(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_01(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
@@ -279,5 +280,100 @@
 #define _TC_CNT_11111111111111111111111111111111111 35
 #define _TC_CNT_111111111111111111111111111111111111 36
 
+/* same macros in with postfix _ to work around nested macro expansions */
 
-#endif /* COMMON_MACROS_H */
+#define TC_MR_S0_(M,R,               ...) TC_MR_S1_(M,R,,__VA_ARGS__)
+#define TC_MR_S1_(M,R,S1,            ...) TC_MR_S2_(M,R,S1,,__VA_ARGS__)
+#define TC_MR_S2_(M,R,S1,S2,         ...) TC_MR_S3_(M,R,S1,S2,,__VA_ARGS__)
+#define TC_MR_S3_(M,R,S1,S2,S3,      ...) TC_MR_S4_(M,R,S1,S2,S3,,__VA_ARGS__)
+#define TC_MR_S4_(M,R,S1,S2,S3,S4,   ...) TC_MR_S5_(M,R,S1,S2,S3,S4,,__VA_ARGS__)
+#define TC_MR_S5_(M,R,S1,S2,S3,S4,S5,...) TC_MR_S6_(M,R,S1,S2,S3,S4,S5,,__VA_ARGS__)
+
+#define TC_M_IDENTITY_(X,...) X
+#define TC_R_SPACE_(X,ACC,...) X ACC
+#define TC_R_COMMA_(X,ACC,...) X, ACC
+#define TC_R_SEMICOLON_(X,ACC,...) X; ACC
+
+#define TC_MAP_SP_S0_(M,               ...)    TC_MAP_SP_S1_(M,,__VA_ARGS__)
+#define TC_MAP_SP_S1_(M,S1,            ...)    TC_MAP_SP_S2_(M,S1,,__VA_ARGS__)
+#define TC_MAP_SP_S2_(M,S1,S2,         ...)    TC_MAP_SP_S3_(M,S1,S2,,__VA_ARGS__)
+#define TC_MAP_SP_S3_(M,S1,S2,S3,      ...)    TC_MAP_SP_S4_(M,S1,S2,S3,,__VA_ARGS__)
+#define TC_MAP_SP_S4_(M,S1,S2,S3,S4,   ...)    TC_MAP_SP_S5_(M,S1,S2,S3,S4,,__VA_ARGS__)
+#define TC_MAP_SP_S5_(M,S1,S2,S3,S4,S5,...)    TC_MAP_SP_S6_(M,S1,S2,S3,S4,S5,,__VA_ARGS__)
+#define TC_MAP_SP_S6_(M,S1,S2,S3,S4,S5,S6,...) TC_MR_S6_(M,TC_R_SPACE_,S1,S2,S3,S4,S5,S6,__VA_ARGS__)
+
+#define TC_MAP_CM_S0_(M,               ...)    TC_MAP_CM_S1_(M,,__VA_ARGS__)
+#define TC_MAP_CM_S1_(M,S1,            ...)    TC_MAP_CM_S2_(M,S1,,__VA_ARGS__)
+#define TC_MAP_CM_S2_(M,S1,S2,         ...)    TC_MAP_CM_S3_(M,S1,S2,,__VA_ARGS__)
+#define TC_MAP_CM_S3_(M,S1,S2,S3,      ...)    TC_MAP_CM_S4_(M,S1,S2,S3,,__VA_ARGS__)
+#define TC_MAP_CM_S4_(M,S1,S2,S3,S4,   ...)    TC_MAP_CM_S5_(M,S1,S2,S3,S4,,__VA_ARGS__)
+#define TC_MAP_CM_S5_(M,S1,S2,S3,S4,S5,...)    TC_MAP_CM_S6_(M,S1,S2,S3,S4,S5,,__VA_ARGS__)
+#define TC_MAP_CM_S6_(M,S1,S2,S3,S4,S5,S6,...) TC_MR_S6_(M,TC_R_COMMA_,S1,S2,S3,S4,S5,S6,__VA_ARGS__)
+
+#define TC_MAP_SC_S0_(M,               ...)    TC_MAP_SC_S1_(M,,__VA_ARGS__)
+#define TC_MAP_SC_S1_(M,S1,            ...)    TC_MAP_SC_S2_(M,S1,,__VA_ARGS__)
+#define TC_MAP_SC_S2_(M,S1,S2,         ...)    TC_MAP_SC_S3_(M,S1,S2,,__VA_ARGS__)
+#define TC_MAP_SC_S3_(M,S1,S2,S3,      ...)    TC_MAP_SC_S4_(M,S1,S2,S3,,__VA_ARGS__)
+#define TC_MAP_SC_S4_(M,S1,S2,S3,S4,   ...)    TC_MAP_SC_S5_(M,S1,S2,S3,S4,,__VA_ARGS__)
+#define TC_MAP_SC_S5_(M,S1,S2,S3,S4,S5,...)    TC_MAP_SC_S6_(M,S1,S2,S3,S4,S5,,__VA_ARGS__)
+#define TC_MAP_SC_S6_(M,S1,S2,S3,S4,S5,S6,...) TC_MR_S6_(M,TC_R_SEMICOLON_,S1,S2,S3,S4,S5,S6,__VA_ARGS__)
+
+#define TC_FOLDR_S0_(R,                  ...) TC_FOLDR_S6_(R,,__VA_ARGS__)
+#define TC_FOLDR_S1_(R,S1,               ...) TC_FOLDR_S6_(R,S1,,__VA_ARGS__)
+#define TC_FOLDR_S2_(R,S1,S2,            ...) TC_FOLDR_S6_(R,S1,S2,,__VA_ARGS__)
+#define TC_FOLDR_S3_(R,S1,S2,S3,         ...) TC_FOLDR_S6_(R,S1,S2,S3,,__VA_ARGS__)
+#define TC_FOLDR_S4_(R,S1,S2,S3,S4,      ...) TC_FOLDR_S6_(R,S1,S2,S3,S4,,__VA_ARGS__)
+#define TC_FOLDR_S5_(R,S1,S2,S3,S4,S5,   ...) TC_FOLDR_S6_(R,S1,S2,S3,S4,S5,,__VA_ARGS__)
+#define TC_FOLDR_S6_(R,S1,S2,S3,S4,S5,S6,...) TC_MR_S6_(TC_M_IDENTITY_,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__)
+
+
+#define TC_MR_S6_(M,R,S1,S2,S3,S4,S5,S6,...) \
+  _TC_GET_MACRO_BY_ARGS(__VA_ARGS__, \
+   TC_MR_36_, TC_MR_35_, TC_MR_34_, TC_MR_33_, \
+   TC_MR_32_, TC_MR_31_, TC_MR_30_, TC_MR_29_, \
+   TC_MR_28_, TC_MR_27_, TC_MR_26_, TC_MR_25_, \
+   TC_MR_24_, TC_MR_23_, TC_MR_22_, TC_MR_21_, \
+   TC_MR_20_, TC_MR_19_, TC_MR_18_, TC_MR_17_, \
+   TC_MR_16_, TC_MR_15_, TC_MR_14_, TC_MR_13_, \
+   TC_MR_12_, TC_MR_11_, TC_MR_10_, TC_MR_09_, \
+   TC_MR_08_, TC_MR_07_, TC_MR_06_, TC_MR_05_, \
+   TC_MR_04_, TC_MR_03_, TC_MR_02_, TC_MR_01_,)(_TC_CNT_,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__)
+
+#define TC_MR_01_(I, M, R, S1, S2, S3, S4, S5, S6, X)        M(X,I,S1,S2,S3,S4,S5,S6)
+#define TC_MR_02_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_01_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_03_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_02_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_04_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_03_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_05_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_04_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_06_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_05_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_07_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_06_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_08_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_07_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_09_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_08_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_10_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_09_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_11_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_10_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_12_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_11_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_13_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_12_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_14_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_13_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_15_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_14_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_16_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_15_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_17_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_16_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_18_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_17_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_19_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_18_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_20_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_19_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_21_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_20_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_22_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_21_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_23_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_22_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_24_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_23_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_25_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_24_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_26_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_25_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_27_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_26_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_28_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_27_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_29_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_28_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_30_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_29_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_31_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_30_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_32_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_31_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_33_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_32_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_34_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_33_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_35_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_34_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+#define TC_MR_36_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), TC_MR_35_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
+
+#endif /* TC_COMMON_MACROS_H */

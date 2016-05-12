@@ -1,11 +1,10 @@
 #ifndef MONAD_H
 #define MONAD_H 1
 
-#include "typeclass.h"
+#include "../include/tc_common_macros.h"
+#include "../include/typeclass.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+TC_BEGIN_DECLS
 
 // return :: a -> m a
 // (>>=) :: m a -> (a -> m b) -> m b
@@ -21,8 +20,6 @@ TC_DECLARE_TYPECLASS(Monad);
 
 void default_m_then(TCObject* self, TCObject* next);
 
-#ifdef __cplusplus
-}
-#endif
+TC_END_DECLS
 
 #endif
