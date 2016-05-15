@@ -50,7 +50,7 @@ TC_END_DECLS
 #define TC_TYPECLASS_METHODS(TC_TYPE) TC_TYPE ## _TC_METHODS
 
 #define TC_DECLARE_METHOD(METHOD, ...) \
-  typedef void TC_METHOD_TYPE(METHOD)(__VA_ARGS__); \
+  typedef int TC_METHOD_TYPE(METHOD)(__VA_ARGS__); \
   TC_METHOD_TYPE(METHOD) METHOD;
 
 
@@ -95,7 +95,7 @@ TC_END_DECLS
       method = (ClassMethod){.isa = ISA, .fn = (void*) fn}; \
       atomic_store(&method_cache[idx], method); \
     } \
-    fn(__VA_ARGS__); \
+    return fn(__VA_ARGS__); \
   } while (0);
 
 /*

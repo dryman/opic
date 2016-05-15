@@ -25,12 +25,12 @@ typedef struct Maybe {
 void just(Maybe* self, void* data);
 void nothing(Maybe* self);
 
-void Maybe_m_return(TCObject* _self, void* data);
-void Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next);
-void Maybe_m_then(TCObject* self, TCObject* next);
-void Maybe_f_fmap(TCObject* self, TCObject* next, f_fmap_callback cb);
-void Maybe_a_pure(TCObject* self, void* data);
-void Maybe_a_ap(TCObject* self, TCObject* a, TCObject* b);
+int Maybe_m_return(TCObject* _self, void* data);
+int Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next);
+int Maybe_m_then(TCObject* self, TCObject* next);
+int Maybe_f_fmap(TCObject* self, TCObject* next, f_fmap_callback cb);
+int Maybe_a_pure(TCObject* self, void* data);
+int Maybe_a_ap(TCObject* self, TCObject* a, TCObject* b);
 
 TC_END_DECLS
 

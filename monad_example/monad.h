@@ -18,7 +18,7 @@ TC_DECLARE_METHOD(m_bind, TCObject* self, m_bind_callback cb, TCObject* next);
 TC_DECLARE_METHOD(m_then, TCObject* self, TCObject* next);
 TC_DECLARE_TYPECLASS(Monad);
 
-void default_m_then(TCObject* self, TCObject* next);
+int default_m_then(TCObject* self, TCObject* next);
 
 TC_END_DECLS
 
