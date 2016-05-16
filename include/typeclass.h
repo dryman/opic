@@ -2,6 +2,7 @@
 #define TYPECLASS_H 1
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -50,7 +51,7 @@ TC_END_DECLS
 #define TC_TYPECLASS_METHODS(TC_TYPE) TC_TYPE ## _TC_METHODS
 
 #define TC_DECLARE_METHOD(METHOD, ...) \
-  typedef int TC_METHOD_TYPE(METHOD)(__VA_ARGS__); \
+  typedef bool TC_METHOD_TYPE(METHOD)(__VA_ARGS__); \
   TC_METHOD_TYPE(METHOD) METHOD;
 
 
