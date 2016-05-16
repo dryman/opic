@@ -26,48 +26,42 @@ bool is_nothing(Maybe* self)
 }
 
 
-bool Maybe_m_return(TCObject* _self, void* data)
+void Maybe_m_return(TCObject* _self, void* data)
 {
   Maybe* self = (Maybe*) _self;
   just(self, data);
-  return true;
 }
 
-bool Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next)
+void Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next)
 {
   Maybe* self = (Maybe*) _self;
   Maybe* next = (Maybe*) _next;
   if (is_nothing(self) && self != next) {
     nothing(next);
-    return true;
   }
   cb(self->data, _next);
-  return true;
 }
 
-bool Maybe_m_then(TCObject* self, TCObject* next) {return 0;}
+void Maybe_m_then(TCObject* self, TCObject* next) {}
 
-bool Maybe_f_fmap(TCObject* _self, TCObject* _next, f_fmap_callback cb)
+void Maybe_f_fmap(TCObject* _self, TCObject* _next, f_fmap_callback cb)
 {
   Maybe* self = (Maybe*) _self;
   Maybe* next = (Maybe*) _next;
   if (is_nothing(self) && self != next) {
     nothing(next);
-    return true;
   }
   cb(self->data, &next->data);
 }
   
-bool Maybe_a_pure(TCObject* _self, void* data)
+void Maybe_a_pure(TCObject* _self, void* data)
 {
   Maybe* self = (Maybe*) _self;
   just(self, data);
-  return true;
 }
 
-bool Maybe_a_ap(TCObject* _self, TCObject* _a, TCObject* _b)
+void Maybe_a_ap(TCObject* _self, TCObject* _a, TCObject* _b)
 {
   Maybe* self = (Maybe*) _self;
   Maybe_f_fmap(_a, _b, self->apply);
-  return true;
 }
