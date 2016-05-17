@@ -99,7 +99,7 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
     
 void* PMFree(PMMemoryManager* ctx, void* obj)
 {
-  tc_assert(!(*(char*)obj), "object %p is already freed\n", obj);
+  tc_assert((*(size_t*)obj), "object %p is already freed\n", obj);
   PMSlot* slot = PMAVLFind(ctx->pointer_map, obj);
   PMSlot_free_obj(slot, obj);
   /* TODO if slot is empty, free the slot */
@@ -132,11 +132,13 @@ void* PMSlot_alloc_obj(PMSlot* self)
   void* obj;
   const size_t obj_size = self->pool->klass->size;
   if (self->pqueue != self->pqueue_next_free) {
+    printf("alloc from pqueue, with slot: %p\n", self);
     obj = *self->pqueue;
     self->pqueue_next_free--;
     *self->pqueue = *self->pqueue_next_free;
     PMSlot_pqueue_heapify(self);
   } else if(self->data_next_free < self->data_bound) {
+    printf("alloc from data chunk, with slot: %p\n", self);
     obj = self->data_next_free;
     self->data_next_free += obj_size;
   } else {
@@ -147,12 +149,16 @@ void* PMSlot_alloc_obj(PMSlot* self)
 
 void PMSlot_free_obj(PMSlot* self, void* obj)
 {
+  printf("freeobj %p with slot %p\n", obj, self);
   const size_t obj_size = self->pool->klass->size;
   memset(obj, 0, obj_size);
+  printf("data_next_free: %p, obj: %p, obj next: %p\n", self->data_next_free, obj, obj+obj_size);
   if (self->data_next_free == obj + obj_size) {
+    printf("recycle to data chunk\n");
     self->data_next_free -= obj_size;
     return;
   }
+  printf("recycle to heap\n");
   *self->pqueue_next_free = obj;
   self->pqueue_next_free++;
   PMSlot_pqueue_heapify(self);
@@ -288,6 +294,7 @@ void PMLPMap_put(PMLPMap* self, Class* key, PMPool* pool)
   unsigned int hash = pointer_hash(key);
   for (unsigned int i = hash % self->size; i < self->size; i++) {
     if (!self->data[i].key) {
+      self->data[i].key = key;
       self->data[i].pool = pool;
       return;
     }

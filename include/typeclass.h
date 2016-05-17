@@ -112,6 +112,9 @@ TC_END_DECLS
 #define TC_CLASS_OBJ(KLASS) KLASS ## _klass_
 #define TC_CLASS_PONCE_VAR(KLASS) KLASS ## _pthread_once_ 
 
+#define TC_DECLARE_CLASS(KLASS) \
+extern Class TC_CLASS_OBJ(KLASS);
+
 #define TC_CLASS_INIT_FACTORY(KLASS,...) \
 static pthread_once_t TC_CLASS_PONCE_VAR(KLASS) = PTHREAD_ONCE_INIT; \
 Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \

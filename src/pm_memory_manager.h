@@ -14,5 +14,7 @@ void PMMemoryManager_destroy(PMMemoryManager*);
 void* PMAlloc(PMMemoryManager* ctx, Class* klass);
 void* PMFree(PMMemoryManager* ctx, void* obj);
 
+#define PM_ALLOC(ctx, KLASS) PMAlloc((ctx), &TC_CLASS_OBJ(KLASS))
+
 TC_END_DECLS
 #endif /* PM_MEMORY_MANAGER_H */
