@@ -27,6 +27,7 @@ typedef struct TypeClass
 typedef struct Class
 {
   const char* const classname; // useful for debugging
+  const size_t size;
   TypeClass** traits;
   // methods should be struct extending class
 } Class;
@@ -113,7 +114,7 @@ TC_END_DECLS
 
 #define TC_CLASS_INIT_FACTORY(KLASS,...) \
 static pthread_once_t TC_CLASS_PONCE_VAR(KLASS) = PTHREAD_ONCE_INIT; \
-Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS }; \
+Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
 static void KLASS##_pthread_once_init_() { \
   TC_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), TC_LENGTH(__VA_ARGS__) + 1); \
   TC_MAP_SC_S1(TC_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__); \
