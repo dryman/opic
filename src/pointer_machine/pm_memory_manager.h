@@ -1,18 +1,20 @@
 #ifndef PM_MEMORY_MANAGER_H
 #define PM_MEMORY_MANAGER_H 1
 
-#include "../../include/typeclass.h"
+#include "pmlinear_probing_map.h"
 
 typedef struct PMMemoryManager PMMemoryManager;
 typedef struct PMPool PMPool;
 typedef struct PMSlot PMSlot;
 
-int PMPool_new(PMPool**);
-void PMPool_destroy(PMPool*);
+int PMMemoryManager_new(PMMemoryManager**);
+void PMMemoryManager_destroy(PMMemoryManager*);
+void* PMAlloc(PMMemoryManager* ctx, Class* klass);
+void* PMFree(PMMemoryManager* ctx, void* obj);
 
 struct PMMemoryManager {
-  PMTypeMap* type_map;
-  PMPointerMap* pointer_map;
+  PMLinearProbingMap* type_map;
+  PMLinearProbingMap* pointer_map;
 };
 
 struct PMPool {
@@ -22,11 +24,12 @@ struct PMPool {
 
 struct PMSlot {
   PMPool* pool;
-  size_t count;
+  size_t size;
   void* data;
-  void* data_unused;
-  size_t* pqueue;
-  size_t* pqueue_unused;
+  void* data_next_free;
+  void* data_bound;
+  void** pqueue;
+  void** pqueue_next_free;
   PMSlot* next;
 };
 

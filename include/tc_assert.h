@@ -11,7 +11,6 @@
   do {\
     void* stack[TC_ASSERT_STACK_LIMIT]; \
     size_t size; \
-    char **strings; \
     size = backtrace(stack, TC_ASSERT_STACK_LIMIT); \
     backtrace_symbols_fd(stack,size,fileno(stream)); \
     abort(); \

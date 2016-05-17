@@ -10,6 +10,7 @@ TC_BEGIN_DECLS
 
 typedef unsigned int (*tc_hash)(void*);
 typedef bool (*tc_equal)(void*, void*);
+typedef void (*tc_destory)(void*);
 
 typedef struct PMLinearProbingMap {
   struct TCObject;
@@ -30,18 +31,17 @@ typedef struct PMLinearProbingMap {
 void PMLinearProbingMap_map_clear(TCObject* self);
 void* PMLinearProbingMap_map_get(TCObject* self, void* key);
 bool PMLinearProbingMap_map_containsKey(TCObject* self, void* key);
-bool PMLinearProbingMap_map_containsValue(TCObject* self, void* value);
 void* PMLinearProbingMap_map_put(TCObject* self, void* key, void* value);
 bool PMLinearProbingMap_map_isEmpty(TCObject* self);
-bool PMLinearProbingMap_map_remove(TCObject* self, void* key);
+void* PMLinearProbingMap_map_remove(TCObject* self, void* key);
 size_t PMLinearProbingMap_map_size(TCObject* self);
 
 /*
  * serialize interface is not ready yet
  */
 
-bool PMLinearProbingMap_new(PMLinearProbingMap** self, tc_hash hash_func, tc_equal equal_func, size_t size);
-void PMLinearProbingMap_destroy(PMLinearProbingMap* self);
+int PMLinearProbingMap_new(PMLinearProbingMap** self, tc_hash hash_func, tc_equal equal_func, size_t size);
+void PMLinearProbingMap_destroy(PMLinearProbingMap* self, tc_destory destory_key, tc_destory destory_value);
 
 TC_END_DECLS
 
