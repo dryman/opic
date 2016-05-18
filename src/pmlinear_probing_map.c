@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include "../../include/tc_assert.h"
+#include "../include/tc_assert.h"
 #include "pmlinear_probing_map.h"
 
 TC_CLASS_INIT_FACTORY(PMLinearProbingMap,Map)

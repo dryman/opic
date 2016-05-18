@@ -76,7 +76,7 @@ void LPTypeMap_put(char* key, Class* value)
 
 bool tc_isa_instance_of(Class* klass, char* trait)
 {
-  for (TypeClss** t = klass->traits; t; t++)
+  for (TypeClass** t = klass->traits; t; t++)
     {
       if (!strcmp((*t)->name, trait))
         return true;

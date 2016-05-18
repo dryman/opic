@@ -2,9 +2,9 @@
 #define PM_LINEAR_PROBING_MAP_H 1
 
 #include <stdbool.h>
-#include "../../include/tc_common_macros.h"
-#include "../../include/tc_map.h"
-#include "../../include/typeclass.h"
+#include "../include/tc_common_macros.h"
+#include "../include/tc_map.h"
+#include "../include/typeclass.h"
 
 TC_BEGIN_DECLS
 

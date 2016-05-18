@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <stdatomic.h>
 #include "tc_assert.h"
 #include "tc_common_macros.h"
@@ -115,7 +114,6 @@ TC_END_DECLS
  */ 
 
 #define TC_CLASS_OBJ(KLASS) KLASS ## _klass_
-#define TC_CLASS_PONCE_VAR(KLASS) KLASS ## _pthread_once_ 
 
 #define TC_DECLARE_ISA(KLASS) \
 extern Class TC_CLASS_OBJ(KLASS);
