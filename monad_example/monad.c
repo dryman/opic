@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include "../include/typeclass.h"
 #include "monad.h"
 
@@ -16,4 +17,4 @@ void m_then(TCObject* self, TCObject* next)
   TC_TYPECLASS_METHOD_FACTORY(Monad, m_then, self->isa, self, next);
 }
 
-void default_m_then(TCObject* self, TCObject* next) {};
+void default_m_then(TCObject* self, TCObject* next) {}

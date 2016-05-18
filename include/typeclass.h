@@ -2,9 +2,9 @@
 #define TYPECLASS_H 1
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <stdatomic.h>
 #include "tc_assert.h"
 #include "tc_common_macros.h"
@@ -26,6 +26,7 @@ typedef struct TypeClass
 typedef struct Class
 {
   const char* const classname; // useful for debugging
+  const size_t size;
   TypeClass** traits;
   // methods should be struct extending class
 } Class;
@@ -43,14 +44,19 @@ typedef struct ClassMethod
 
 typedef _Atomic ClassMethod AtomicClassMethod;
 
+Class* LPTypeMap_get(char* key);
+void LPTypeMap_put(char* key, Class* value);
+bool tc_isa_instance_of(Class* klass, char* trait);
+bool tc_instance_of(TCObject* obj, char* trait);
+
 TC_END_DECLS
 
 #define TC_METHOD_TYPE(METHOD) METHOD ## _type
 
 #define TC_TYPECLASS_METHODS(TC_TYPE) TC_TYPE ## _TC_METHODS
 
-#define TC_DECLARE_METHOD(METHOD, ...) \
-  typedef void TC_METHOD_TYPE(METHOD)(__VA_ARGS__); \
+#define TC_DECLARE_METHOD(METHOD, RET, ...) \
+  typedef RET TC_METHOD_TYPE(METHOD)(__VA_ARGS__); \
   TC_METHOD_TYPE(METHOD) METHOD;
 
 
@@ -95,7 +101,7 @@ TC_END_DECLS
       method = (ClassMethod){.isa = ISA, .fn = (void*) fn}; \
       atomic_store(&method_cache[idx], method); \
     } \
-    fn(__VA_ARGS__); \
+    return fn(__VA_ARGS__); \
   } while (0);
 
 /*
@@ -108,22 +114,35 @@ TC_END_DECLS
  */ 
 
 #define TC_CLASS_OBJ(KLASS) KLASS ## _klass_
-#define TC_CLASS_PONCE_VAR(KLASS) KLASS ## _pthread_once_ 
 
-#define TC_CLASS_INIT_FACTORY(KLASS,...) \
-static pthread_once_t TC_CLASS_PONCE_VAR(KLASS) = PTHREAD_ONCE_INIT; \
-Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS }; \
-static void KLASS##_pthread_once_init_() { \
+#define TC_DECLARE_ISA(KLASS) \
+extern Class TC_CLASS_OBJ(KLASS); \
+KLASS* KLASS##_init_isa(KLASS* self);
+
+#define TC_DEFINE_ISA(KLASS) \
+Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
+__attribute__((constructor)) \
+void define_##KLASS##_ISA() { \
+  LPTypeMap_put(#KLASS, &TC_CLASS_OBJ(KLASS)); \
+} \
+KLASS* KLASS##_init_isa(KLASS* self) { \
+  self->isa = &TC_CLASS_OBJ(KLASS); \
+  return self; \
+}
+
+#define TC_DEFINE_ISA_WITH_TYPECLASSES(KLASS,...) \
+Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
+__attribute__((constructor)) \
+void define_##KLASS##_ISA() { \
+  LPTypeMap_put(#KLASS, &TC_CLASS_OBJ(KLASS)); \
   TC_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), TC_LENGTH(__VA_ARGS__) + 1); \
   TC_MAP_SC_S1(TC_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__); \
 } \
-void KLASS##_init_class() { \
-  pthread_once( &TC_CLASS_PONCE_VAR(KLASS), &KLASS##_pthread_once_init_); \
-} \
-void KLASS##_init(KLASS* self) { \
-  KLASS##_init_class(self); \
+KLASS* KLASS##_init_isa(KLASS* self) { \
   self->isa = &TC_CLASS_OBJ(KLASS); \
-} \
+  return self; \
+}
+
   
 #define TC_CLASS_ADD_TYPECLASS(TC_TRAIT_TYPE, SLOT, KLASS_TYPE,...) \
   do { \

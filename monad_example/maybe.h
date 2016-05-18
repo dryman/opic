@@ -1,6 +1,7 @@
 #ifndef MAYBE_H
 #define MAYBE_H 1
 
+#include <stdbool.h>
 #include "../include/tc_common_macros.h"
 #include "../include/typeclass.h"
 #include "monad.h"
@@ -21,6 +22,8 @@ typedef struct Maybe {
     void (*apply)(void*, void**);
   };
 } Maybe;
+
+TC_DECLARE_ISA(Maybe)
 
 void just(Maybe* self, void* data);
 void nothing(Maybe* self);

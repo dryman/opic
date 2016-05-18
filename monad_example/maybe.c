@@ -6,17 +6,16 @@
 #include "monad.h"
 #include "functor.h"
 
-
-TC_CLASS_INIT_FACTORY(Maybe,Monad,Functor,Applicative)
+TC_DEFINE_ISA_WITH_TYPECLASSES(Maybe,Monad,Functor,Applicative)
 
 void just(Maybe* self, void* data) {
-  Maybe_init(self);
+  Maybe_init_isa(self);
   self->maybe_e = MAYBE_JUST;
   self->data = data;
 }
 
 void nothing(Maybe* self) {
-  Maybe_init(self);
+  Maybe_init_isa(self);
   self->maybe_e = MAYBE_NOTHING;
 }
 
@@ -38,12 +37,11 @@ void Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next)
   Maybe* next = (Maybe*) _next;
   if (is_nothing(self) && self != next) {
     nothing(next);
-    return;
   }
   cb(self->data, _next);
 }
 
-void Maybe_m_then(TCObject* self, TCObject* next) { }
+void Maybe_m_then(TCObject* self, TCObject* next) {}
 
 void Maybe_f_fmap(TCObject* _self, TCObject* _next, f_fmap_callback cb)
 {
@@ -51,7 +49,6 @@ void Maybe_f_fmap(TCObject* _self, TCObject* _next, f_fmap_callback cb)
   Maybe* next = (Maybe*) _next;
   if (is_nothing(self) && self != next) {
     nothing(next);
-    return;
   }
   cb(self->data, &next->data);
 }
