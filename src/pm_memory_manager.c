@@ -1,5 +1,11 @@
+#include <stdio.h>
+#include <limits.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <string.h>
 #include "pm_memory_manager.h"
+#include "tc_serializable.h"
 
 typedef struct PMPool PMPool;
 typedef struct PMSlot PMSlot;
@@ -9,6 +15,8 @@ typedef struct PMLPMapData PMLPMapData;
 struct PMMemoryManager {
   PMLPMap* type_map;
   PMAVLNode* pointer_map;
+  Class** klasses;
+  uint8_t klass_num;
 };
 
 struct PMPool {
@@ -19,6 +27,7 @@ struct PMPool {
 struct PMSlot {
   PMPool* pool;
   size_t size;
+  size_t offset; // only used in serialization
   void* data;
   void* data_next_free;
   void* data_bound;
@@ -60,8 +69,16 @@ static int PMLPMap_new(PMLPMap** self, size_t size);
 static void PMLPMap_destroy(PMLPMap* self);
 static PMPool* PMLPMap_get(PMLPMap* self, Class* key);
 static void PMLPMap_put(PMLPMap* self, Class* key, PMPool* value);
+static void PMSlotExportOffset(PMSlot* self, size_t offset);
 
 static inline unsigned int pointer_hash(void*);
+
+static int ptr_cmp (const void* a, const void* b)
+{
+  if (*(void**)a < *(void**)b) return -1;
+  if (*(void**)a == *(void**)b) return 0;
+  return 1;
+}
 
 int PMMemoryManager_new(PMMemoryManager** self)
 {
@@ -99,11 +116,170 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
     
 void* PMFree(PMMemoryManager* ctx, void* obj)
 {
-  tc_assert((*(size_t*)obj), "object %p is already freed\n", obj);
+  tc_assert((*(Class**)obj), "object %p is already freed\n", obj);
   PMSlot* slot = PMAVLFind(ctx->pointer_map, obj);
   PMSlot_free_obj(slot, obj);
   /* TODO if slot is empty, free the slot */
 }
+
+
+int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
+{
+  void* inbounds[n];
+  size_t inbounds_id[n];
+  va_list args;
+  va_start(args, n);
+  for(uint32_t i = 0; i < n; i++)
+    {
+      inbounds[i] = va_arg(args, void*);
+    }
+  va_end(args);
+
+  int klass_num = 0;
+  for (int i = 0; i < ctx->type_map->size; i++)
+    {
+      Class* k = ctx->type_map->data[i].key;
+      if (k)
+        {
+          tc_assert(tc_isa_instance_of(k, "TCSerializable"),
+            "Class %p %s is not Serializable\n", k, k->classname
+          );
+          klass_num++;
+        }
+    }
+  tc_assert(klass_num <= UINT8_MAX);
+  ctx->klass_num = (uint8_t) klass_num;
+  ctx->klasses = malloc(sizeof(Class*)*klass_num);
+    // TODO assert types not larger than 255
+
+  int klass_idx = 0;
+  for (int i = 0; i < ctx->type_map->size; i++)
+    {
+      if (ctx->type_map->data[i].key)
+        ctx->klasses[klass_idx++] = ctx->type_map->data[i].key;
+    }
+  qsort(ctx->klasses, ctx->klass_num, sizeof(Class*), ptr_cmp);
+
+  /* 1. number of classes we have */
+  fwrite(&ctx->klass_num, sizeof(uint8_t), 1, fd);
+
+  /* 2. Preprocess offset so that PMGetSerializeId can 
+   *    work properly */
+  for (uint8_t i = 0; i < klass_num; i++)
+    {
+      PMPool* pool = PMLPMap_get(ctx->type_map, ctx->klasses[i]);
+      const size_t obj_size = pool->klass->size;
+      size_t offset = 0;
+      PMSlot* slot = pool->slot;
+      while(slot)
+        {
+          slot->offset = offset;
+          offset += (slot->data_next_free - slot->data) / obj_size;
+          slot = slot->next;
+        }
+    }
+
+  /* 3. each klass we serialize:
+   * 3.1 class name
+   * 3.2 packed data len
+   * 3.3 packed data
+   * pqueue data can be restored from null values in the data array
+   */
+  for (uint8_t i = 0; i < klass_num; i++)
+    {
+      // 3.1 class name
+      PMPool* pool;
+      PMSlot* slot;
+      pool = PMLPMap_get(ctx->type_map, ctx->klasses[i]);
+      size_t classname_len = strlen(pool->klass->classname);
+      fwrite(&classname_len, sizeof(size_t), 1, fd);
+      fwrite(pool->klass->classname, 1, classname_len, fd);
+  
+      // 3.2 packed data len
+      const size_t obj_size = pool->klass->size;
+      slot = pool->slot;
+      while(slot->next) 
+        slot = slot->next;
+      size_t total_cnt = slot->offset + 
+        (slot->data_next_free - slot->data) / obj_size;
+      size_t total_size = total_cnt * obj_size;
+      fwrite(&total_size, sizeof(size_t), 1, fd);
+  
+      // 3.3 packed data
+      void* write_buf = malloc(total_size);
+      void* write_buf_next_free = write_buf;
+      slot = pool->slot;
+      while (slot)
+        {
+          size_t copy_size = slot->data_next_free - slot->data;
+          memcpy(write_buf_next_free, slot->data, copy_size);
+          write_buf_next_free += copy_size;
+          slot = slot->next;
+        }
+      size_t write_buf_len = write_buf_next_free - write_buf;
+      tc_assert(write_buf_len  == total_size,
+        "Write buffer size mismatch. write buffer len: %zu,"
+        " slot total len: %zu\n",
+        write_buf_len, total_size);
+      for (void* p = write_buf; p < write_buf_next_free; 
+           p += obj_size)
+        {
+          if (*(Class**)p)
+            {
+              serde_serialize(p, ctx);
+              memset(p, -1, sizeof(Class*));
+            }
+        }
+      fwrite(write_buf, 1, total_size, fd);
+      free(write_buf);
+    }
+
+  /*
+   * serialize inbounds
+   * 4.1 serialize # of inbounds
+   * 4.2 convert ptr to id and serialize
+   */
+  for(uint32_t i = 0; i < n; i++)
+    {
+      inbounds_id[i] = PMGetSerializeId(ctx, inbounds[i]);
+    }
+  fwrite(&n, sizeof(uint32_t), 1, fd);
+  fwrite(inbounds_id, sizeof(size_t), n, fd);
+
+  free(ctx->klasses);
+}
+
+PMMemoryManager* PMDeserialize(FILE* fd, ...)
+{
+
+}
+
+size_t PMGetSerializeId(PMMemoryManager* ctx, void* ptr)
+{
+  PMSlot* slot = PMAVLFind(ctx->pointer_map, ptr);
+  Class* klass = slot->pool->klass;
+  Class** klasses = ctx->klasses;
+  uint8_t low=0, high = ctx->klass_num-1, type_id;
+  size_t offset, ptr_id;
+  while(low <= high)
+    {
+      type_id = (high-low)/2 + low;
+      if (klasses[type_id] < klass)
+        low = type_id+1;
+      else if (klasses[type_id] > klass)
+        high = type_id-1;
+      else
+        goto type_id_found;
+    }
+  tc_assert(0, "Counld not find type id for klass: %p %s\n", 
+            klass, klass->classname);
+type_id_found:
+  offset = (ptr - slot->data)/klass->size;
+  ptr_id = (((size_t)type_id) << (sizeof(size_t)-1)*CHAR_BIT) | offset;
+  return ptr_id;
+}
+
+/* Start of internal functions */
 
 int PMSlot_new(PMSlot** self, PMPool* pool, PMAVLNode** pointer_map, size_t size)
 {

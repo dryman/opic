@@ -47,6 +47,8 @@ typedef _Atomic ClassMethod AtomicClassMethod;
 
 Class* LPTypeMap_get(char* key);
 void LPTypeMap_put(char* key, Class* value);
+bool tc_isa_instance_of(Class* klass, char* trait);
+bool tc_instance_of(TCObject* obj, char* trait);
 
 TC_END_DECLS
 

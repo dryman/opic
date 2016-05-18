@@ -74,6 +74,21 @@ void LPTypeMap_put(char* key, Class* value)
   LPTypeMap_put(key, value);
 }
 
+bool tc_isa_instance_of(Class* klass, char* trait)
+{
+  for (TypeClss** t = klass->traits; t; t++)
+    {
+      if (!strcmp((*t)->name, trait))
+        return true;
+    }
+  return false;
+}
+
+bool tc_instance_of(TCObject* obj, char* trait)
+{
+  return tc_isa_instance_of(obj->isa, trait);
+}
+
 uint64_t sdbm(char* str)
 {
   uint64_t hash = 0;
