@@ -126,7 +126,7 @@ void* PMFree(PMMemoryManager* ctx, void* obj)
 int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
 {
   void* inbounds[n];
-  size_t inbounds_id[n];
+  void* inbounds_id[n];
   va_list args;
   va_start(args, n);
   for(uint32_t i = 0; i < n; i++)
@@ -241,10 +241,10 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
    */
   for(uint32_t i = 0; i < n; i++)
     {
-      inbounds_id[i] = PMGetSerializeId(ctx, inbounds[i]);
+      inbounds_id[i] = PMSerializePtr2Ref(inbounds[i], ctx);
     }
   fwrite(&n, sizeof(uint32_t), 1, fd);
-  fwrite(inbounds_id, sizeof(size_t), n, fd);
+  fwrite(inbounds_id, sizeof(void*), n, fd);
   fflush(fd);
 
   free(ctx->klasses);
@@ -252,16 +252,84 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
 
 PMMemoryManager* PMDeserialize(FILE* fd, ...)
 {
+  PMMemoryManager* ctx;
+  if (PMMemoryManager_new(&ctx)) return NULL;
 
+  fread(&ctx->klass_num, 1, 1, fd);
+  ctx->klasses = malloc(sizeof(Class*) * ctx->klass_num);
+
+  for (uint8_t i = 0; i < ctx->klass_num; i++)
+    {
+      size_t classname_len;
+      size_t total_size, total_cnt;
+      size_t obj_size;
+      char* classname;
+      fread(&classname_len, sizeof(size_t), 1, fd);
+      classname = calloc(1, classname_len + 1);
+      fread(&classname, 1, classname_len, fd);
+      fread(&total_size, sizeof(size_t), 1, fd);
+
+      Class* klass = LPTypeMap_get(classname);
+      ctx->klasses[i] = klass;
+      obj_size = klass->size;
+      total_cnt = total_size / obj_size;
+      PMPool* pool = calloc(sizeof(PMPool), 1);
+      pool->klass = klass;
+      PMSlot_new(&pool->slot, pool, &ctx->pointer_map, total_cnt);
+
+      PMSlot* slot = pool->slot;
+      fread(slot->data, 1, total_size, fd);
+      slot->data_next_free = slot->data + total_size;
+      for (void* p = slot->data;
+           p < slot->data_next_free;
+           p += obj_size)
+        {
+          if (*(Class**)p)
+            PMSlot_free_obj(slot, p);
+          else
+            *(Class**)p = klass;
+        }
+      PMLPMap_put(ctx->type_map, klass, pool);
+    }
+
+  // now restore the pointers
+  for (uint8_t i = 0; i < ctx->klass_num; i++)
+    {
+      PMSlot* slot = PMLPMap_get(ctx->type_map, ctx->klasses[i])->slot;
+      const size_t obj_size = slot->pool->klass->size;
+      for (void* p = slot->data;
+           p < slot->data_next_free;
+           p += obj_size)
+        {
+          if (*(Class**)p)
+            serde_deserialize(p, ctx);
+        }
+    }
+
+  // finally the inbounds
+  uint32_t inbounds_len;
+  fread(&inbounds_len, sizeof(uint32_t), 1, fd);
+  void* inbounds[inbounds_len];
+  fread(inbounds, sizeof(void*), inbounds_len, fd);
+  va_list args;
+  va_start(args, fd);
+  void** ptr;
+  for (uint32_t i = 0; i < inbounds_len; i++)
+    {
+      ptr = va_arg(args, void**);
+      *ptr = PMDeSerializeRef2Ptr(inbounds[i], ctx);
+    }
+  va_end(args);
+  return ctx;
 }
 
-size_t PMGetSerializeId(PMMemoryManager* ctx, void* ptr)
+void* PMSerializePtr2Ref (void* ptr, PMMemoryManager* ctx)
 {
   PMSlot* slot = PMAVLFind(ctx->pointer_map, ptr);
   Class* klass = slot->pool->klass;
   Class** klasses = ctx->klasses;
   uint8_t low=0, high = ctx->klass_num-1, type_id;
-  size_t offset, ptr_id;
+  size_t offset, ref;
   while(low <= high)
     {
       type_id = (high-low)/2 + low;
@@ -275,9 +343,19 @@ size_t PMGetSerializeId(PMMemoryManager* ctx, void* ptr)
   tc_assert(0, "Counld not find type id for klass: %p %s\n", 
             klass, klass->classname);
 type_id_found:
-  offset = (ptr - slot->data)/klass->size;
-  ptr_id = (((size_t)type_id) << (sizeof(size_t)-1)*CHAR_BIT) | offset;
-  return ptr_id;
+  offset = ptr - slot->data;
+  ref = (((size_t)type_id) << (sizeof(size_t)-1)*CHAR_BIT) | offset;
+  return (void*)ref;
+}
+
+void* PMDeSerializeRef2Ptr(void* ref, PMMemoryManager* ctx)
+{
+  int shift = (sizeof(size_t)-1) * CHAR_BIT;
+  Class* klass = ctx->klasses[(size_t)ref & (0xffL << shift) >> shift];
+  size_t offset = (size_t)ref & ~(0xffL << shift);
+  PMPool* pool = PMLPMap_get(ctx->type_map, klass);
+  PMSlot* slot = pool->slot;
+  return slot->data + offset;
 }
 
 /* Start of internal functions */
@@ -328,16 +406,13 @@ void* PMSlot_alloc_obj(PMSlot* self)
 
 void PMSlot_free_obj(PMSlot* self, void* obj)
 {
-  printf("freeobj %p with slot %p\n", obj, self);
   const size_t obj_size = self->pool->klass->size;
   memset(obj, 0, obj_size);
-  printf("data_next_free: %p, obj: %p, obj next: %p\n", self->data_next_free, obj, obj+obj_size);
-  if (self->data_next_free == obj + obj_size) {
-    printf("recycle to data chunk\n");
-    self->data_next_free -= obj_size;
-    return;
-  }
-  printf("recycle to heap\n");
+  if (self->data_next_free == obj + obj_size)
+    {
+      self->data_next_free -= obj_size;
+      return;
+    }
   *self->pqueue_next_free = obj;
   self->pqueue_next_free++;
   PMSlot_pqueue_heapify(self);

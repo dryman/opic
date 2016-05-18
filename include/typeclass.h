@@ -116,7 +116,8 @@ TC_END_DECLS
 #define TC_CLASS_OBJ(KLASS) KLASS ## _klass_
 
 #define TC_DECLARE_ISA(KLASS) \
-extern Class TC_CLASS_OBJ(KLASS);
+extern Class TC_CLASS_OBJ(KLASS); \
+KLASS* KLASS##_init_isa(KLASS* self);
 
 #define TC_DEFINE_ISA(KLASS) \
 Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \

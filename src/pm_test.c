@@ -1,28 +1,7 @@
 #include "../include/typeclass.h"
 #include "pm_memory_manager.h"
-#include "tc_serializable.h"
+#include "pm_simple_list.h"
 
-typedef struct List List;
-
-struct List {
-  struct TCObject;
-  List* next;
-  int value;
-};
-
-
-void List_serde_serialize(TCObject* obj, PMMemoryManager* ctx)
-{
-  List* self = (List*) obj;
-  if (self->next)
-    self->next = (void*) PMGetSerializeId(ctx, self->next);
-}
-
-void List_serde_deserialize(TCObject* obj, PMMemoryManager* ctx)
-{
-}
-
-TC_DEFINE_ISA_WITH_TYPECLASSES(List, TCSerializable)
 
 int main (int argc, char** argv)
 {
