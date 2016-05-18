@@ -1,0 +1,13 @@
+AUTOMAKE_OPTIONS = subdir-objects
+bin_PROGRAMS = pm_test pm_read
+pm_test_SOURCES = ../include/typeclass.h typeclass.c pm_memory_manager.c pm_memory_manager.h \
+ pm_test.c tc_serializable.c tc_serializable.h \
+ pm_simple_list.c pm_simple_list.h
+pm_test_CFLAGS = -std=c11 -fms-extensions
+pm_test_LDFLAGS = -latomic
+
+pm_read_SOURCES = ../include/typeclass.h typeclass.c pm_memory_manager.c pm_memory_manager.h \
+ pm_read.c tc_serializable.c tc_serializable.h \
+ pm_simple_list.c pm_simple_list.h
+pm_read_CFLAGS = -std=c11 -fms-extensions
+pm_read_LDFLAGS = -latomic
