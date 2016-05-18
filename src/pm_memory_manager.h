@@ -15,9 +15,10 @@ void PMMemoryManager_destroy(PMMemoryManager*);
 void* PMAlloc(PMMemoryManager* ctx, Class* klass);
 void* PMFree(PMMemoryManager* ctx, void* obj);
 int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...);
+PMMemoryManager* PMDeserialize(FILE* fd, ...);
 
 void* PMSerializePtr2Ref(void* ptr, PMMemoryManager* ctx);
-void* PMDeSerializeRef2Ptr(void* ref, PMMemoryManager* ctx);
+void* PMDeserializeRef2Ptr(void* ref, PMMemoryManager* ctx);
 
 #define PM_ALLOC(ctx, KLASS) PMAlloc((ctx), &TC_CLASS_OBJ(KLASS))
 

@@ -265,11 +265,15 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
       size_t obj_size;
       char* classname;
       fread(&classname_len, sizeof(size_t), 1, fd);
-      classname = calloc(1, classname_len + 1);
-      fread(&classname, 1, classname_len, fd);
+      classname = malloc(classname_len + 1);
+      fread(classname, 1, classname_len, fd);
+      classname[classname_len] = '\0';
       fread(&total_size, sizeof(size_t), 1, fd);
+      printf("classname is %s\n", classname);
+      free(classname);
 
       Class* klass = LPTypeMap_get(classname);
+      printf("klass %p, %s\n", klass, klass->classname);
       ctx->klasses[i] = klass;
       obj_size = klass->size;
       total_cnt = total_size / obj_size;
@@ -285,9 +289,15 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
            p += obj_size)
         {
           if (*(Class**)p)
-            PMSlot_free_obj(slot, p);
+            {
+              *(Class**)p = klass;
+              TCObject* obj = (TCObject*) p;
+              printf("ojb->isa: %p\n", obj->isa);
+            }
           else
-            *(Class**)p = klass;
+            {
+              PMSlot_free_obj(slot, p);
+            }
         }
       PMLPMap_put(ctx->type_map, klass, pool);
     }
@@ -302,7 +312,12 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
            p += obj_size)
         {
           if (*(Class**)p)
-            serde_deserialize(p, ctx);
+            {
+              printf("deserailize %p\n", p);
+              TCObject* obj = (TCObject*)p;
+              printf("class addr: %p, classname: %s\n", obj->isa, obj->isa->classname);
+              serde_deserialize(p, ctx);
+            }
         }
     }
 
@@ -317,9 +332,10 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
   for (uint32_t i = 0; i < inbounds_len; i++)
     {
       ptr = va_arg(args, void**);
-      *ptr = PMDeSerializeRef2Ptr(inbounds[i], ctx);
+      *ptr = PMDeserializeRef2Ptr(inbounds[i], ctx);
     }
   va_end(args);
+  free(ctx->klasses);
   return ctx;
 }
 
@@ -348,10 +364,11 @@ type_id_found:
   return (void*)ref;
 }
 
-void* PMDeSerializeRef2Ptr(void* ref, PMMemoryManager* ctx)
+void* PMDeserializeRef2Ptr(void* ref, PMMemoryManager* ctx)
 {
   int shift = (sizeof(size_t)-1) * CHAR_BIT;
-  Class* klass = ctx->klasses[(size_t)ref & (0xffL << shift) >> shift];
+  int klass_idx = ((size_t)ref & (0xffL << shift)) >> shift;
+  Class* klass = ctx->klasses[klass_idx];
   size_t offset = (size_t)ref & ~(0xffL << shift);
   PMPool* pool = PMLPMap_get(ctx->type_map, klass);
   PMSlot* slot = pool->slot;
