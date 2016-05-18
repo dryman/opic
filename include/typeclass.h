@@ -45,6 +45,9 @@ typedef struct ClassMethod
 
 typedef _Atomic ClassMethod AtomicClassMethod;
 
+Class* LPTypeMap_get(char* key);
+void LPTypeMap_put(char* key, Class* value);
+
 TC_END_DECLS
 
 #define TC_METHOD_TYPE(METHOD) METHOD ## _type
@@ -112,23 +115,33 @@ TC_END_DECLS
 #define TC_CLASS_OBJ(KLASS) KLASS ## _klass_
 #define TC_CLASS_PONCE_VAR(KLASS) KLASS ## _pthread_once_ 
 
-#define TC_DECLARE_CLASS(KLASS) \
+#define TC_DECLARE_ISA(KLASS) \
 extern Class TC_CLASS_OBJ(KLASS);
 
-#define TC_CLASS_INIT_FACTORY(KLASS,...) \
-static pthread_once_t TC_CLASS_PONCE_VAR(KLASS) = PTHREAD_ONCE_INIT; \
+#define TC_DEFINE_ISA(KLASS) \
 Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
-static void KLASS##_pthread_once_init_() { \
+__attribute__((constructor)) \
+void define_##KLASS##_ISA() { \
+  LPTypeMap_put(#KLASS, &TC_CLASS_OBJ(KLASS)); \
+} \
+KLASS* KLASS##_init_isa(KLASS* self) { \
+  self->isa = &TC_CLASS_OBJ(KLASS); \
+  return self; \
+}
+
+#define TC_DEFINE_ISA_WITH_TYPECLASSES(KLASS,...) \
+Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
+__attribute__((constructor)) \
+void define_##KLASS##_ISA() { \
+  LPTypeMap_put(#KLASS, &TC_CLASS_OBJ(KLASS)); \
   TC_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), TC_LENGTH(__VA_ARGS__) + 1); \
   TC_MAP_SC_S1(TC_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__); \
 } \
-void KLASS##_init_class() { \
-  pthread_once( &TC_CLASS_PONCE_VAR(KLASS), &KLASS##_pthread_once_init_); \
-} \
-void KLASS##_init(KLASS* self) { \
-  KLASS##_init_class(self); \
+KLASS* KLASS##_init_isa(KLASS* self) { \
   self->isa = &TC_CLASS_OBJ(KLASS); \
-} \
+  return self; \
+}
+
   
 #define TC_CLASS_ADD_TYPECLASS(TC_TRAIT_TYPE, SLOT, KLASS_TYPE,...) \
   do { \

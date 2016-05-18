@@ -6,17 +6,16 @@
 #include "monad.h"
 #include "functor.h"
 
-
-TC_CLASS_INIT_FACTORY(Maybe,Monad,Functor,Applicative)
+TC_DEFINE_ISA_WITH_TYPECLASSES(Maybe,Monad,Functor,Applicative)
 
 void just(Maybe* self, void* data) {
-  Maybe_init(self);
+  Maybe_init_isa(self);
   self->maybe_e = MAYBE_JUST;
   self->data = data;
 }
 
 void nothing(Maybe* self) {
-  Maybe_init(self);
+  Maybe_init_isa(self);
   self->maybe_e = MAYBE_NOTHING;
 }
 

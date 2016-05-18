@@ -23,6 +23,8 @@ typedef struct Maybe {
   };
 } Maybe;
 
+TC_DECLARE_ISA(Maybe)
+
 void just(Maybe* self, void* data);
 void nothing(Maybe* self);
 

@@ -140,7 +140,9 @@ void* PMSlot_alloc_obj(PMSlot* self)
   } else if(self->data_next_free < self->data_bound) {
     printf("alloc from data chunk, with slot: %p\n", self);
     obj = self->data_next_free;
+    printf("data_next_free: %p, size: %d\n", self->data_next_free, obj_size);
     self->data_next_free += obj_size;
+    printf("data_next_free: %p, size: %d\n", self->data_next_free, obj_size);
   } else {
     return NULL;
   }

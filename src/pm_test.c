@@ -7,27 +7,22 @@ typedef struct List {
   int value;
 } List;
 
-Class TC_CLASS_OBJ(List) = {.classname = "List", .size = sizeof(List)};
-void List_init(List* obj)
-{
-  obj->isa = &TC_CLASS_OBJ(List);
-}
+TC_DEFINE_ISA(List)
 
 int main (int argc, char** argv)
 {
   PMMemoryManager* ctx;
   PMMemoryManager_new(&ctx);
-  List* node = PM_ALLOC(ctx, List);
+  List* node = List_init_isa(PM_ALLOC(ctx, List));
   printf("first obj: %p\n", node);
   printf("obj: %p\n", PM_ALLOC(ctx,List));
   printf("obj: %p\n", PM_ALLOC(ctx,List));
   printf("obj: %p\n", PM_ALLOC(ctx,List));
-  List_init(node);
+  printf("List size: %d, from class: %d\n", sizeof(List), node->isa->size);
   node->value=3;
   printf("%d\n", node->value);
   PMFree(ctx,node);
-  node = PM_ALLOC(ctx, List);
-  List_init(node);
+  node = List_init_isa(PM_ALLOC(ctx, List));
   printf("%d\n", node->value);
   printf("first obj: %p\n", node);
   return 0;
