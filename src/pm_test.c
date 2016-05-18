@@ -14,7 +14,8 @@ struct List {
 void List_serde_serialize(TCObject* obj, PMMemoryManager* ctx)
 {
   List* self = (List*) obj;
-  self->next = (void*) PMGetSerializeId(ctx, self->next);
+  if (self->next)
+    self->next = (void*) PMGetSerializeId(ctx, self->next);
 }
 
 void List_serde_deserialize(TCObject* obj, PMMemoryManager* ctx)
@@ -40,6 +41,9 @@ int main (int argc, char** argv)
     {
       printf("Node: %p, value %d\n", node_iter, node_iter->value);
     }
+  FILE* out = fopen("list_serialized", "w");
+  PMSerialize(ctx, out, 1, node);
+  fclose(out);
   /*
   PMFree(ctx,node);
   node = List_init_isa(PM_ALLOC(ctx, List));

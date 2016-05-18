@@ -14,6 +14,7 @@ int PMMemoryManager_new(PMMemoryManager**);
 void PMMemoryManager_destroy(PMMemoryManager*);
 void* PMAlloc(PMMemoryManager* ctx, Class* klass);
 void* PMFree(PMMemoryManager* ctx, void* obj);
+int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...);
 
 size_t PMGetSerializeId(PMMemoryManager* ctx, void* ptr);
 

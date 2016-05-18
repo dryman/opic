@@ -245,6 +245,7 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
     }
   fwrite(&n, sizeof(uint32_t), 1, fd);
   fwrite(inbounds_id, sizeof(size_t), n, fd);
+  fflush(fd);
 
   free(ctx->klasses);
 }
