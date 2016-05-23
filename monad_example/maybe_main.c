@@ -30,5 +30,5 @@ int main(int argc, char** argv) {
   f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);
   f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);
   printf("%d\n",*(int*)a.data);
-  printf("sizeof object: %d, getting size from klass: %d\n", sizeof(a), a.isa->size);
+  printf("sizeof object: %d, getting size from klass: %d\n", sizeof(a), a.base.isa->size);
 }

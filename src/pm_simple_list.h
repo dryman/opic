@@ -11,7 +11,7 @@ TC_BEGIN_DECLS
 typedef struct List List;
 
 struct List {
-  struct TCObject;
+  struct TCObject base;
   List* next;
   union PtrEquivalent value;
 };

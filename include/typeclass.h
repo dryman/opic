@@ -53,6 +53,7 @@ union PtrEquivalent
 {
   TCObject* obj;
   uint64_t  uint64;
+  int64_t   int64;
   double    float64;
 };
 
@@ -77,7 +78,7 @@ TC_END_DECLS
 
 #define TC_DECLARE_TYPECLASS(TC_TYPE)       \
   typedef struct TC_TYPE {                    \
-    struct TypeClass;                         \
+    struct TypeClass base;                    \
     TC_MAP_SC_S0(_TC_METHOD_DECLARE_FIELD, TC_TYPECLASS_METHODS(TC_TYPE)); \
   } TC_TYPE;
 
@@ -139,7 +140,7 @@ void define_##KLASS##_ISA() { \
   LPTypeMap_put(#KLASS, &TC_CLASS_OBJ(KLASS)); \
 } \
 KLASS* KLASS##_init_isa(KLASS* self) { \
-  self->isa = &TC_CLASS_OBJ(KLASS); \
+  ((TCObject*)self)->isa = &TC_CLASS_OBJ(KLASS); \
   return self; \
 }
 
@@ -152,7 +153,7 @@ void define_##KLASS##_ISA() { \
   TC_MAP_SC_S1(TC_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__); \
 } \
 KLASS* KLASS##_init_isa(KLASS* self) { \
-  self->isa = &TC_CLASS_OBJ(KLASS); \
+  ((TCObject*)self)->isa = &TC_CLASS_OBJ(KLASS); \
   return self; \
 }
 
@@ -160,7 +161,7 @@ KLASS* KLASS##_init_isa(KLASS* self) { \
 #define TC_CLASS_ADD_TYPECLASS(TC_TRAIT_TYPE, SLOT, KLASS_TYPE,...) \
   do { \
     TC_TRAIT_TYPE* TC_TRAIT_TYPE##_var = malloc(sizeof(TC_TRAIT_TYPE)); \
-    TC_TRAIT_TYPE##_var->name = #TC_TRAIT_TYPE; \
+    TC_TRAIT_TYPE##_var->base.name = #TC_TRAIT_TYPE; \
     TC_MAP_SC_S2_(_TC_METHOD_ASSIGN_IMPL, \
       TC_TRAIT_TYPE, KLASS_TYPE, \
       TC_TYPECLASS_METHODS(TC_TRAIT_TYPE)); \
