@@ -227,7 +227,8 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
           if (*(Class**)p)
             {
               serde_serialize(p, ctx);
-              memset(p, -1, sizeof(Class*));
+              memset(p, -1, sizeof(Class*)-1);
+              // last byte preserved for metadata
             }
         }
       fwrite(write_buf, 1, total_size, fd);

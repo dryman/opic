@@ -11,10 +11,15 @@
 
 TC_BEGIN_DECLS
 
-typedef struct TypeClass
+typedef struct TypeClass TypeClass;
+typedef struct Class Class __attribute__ ((aligned(256)));
+typedef struct TCObject TCObject;
+typedef struct ClassMethod ClassMethod;
+
+struct TypeClass
 {
   const char* name;
-} TypeClass;
+};
 
 // TODO: find good way to implement super
 // two possible ways:
@@ -23,26 +28,33 @@ typedef struct TypeClass
 // 2. pointer to supers (traverse pointers may take time..)
 // Hakell type doesn't seems to have inheritance?
 // Maybe we don't need it at all
-typedef struct Class
+struct Class
 {
   const char* const classname; // useful for debugging
   const size_t size;
   TypeClass** traits;
   // methods should be struct extending class
-} Class;
+}; 
 
-typedef struct TCObject
+struct TCObject
 {
   Class* isa;
-} TCObject;
+};
 
-typedef struct ClassMethod
+struct ClassMethod
 {
   Class* isa;
   void*  fn;
-} ClassMethod;
+};
 
 typedef _Atomic ClassMethod AtomicClassMethod;
+
+union PtrEquivalent
+{
+  TCObject* obj;
+  uint64_t  uint64;
+  double    float64;
+};
 
 Class* LPTypeMap_get(char* key);
 void LPTypeMap_put(char* key, Class* value);
@@ -79,26 +91,27 @@ TC_END_DECLS
       */
 #define TC_TYPECLASS_METHOD_FACTORY(TC_TYPE, METHOD, ISA,...)        \
   do { \
+    Class* isa = (Class*)(((size_t)(ISA)) & (size_t)(~(0x0FL))); \
     static AtomicClassMethod method_cache[16]; \
-    size_t idx = ((size_t)ISA >> 3) & 0x0F; \
-    tc_assert((ISA), "Class ISA is null\n"); \
+    size_t idx = ((size_t)isa >> 3) & 0x0F; \
+    tc_assert(isa, "Class ISA is null\n"); \
     ClassMethod method; \
     method = atomic_load(&method_cache[idx]); \
     TC_METHOD_TYPE(METHOD)* fn = NULL; \
-    if (method.isa == ISA) { \
+    if (method.isa == isa) { \
       fn = (TC_METHOD_TYPE(METHOD)*) method.fn; \
     } else {  \
-      TypeClass** trait_it = ISA->traits; \
+      TypeClass** trait_it = isa->traits; \
       int i=0; \
-      for (TypeClass** trait_it = ISA->traits; *trait_it; trait_it++) {\
+      for (TypeClass** trait_it = isa->traits; *trait_it; trait_it++) {\
         if(!strcmp((*trait_it)->name, #TC_TYPE)) { \
           TC_TYPE* tc = *(TC_TYPE**) trait_it; \
           fn = tc->METHOD; \
           break; \
         } \
       } \
-      tc_assert(fn,"Class %s does implement %s.%s\n", ISA->classname,#TC_TYPE,#METHOD); \
-      method = (ClassMethod){.isa = ISA, .fn = (void*) fn}; \
+      tc_assert(fn,"Class %s does implement %s.%s\n", isa->classname,#TC_TYPE,#METHOD); \
+      method = (ClassMethod){.isa = isa, .fn = (void*) fn}; \
       atomic_store(&method_cache[idx], method); \
     } \
     return fn(__VA_ARGS__); \

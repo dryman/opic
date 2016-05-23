@@ -11,7 +11,7 @@ int main (int argc, char** argv)
 
   for (node_iter = node; node_iter; node_iter = node_iter->next)
     {
-      printf("Node: %p, value %d\n", node_iter, node_iter->value);
+      printf("Node: %p, value %zu\n", node_iter, node_iter->value.uint64);
     }
   return 0;
 }

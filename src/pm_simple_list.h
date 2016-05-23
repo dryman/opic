@@ -1,6 +1,7 @@
 #ifndef PM_SIMPLE_LIST_H
 #define PM_SIMPLE_LIST_H
 
+#include <stdint.h>
 #include "../include/typeclass.h"
 #include "tc_serializable.h"
 #include "pm_memory_manager.h"
@@ -12,7 +13,7 @@ typedef struct List List;
 struct List {
   struct TCObject;
   List* next;
-  int value;
+  union PtrEquivalent value;
 };
 
 void List_serde_serialize(TCObject* obj, PMMemoryManager* ctx);
