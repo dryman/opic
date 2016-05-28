@@ -23,6 +23,8 @@ int main (int argc, char** argv)
   FILE* out = fopen("list_serialized", "w");
   PMSerialize(ctx, out, 1, node);
   fclose(out);
+
+  PMMemoryManager_destroy(ctx);
   /*
   PMFree(ctx,node);
   node = List_init_isa(PM_ALLOC(ctx, List));
