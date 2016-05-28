@@ -15,7 +15,7 @@ enum maybe_e {
 };
 
 typedef struct Maybe {
-  struct TCObject;
+  struct TCObject base;
   enum maybe_e maybe_e;
   union {
     void* data;
