@@ -68,16 +68,16 @@ detailed roadmap.
 
 Before we jump to the serialization abstraction, let me briefly discuss
 the language choice. This framework is implemented in pure C, following
-C11 standard and GCC extensions. C11 is chosen for atomic variables; GCC
-extensions are carefully picked such that it also get support by clang.
-Other compiler support are not considered on this stage. We have to use
-these extensions because many program behaviors are simply impossible to
-express in pure C standards. Some examples are constructor function,
-address alignment, SIMD vector types, etc. Our plan is to test all the
-extensions we use in Autoconf configuration stage. If user's compiler
-didn't support the features we use, or have different behavior than
-expected, stop the build and suggest the user to use a different
-compiler.
+C11 standard and GCC extensions. C11 is chosen for atomic variables; A
+subset of GCC extensions are carefully picked such that it also get
+support by clang.  Other compiler support are not considered on this
+stage. We have to use these extensions because many program behaviors
+are simply impossible to express in pure C standards. Some examples are
+constructor function, address alignment, SIMD vector types, etc. Our
+plan is to test all the extensions we use in Autoconf configuration
+stage. If user's compiler didn't support the features we use, or have
+different behavior than expected, stop the build and suggest the user to
+use a different compiler.
 
 Many people asked me why didn't I just use C++ instead. There are two
 main reason for this. First, serializing general types is crucial in
