@@ -1,4 +1,3 @@
-#include "../include/typeclass.h"
 #include <stdbool.h>
 #include "functor.h"
 

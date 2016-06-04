@@ -1,9 +1,9 @@
 #ifndef FUNCTOR_H
 #define FUNCTOR_H 1
-#include "../include/tc_common_macros.h"
-#include "../include/typeclass.h"
+#include "../src/op_macros.h"
+#include "../src/op_trait.h"
 
-TC_BEGIN_DECLS
+OP_BEGIN_DECLS
 // fmap :: (a -> b) -> f a -> f b
 typedef void (*f_fmap_callback)(void* a, void** b);
 
@@ -18,6 +18,6 @@ TC_DECLARE_METHOD(a_pure, void, TCObject* self, void* data);
 TC_DECLARE_METHOD(a_ap, void, TCObject* self, TCObject* a, TCObject* b);
 TC_DECLARE_TYPECLASS(Applicative);
 
-TC_END_DECLS
+OP_END_DECLS
 
 #endif /* FUNCTOR_H */

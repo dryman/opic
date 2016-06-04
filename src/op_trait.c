@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include "../include/tc_common_macros.h"
-#include "../include/typeclass.h"
+#include "op_trait.h"
 
 #define LP_TYPE_MAP_INIT_SIZE 1024
 
@@ -23,26 +22,25 @@ struct LPTypeMapData
   Class* value;
 };
 
-
 Class* LPTypeMap_get(char* key)
 {
-  tc_assert(__lp_type_map.size, "type map should not be empty when querying\n");
+  op_assert(__lp_type_map.size, "type map should not be empty when querying\n");
   uint64_t hash = sdbm(key);
   for (size_t i = hash % __lp_type_map.size; 
        i < __lp_type_map.size; i++) 
     {
-      tc_assert(__lp_type_map.data[i].key, "no matching bucket for key %s\n", key);
+      op_assert(__lp_type_map.data[i].key, "no matching bucket for key %s\n", key);
       if (!strcmp(__lp_type_map.data[i].key, key)) 
         {
           return __lp_type_map.data[i].value;
         }
     }
-  tc_assert(0, "Could not find key %s\n", key);
+  op_assert(0, "Could not find key %s\n", key);
 }
 
 void LPTypeMap_put(char* key, Class* value)
 {
-  if (tc_unlikely(!__lp_type_map.size))
+  if (op_unlikely(!__lp_type_map.size))
     {
       __lp_type_map.size = LP_TYPE_MAP_INIT_SIZE;
       __lp_type_map.data = calloc(sizeof(LPTypeMapData), LP_TYPE_MAP_INIT_SIZE);
@@ -57,7 +55,7 @@ void LPTypeMap_put(char* key, Class* value)
           __lp_type_map.data[i].value = value;
           return;
         }
-      tc_assert(strcmp(__lp_type_map.data[i].key, key), "Collision key %s in LPTypeMap\n", key);
+      op_assert(strcmp(__lp_type_map.data[i].key, key), "Collision key %s in LPTypeMap\n", key);
   }
   size_t old_size = __lp_type_map.size;
   LPTypeMapData* old_data = __lp_type_map.data;

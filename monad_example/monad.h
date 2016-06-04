@@ -2,10 +2,10 @@
 #define MONAD_H 1
 
 #include <stdbool.h>
-#include "../include/tc_common_macros.h"
-#include "../include/typeclass.h"
+#include "../src/op_macros.h"
+#include "../src/op_trait.h"
 
-TC_BEGIN_DECLS
+OP_BEGIN_DECLS
 
 // return :: a -> m a
 // (>>=) :: m a -> (a -> m b) -> m b
@@ -21,6 +21,6 @@ TC_DECLARE_TYPECLASS(Monad);
 
 void default_m_then(TCObject* self, TCObject* next);
 
-TC_END_DECLS
+OP_END_DECLS
 
 #endif

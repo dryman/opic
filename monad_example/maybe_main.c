@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include "../include/typeclass.h"
 #include "monad.h"
 #include "functor.h"
 #include "maybe.h"

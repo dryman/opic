@@ -1,4 +1,4 @@
-#include "../include/typeclass.h"
+#include "op_trait.h"
 #include "pm_memory_manager.h"
 #include "pm_simple_list.h"
 

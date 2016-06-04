@@ -3,54 +3,55 @@
 #include <execinfo.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include "tc_common_macros.h"
+#include "op_macros.h"
 
-#ifndef TC_ASSERT_H
-#define TC_ASSERT_H 1
-#define tc_stacktrace(stream) \
+#ifndef OP_ASSERT_H
+#define OP_ASSERT_H 1
+
+#define op_stacktrace(stream) \
   do {\
-    void* stack[TC_ASSERT_STACK_LIMIT]; \
+    void* stack[OP_ASSERT_STACK_LIMIT]; \
     size_t size; \
-    size = backtrace(stack, TC_ASSERT_STACK_LIMIT); \
+    size = backtrace(stack, OP_ASSERT_STACK_LIMIT); \
     backtrace_symbols_fd(stack,size,fileno(stream)); \
     abort(); \
   } while(0)
 
-#endif /* TC_ASSERT_H */
+#endif /* OP_ASSERT_H */
 
 /*
- * Unlike other ANSI header files, <tc_assert.h> may usefully be included
+ * Unlike other ANSI header files, <op_assert.h> may usefully be included
  * multiple times, with and without NDEBUG defined.
  * TODO: test the overhead of assert (though should have minimized by unlikely)
  */
 
-#ifndef TC_ASSERT_STACK_LIMIT
-#define TC_ASSERT_STACK_LIMIT 2048
+#ifndef OP_ASSERT_STACK_LIMIT
+#define OP_ASSERT_STACK_LIMIT 2048
 #endif
 
 #ifndef NDEBUG
 
-#define tc_assert(X, ...) \
+#define op_assert(X, ...) \
  do{ \
-   if (tc_unlikely(!(X))) { \
+   if (op_unlikely(!(X))) { \
      fprintf(stderr,"Assertion failed: %s (%s:%d)\n", __func__, __FILE__, __LINE__); \
      fprintf(stderr,"Error message: " __VA_ARGS__); \
-     tc_stacktrace(stderr); \
+     op_stacktrace(stderr); \
    } \
  } while(0)
 
 
-#define tc_assert_diagnose(X,cb, ...) \
+#define op_assert_diagnose(X,cb, ...) \
   do { \
-   if (tc_unlikely(!(X))) { \
+   if (op_unlikely(!(X))) { \
      fprintf(stderr,"Assertion failed: %s (%s:%d)\n", __func__, __FILE__, __LINE__); \
      (cb)(__VA_ARGS__); \
-     tc_stacktrace(stderr); \
+     op_stacktrace(stderr); \
    } \
   } while(0)
 
 #else /* NDEBUG = 1 */
-#define tc_assert(X, format,...) ((void)0)
-#define tc_assert_diagnose(X, cb, ...) ((void)0)
+#define op_assert(X, format,...) ((void)0)
+#define op_assert_diagnose(X, cb, ...) ((void)0)
 #endif /* NDEBUG */
 

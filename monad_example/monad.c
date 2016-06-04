@@ -1,5 +1,4 @@
 #include <stdbool.h>
-#include "../include/typeclass.h"
 #include "monad.h"
 
 void m_return(TCObject* self, void* data)

@@ -1,15 +1,15 @@
-#ifndef TYPECLASS_H
-#define TYPECLASS_H 1
+#ifndef OP_TRAIT_H
+#define OP_TRAIT_H 1
 
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdatomic.h>
-#include "tc_assert.h"
-#include "tc_common_macros.h"
+#include "op_assert.h"
+#include "op_macros.h"
 
-TC_BEGIN_DECLS
+OP_BEGIN_DECLS
 
 typedef struct TypeClass TypeClass;
 typedef struct Class Class __attribute__ ((aligned(256)));
@@ -62,7 +62,7 @@ void LPTypeMap_put(char* key, Class* value);
 bool tc_isa_instance_of(Class* klass, char* trait);
 bool tc_instance_of(TCObject* obj, char* trait);
 
-TC_END_DECLS
+OP_END_DECLS
 
 #define TC_METHOD_TYPE(METHOD) METHOD ## _type
 
@@ -95,7 +95,7 @@ TC_END_DECLS
     Class* isa = (Class*)(((size_t)(ISA)) & (size_t)(~(0x0FL))); \
     static AtomicClassMethod method_cache[16]; \
     size_t idx = ((size_t)isa >> 3) & 0x0F; \
-    tc_assert(isa, "Class ISA is null\n"); \
+    op_assert(isa, "Class ISA is null\n"); \
     ClassMethod method; \
     method = atomic_load(&method_cache[idx]); \
     TC_METHOD_TYPE(METHOD)* fn = NULL; \
@@ -111,7 +111,7 @@ TC_END_DECLS
           break; \
         } \
       } \
-      tc_assert(fn,"Class %s does implement %s.%s\n", isa->classname,#TC_TYPE,#METHOD); \
+      op_assert(fn,"Class %s does implement %s.%s\n", isa->classname,#TC_TYPE,#METHOD); \
       method = (ClassMethod){.isa = isa, .fn = (void*) fn}; \
       atomic_store(&method_cache[idx], method); \
     } \
@@ -172,4 +172,4 @@ KLASS* KLASS##_init_isa(KLASS* self) { \
   TC_TRAIT_TYPE##_var->METHOD = &KLASS_TYPE##_##METHOD
 
 
-#endif /* TYPECLASS_H */
+#endif /* OP_TRAIT_H */
