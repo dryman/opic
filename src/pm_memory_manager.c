@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "pm_memory_manager.h"
-#include "tc_serializable.h"
+#include "op_serializable.h"
 
 typedef struct PMPool PMPool;
 typedef struct PMSlot PMSlot;
@@ -116,7 +116,7 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
     
 void* PMFree(PMMemoryManager* ctx, void* obj)
 {
-  tc_assert((*(Class**)obj), "object %p is already freed\n", obj);
+  op_assert((*(Class**)obj), "object %p is already freed\n", obj);
   PMSlot* slot = PMAVLFind(ctx->pointer_map, obj);
   PMSlot_free_obj(slot, obj);
   /* TODO if slot is empty, free the slot */
@@ -141,13 +141,13 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
       Class* k = ctx->type_map->data[i].key;
       if (k)
         {
-          tc_assert(tc_isa_instance_of(k, "TCSerializable"),
+          op_assert(tc_isa_instance_of(k, "OPSerializable"),
             "Class %p %s is not Serializable\n", k, k->classname
           );
           klass_num++;
         }
     }
-  tc_assert(klass_num <= UINT8_MAX);
+  op_assert(klass_num <= UINT8_MAX);
   ctx->klass_num = (uint8_t) klass_num;
   ctx->klasses = malloc(sizeof(Class*)*klass_num);
     // TODO assert types not larger than 255
@@ -217,7 +217,7 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
           slot = slot->next;
         }
       size_t write_buf_len = write_buf_next_free - write_buf;
-      tc_assert(write_buf_len  == total_size,
+      op_assert(write_buf_len  == total_size,
         "Write buffer size mismatch. write buffer len: %zu,"
         " slot total len: %zu\n",
         write_buf_len, total_size);
@@ -292,7 +292,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
           if (*(Class**)p)
             {
               *(Class**)p = klass;
-              TCObject* obj = (TCObject*) p;
+              OPObject* obj = (OPObject*) p;
               printf("ojb->isa: %p\n", obj->isa);
             }
           else
@@ -315,7 +315,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
           if (*(Class**)p)
             {
               printf("deserailize %p\n", p);
-              TCObject* obj = (TCObject*)p;
+              OPObject* obj = (OPObject*)p;
               printf("class addr: %p, classname: %s\n", obj->isa, obj->isa->classname);
               serde_deserialize(p, ctx);
             }
@@ -357,7 +357,7 @@ void* PMSerializePtr2Ref (void* ptr, PMMemoryManager* ctx)
       else
         goto type_id_found;
     }
-  tc_assert(0, "Counld not find type id for klass: %p %s\n", 
+  op_assert(0, "Counld not find type id for klass: %p %s\n", 
             klass, klass->classname);
 type_id_found:
   offset = ptr - slot->data;
@@ -463,7 +463,7 @@ unsigned int PMAVLInsert(PMAVLNode** node, void* ptr_low, void* ptr_high, PMSlot
     (*node)->height = 1;
     return (*node)->height;
   }
-  tc_assert(ptr_low != (*node)->ptr_low, "should not see address collision\n");
+  op_assert(ptr_low != (*node)->ptr_low, "should not see address collision\n");
   if (ptr_low < (*node)->ptr_low) {
     unsigned int h = PMAVLInsert(&(*node)->left, ptr_low, ptr_high, slot);
     if (!(*node)->right && h > 1) {
@@ -487,7 +487,7 @@ unsigned int PMAVLInsert(PMAVLNode** node, void* ptr_low, void* ptr_high, PMSlot
 
 PMSlot* PMAVLFind(PMAVLNode* node, void* ptr)
 {
-  tc_assert(node, "NULL PMAVLNode\n");
+  op_assert(node, "NULL PMAVLNode\n");
   if (ptr < node->ptr_low)
     return PMAVLFind(node->left, ptr);
   if (ptr < node->ptr_high)
@@ -570,7 +570,7 @@ void PMLPMap_put(PMLPMap* self, Class* key, PMPool* pool)
       self->data[i].pool = pool;
       return;
     }
-    tc_assert(self->data[i].key != key, "key collision in PMLPMap\n");
+    op_assert(self->data[i].key != key, "key collision in PMLPMap\n");
   }
   size_t old_size = self->size;
   PMLPMapData* old_data = self->data;

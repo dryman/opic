@@ -1,12 +1,11 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <stdio.h>
-#include "../include/typeclass.h"
 #include "maybe.h"
 #include "monad.h"
 #include "functor.h"
 
-TC_DEFINE_ISA_WITH_TYPECLASSES(Maybe,Monad,Functor,Applicative)
+OP_DEFINE_ISA_WITH_TYPECLASSES(Maybe,Monad,Functor,Applicative)
 
 void just(Maybe* self, void* data) {
   Maybe_init_isa(self);
@@ -25,13 +24,13 @@ bool is_nothing(Maybe* self)
 }
 
 
-void Maybe_m_return(TCObject* _self, void* data)
+void Maybe_m_return(OPObject* _self, void* data)
 {
   Maybe* self = (Maybe*) _self;
   just(self, data);
 }
 
-void Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next)
+void Maybe_m_bind(OPObject* _self, m_bind_callback cb, OPObject* _next)
 {
   Maybe* self = (Maybe*) _self;
   Maybe* next = (Maybe*) _next;
@@ -41,9 +40,9 @@ void Maybe_m_bind(TCObject* _self, m_bind_callback cb, TCObject* _next)
   cb(self->data, _next);
 }
 
-void Maybe_m_then(TCObject* self, TCObject* next) {}
+void Maybe_m_then(OPObject* self, OPObject* next) {}
 
-void Maybe_f_fmap(TCObject* _self, TCObject* _next, f_fmap_callback cb)
+void Maybe_f_fmap(OPObject* _self, OPObject* _next, f_fmap_callback cb)
 {
   Maybe* self = (Maybe*) _self;
   Maybe* next = (Maybe*) _next;
@@ -53,13 +52,13 @@ void Maybe_f_fmap(TCObject* _self, TCObject* _next, f_fmap_callback cb)
   cb(self->data, &next->data);
 }
   
-void Maybe_a_pure(TCObject* _self, void* data)
+void Maybe_a_pure(OPObject* _self, void* data)
 {
   Maybe* self = (Maybe*) _self;
   just(self, data);
 }
 
-void Maybe_a_ap(TCObject* _self, TCObject* _a, TCObject* _b)
+void Maybe_a_ap(OPObject* _self, OPObject* _a, OPObject* _b)
 {
   Maybe* self = (Maybe*) _self;
   Maybe_f_fmap(_a, _b, self->apply);

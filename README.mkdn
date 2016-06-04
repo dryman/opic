@@ -1,0 +1,162 @@
+Object Persistence In C (Pre-Alpha)
+=======================
+
+An experimental approach to serialize/deserialize primitive types as well
+as general abstract data types.
+
+SYNOPSIS
+--------
+
+```c
+List* node_ptr;
+FILE* in = fopen("list_serialized", "r");
+
+/*
+ * Deserialized object memory managed in ctx.
+ * node points to the first item in list.
+ */
+PMMemoryManager* ctx = PMDeserialize(in, &node_ptr);
+
+/*
+ * release deserialized memory
+ */
+PMMemoryManager_destroy(ctx);
+fclose(in);
+```
+
+RATIONALE AND ROADMAP
+---------------------
+
+In most of the programming models, program operates on in memory
+objects, and operations on off-heap (disk, network) objects are usually
+afterthoughts. The off-heap object representations are mostly
+implemented per application basis, such as database, primitive only
+serialization format (protobuf, thrift, avro), search engine index, or
+document format like Microsoft Word. Implementing a new serialization
+format for new applications is painful, so we want to create a general
+framework to rule it all.
+
+A general purpose serialization framework can do more than that. We
+target to serialize all possible data structures. BST, Hash table, B+
+Tree, suffix array, anything. As you might notice, these are the core
+data structures to build databases and search engines. Not only should
+you be able to write a hobby transactional database out of this
+framework, you can also build your own NoSQL, multi-layer DB like
+LevelDB/RocksDB, bitmap based DB like Druid, or experiment new database
+concepts that no one has seen before! This is just one aspect for
+ADT (abstract data type) serialization.
+
+Another goal is to serialize the general program state (not yet
+implemented). The motivation comes from memory aggressive browsers. When
+you open dozens of browser tabs, browser becomes super slow. Though the
+OS should swap out the memory to disk, but it never does it well.
+Instead, why not serialize the whole Javascript and DOM state out, and
+restore it back when user requires it? Our initial attempt is build a
+lambda calculus engine base on the serialization framework, then
+optimize its performance and write Javascipt compiler to the lambda
+form.
+
+If you also feel excited, contributions and patches are always welcome.
+
+PROJECT STRUCTURES AND PLANS
+----------------------------
+
+This section describes high level view of the program abstraction and
+detailed roadmap.
+
+### Language Choice
+
+Before we jump to the serialization abstraction, let me briefly discuss
+the language choice. This framework is implemented in pure C, following
+C11 standard and GCC extensions. C11 is chosen for atomic variables; GCC
+extensions are carefully picked such that it also get support by clang.
+Other compiler support are not considered on this stage. We have to use
+these extensions because many program behaviors are simply impossible to
+express in pure C standards. Some examples are constructor function,
+address alignment, SIMD vector types, etc. Our plan is to test all the
+extensions we use in Autoconf configuration stage. If user's compiler
+didn't support the features we use, or have different behavior than
+expected, stop the build and suggest the user to use a different
+compiler.
+
+Many people asked me why didn't I just use C++ instead. There are two
+main reason for this. First, serializing general types is crucial in
+C++.  You have to serialize the internal C++ structures such as vtable
+(which is implementation defined), having your own memory allocator to
+restore load the de-serialized C++ type, and probably trace all the
+method address of an object. That's too much hack. And since the
+compiler may use different vtable layout on different versions, you have
+to test against all of it! Nope, not a good idea. Second reason relates
+to how I want this framework to be used. ALL programming languages has C
+bindings, and that is a perfect place to hide the complicated internals
+and expose high level API to end users. For instance, expose a
+programmable database interface to Python that looks like a regular
+container. As all the states are written in C, it is also easier to pass
+it to other language's C bindings.
+
+Same reason applies to all other possible languages, including go, rust,
+swift, OCaml, Haskell, Java, Scala, etc. Unless you can serialize its
+internal structure easily with deterministic performance, it won't be
+taken onto the table.
+
+### Generics (completed)
+
+So, we decided to use C. But it is so featureless! How do we balance out
+the low level control, and high level abstraction to make programming
+less painful? As you might guess, we use macros to create a DSL. The
+language design is highly influenced by Java and Haskell (though it is
+commonly seen in most modern programming languages, except go). The main
+feature I tired to implement is generic type and interface (also called
+traits, or typeclass in haskell). This allow us to use factory methods
+easily.
+
+```c
+serialize((void*)obj, fd);
+```
+
+A prototype function like above can behave differently with different
+object instance. If the object has internal object that need to get
+serialized, simply recursively call serialize again with the internal
+object.
+
+For now we only implemented generics (method polymorphism), without
+inheritance support. Though it is not hard but we won't do it until we
+really need it. Yet, the generics abstraction is already powerful enough
+for us to write Haskell Monads and Functors in C. See
+[monad_example](https://github.com/dryman/opic/tree/master/monad_example)
+for how it works.
+
+### Serializable Pointer Machine (completed)
+
+You can think [pointer machine][pmachine] is a academic synonym to
+object oriented programming model. It is also the basis for many
+functional programming language memory model as well. I'm not super
+certain about the functional programming part since these languages
+varies so much, but you'll see it probably belongs to pointer machine.
+
+I follow the SMM model (see pointer machine link) definition of pointer
+machine, where the machine is formed by number of "nodes" with
+inbound link to the root node. Each node have constant number of field;
+a field could be an outbound pointer to other node, or a primitive type.
+Only certain operations are permitted: create (new), destroy (free)
+nodes, or mutate the fields in a node. This pretty much models general
+object oriented program behavior, and is more general than lisp
+machine.
+
+This model is carefully picked for practical reasons. 
+
+* RAM model is harder to manage and make it deterministic on
+   serialization operation.
+* Pointer machine can trivially serialize
+
+TO BE CONTINUED
+
+See examples in pm_serde_example/
+
+LICENSE
+-------
+
+Copyright Felix R. Chern (2016)
+MIT License? Not decided yet.
+
+[pmachine]: https://en.wikipedia.org/wiki/Pointer_machine

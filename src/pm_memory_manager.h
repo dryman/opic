@@ -2,10 +2,10 @@
 #define PM_MEMORY_MANAGER_H 1
 
 #include <stdint.h>
-#include "../include/typeclass.h"
-#include "../include/tc_common_macros.h"
+#include "op_trait.h"
+#include "op_macros.h"
 
-TC_BEGIN_DECLS
+OP_BEGIN_DECLS
 
 typedef struct PMMemoryManager PMMemoryManager;
 typedef struct PMAVLNode PMAVLNode;
@@ -20,7 +20,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...);
 void* PMSerializePtr2Ref(void* ptr, PMMemoryManager* ctx);
 void* PMDeserializeRef2Ptr(void* ref, PMMemoryManager* ctx);
 
-#define PM_ALLOC(ctx, KLASS) PMAlloc((ctx), &TC_CLASS_OBJ(KLASS))
+#define PM_ALLOC(ctx, KLASS) PMAlloc((ctx), &OP_CLASS_OBJ(KLASS))
 
-TC_END_DECLS
+OP_END_DECLS
 #endif /* PM_MEMORY_MANAGER_H */

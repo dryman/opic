@@ -1,5 +1,5 @@
-#include "../include/typeclass.h"
-#include "pm_memory_manager.h"
+#include "../src/op_trait.h"
+#include "../src/pm_memory_manager.h"
 #include "pm_simple_list.h"
 
 int main (int argc, char** argv)

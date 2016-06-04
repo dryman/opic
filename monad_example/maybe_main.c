@@ -1,11 +1,10 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include "../include/typeclass.h"
 #include "monad.h"
 #include "functor.h"
 #include "maybe.h"
 
-static void my_bind(void* _a, TCObject*_b) {
+static void my_bind(void* _a, OPObject*_b) {
   int* a = (int*) _a;
   Maybe* b = (Maybe*) _b;
   int* b_data = (int*)b->data;
@@ -23,12 +22,12 @@ int main(int argc, char** argv) {
   int x = 3;
   just(&a,&x);
   Maybe b = {};
-  m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
-  m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
-  m_bind((TCObject*)&a, &my_bind, (TCObject*)&a);
-  f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);
-  f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);
-  f_fmap((TCObject*)&a, (TCObject*)&a, &my_fmap);
+  m_bind((OPObject*)&a, &my_bind, (OPObject*)&a);
+  m_bind((OPObject*)&a, &my_bind, (OPObject*)&a);
+  m_bind((OPObject*)&a, &my_bind, (OPObject*)&a);
+  f_fmap((OPObject*)&a, (OPObject*)&a, &my_fmap);
+  f_fmap((OPObject*)&a, (OPObject*)&a, &my_fmap);
+  f_fmap((OPObject*)&a, (OPObject*)&a, &my_fmap);
   printf("%d\n",*(int*)a.data);
   printf("sizeof object: %d, getting size from klass: %d\n", sizeof(a), a.base.isa->size);
 }
