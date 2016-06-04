@@ -3434,7 +3434,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile monad_example/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile monad_example/Makefile pm_serde_example/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -4182,6 +4182,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "monad_example/Makefile") CONFIG_FILES="$CONFIG_FILES monad_example/Makefile" ;;
+    "pm_serde_example/Makefile") CONFIG_FILES="$CONFIG_FILES pm_serde_example/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
