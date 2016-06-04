@@ -141,7 +141,7 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
       Class* k = ctx->type_map->data[i].key;
       if (k)
         {
-          op_assert(tc_isa_instance_of(k, "TCSerializable"),
+          op_assert(tc_isa_instance_of(k, "OPSerializable"),
             "Class %p %s is not Serializable\n", k, k->classname
           );
           klass_num++;
@@ -292,7 +292,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
           if (*(Class**)p)
             {
               *(Class**)p = klass;
-              TCObject* obj = (TCObject*) p;
+              OPObject* obj = (OPObject*) p;
               printf("ojb->isa: %p\n", obj->isa);
             }
           else
@@ -315,7 +315,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
           if (*(Class**)p)
             {
               printf("deserailize %p\n", p);
-              TCObject* obj = (TCObject*)p;
+              OPObject* obj = (OPObject*)p;
               printf("class addr: %p, classname: %s\n", obj->isa, obj->isa->classname);
               serde_deserialize(p, ctx);
             }

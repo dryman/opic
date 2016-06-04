@@ -82,7 +82,7 @@ bool tc_isa_instance_of(Class* klass, char* trait)
   return false;
 }
 
-bool tc_instance_of(TCObject* obj, char* trait)
+bool tc_instance_of(OPObject* obj, char* trait)
 {
   return tc_isa_instance_of(obj->isa, trait);
 }

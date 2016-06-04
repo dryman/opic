@@ -12,15 +12,15 @@ typedef struct List List;
 
 struct List 
 {
-  struct TCObject base;
+  struct OPObject base;
   List* next;
   union PtrEquivalent value;
 };
 
-void List_serde_serialize(TCObject* obj, PMMemoryManager* ctx);
-void List_serde_deserialize(TCObject* obj, PMMemoryManager* ctx);
+void List_serde_serialize(OPObject* obj, PMMemoryManager* ctx);
+void List_serde_deserialize(OPObject* obj, PMMemoryManager* ctx);
 
-TC_DECLARE_ISA(List);
+OP_DECLARE_ISA(List);
 
 OP_END_DECLS
 

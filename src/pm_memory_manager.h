@@ -20,7 +20,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...);
 void* PMSerializePtr2Ref(void* ptr, PMMemoryManager* ctx);
 void* PMDeserializeRef2Ptr(void* ref, PMMemoryManager* ctx);
 
-#define PM_ALLOC(ctx, KLASS) PMAlloc((ctx), &TC_CLASS_OBJ(KLASS))
+#define PM_ALLOC(ctx, KLASS) PMAlloc((ctx), &OP_CLASS_OBJ(KLASS))
 
 OP_END_DECLS
 #endif /* PM_MEMORY_MANAGER_H */

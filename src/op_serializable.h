@@ -6,11 +6,11 @@
 
 OP_BEGIN_DECLS
 
-#define TCSerializable_TC_METHODS serde_serialize, serde_deserialize
-TC_DECLARE_METHOD(serde_serialize,   void, TCObject* obj, PMMemoryManager* ctx);
-TC_DECLARE_METHOD(serde_deserialize, void, TCObject* obj, PMMemoryManager* ctx);
+#define OPSerializable_OP_METHODS serde_serialize, serde_deserialize
+OP_DECLARE_METHOD(serde_serialize,   void, OPObject* obj, PMMemoryManager* ctx);
+OP_DECLARE_METHOD(serde_deserialize, void, OPObject* obj, PMMemoryManager* ctx);
 
-TC_DECLARE_TYPECLASS(TCSerializable);
+OP_DECLARE_TYPECLASS(OPSerializable);
 
 OP_END_DECLS
 

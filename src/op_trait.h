@@ -13,7 +13,7 @@ OP_BEGIN_DECLS
 
 typedef struct TypeClass TypeClass;
 typedef struct Class Class __attribute__ ((aligned(256)));
-typedef struct TCObject TCObject;
+typedef struct OPObject OPObject;
 typedef struct ClassMethod ClassMethod;
 
 struct TypeClass
@@ -36,7 +36,7 @@ struct Class
   // methods should be struct extending class
 }; 
 
-struct TCObject
+struct OPObject
 {
   Class* isa;
 };
@@ -51,7 +51,7 @@ typedef _Atomic ClassMethod AtomicClassMethod;
 
 union PtrEquivalent
 {
-  TCObject* obj;
+  OPObject* obj;
   uint64_t  uint64;
   int64_t   int64;
   double    float64;
@@ -60,27 +60,27 @@ union PtrEquivalent
 Class* LPTypeMap_get(char* key);
 void LPTypeMap_put(char* key, Class* value);
 bool tc_isa_instance_of(Class* klass, char* trait);
-bool tc_instance_of(TCObject* obj, char* trait);
+bool tc_instance_of(OPObject* obj, char* trait);
 
 OP_END_DECLS
 
-#define TC_METHOD_TYPE(METHOD) METHOD ## _type
+#define OP_METHOD_TYPE(METHOD) METHOD ## _type
 
-#define TC_TYPECLASS_METHODS(TC_TYPE) TC_TYPE ## _TC_METHODS
+#define OP_TYPECLASS_METHODS(OP_TYPE) OP_TYPE ## _OP_METHODS
 
-#define TC_DECLARE_METHOD(METHOD, RET, ...) \
-  typedef RET TC_METHOD_TYPE(METHOD)(__VA_ARGS__); \
-  TC_METHOD_TYPE(METHOD) METHOD;
+#define OP_DECLARE_METHOD(METHOD, RET, ...) \
+  typedef RET OP_METHOD_TYPE(METHOD)(__VA_ARGS__); \
+  OP_METHOD_TYPE(METHOD) METHOD;
 
 
-#define _TC_METHOD_DECLARE_FIELD(METHOD,...) \
-  TC_METHOD_TYPE(METHOD)* METHOD
+#define _OP_METHOD_DECLARE_FIELD(METHOD,...) \
+  OP_METHOD_TYPE(METHOD)* METHOD
 
-#define TC_DECLARE_TYPECLASS(TC_TYPE)       \
-  typedef struct TC_TYPE {                    \
+#define OP_DECLARE_TYPECLASS(OP_TYPE)       \
+  typedef struct OP_TYPE {                    \
     struct TypeClass base;                    \
-    TC_MAP_SC_S0(_TC_METHOD_DECLARE_FIELD, TC_TYPECLASS_METHODS(TC_TYPE)); \
-  } TC_TYPE;
+    OP_MAP_SC_S0(_OP_METHOD_DECLARE_FIELD, OP_TYPECLASS_METHODS(OP_TYPE)); \
+  } OP_TYPE;
 
 // Simple fast universal hasing
 // possible way to avoid collision: linear probing + simple tabular hasing
@@ -90,7 +90,7 @@ OP_END_DECLS
       printf("ISA matched. ISA: %p, fn: %p\n", method.isa, method.fn); \
       printf("ISA mismatch.\n"); \
       */
-#define TC_TYPECLASS_METHOD_FACTORY(TC_TYPE, METHOD, ISA,...)        \
+#define OP_TYPECLASS_METHOD_FACTORY(OP_TYPE, METHOD, ISA,...)        \
   do { \
     Class* isa = (Class*)(((size_t)(ISA)) & (size_t)(~(0x0FL))); \
     static AtomicClassMethod method_cache[16]; \
@@ -98,20 +98,20 @@ OP_END_DECLS
     op_assert(isa, "Class ISA is null\n"); \
     ClassMethod method; \
     method = atomic_load(&method_cache[idx]); \
-    TC_METHOD_TYPE(METHOD)* fn = NULL; \
+    OP_METHOD_TYPE(METHOD)* fn = NULL; \
     if (method.isa == isa) { \
-      fn = (TC_METHOD_TYPE(METHOD)*) method.fn; \
+      fn = (OP_METHOD_TYPE(METHOD)*) method.fn; \
     } else {  \
       TypeClass** trait_it = isa->traits; \
       int i=0; \
       for (TypeClass** trait_it = isa->traits; *trait_it; trait_it++) {\
-        if(!strcmp((*trait_it)->name, #TC_TYPE)) { \
-          TC_TYPE* tc = *(TC_TYPE**) trait_it; \
+        if(!strcmp((*trait_it)->name, #OP_TYPE)) { \
+          OP_TYPE* tc = *(OP_TYPE**) trait_it; \
           fn = tc->METHOD; \
           break; \
         } \
       } \
-      op_assert(fn,"Class %s does implement %s.%s\n", isa->classname,#TC_TYPE,#METHOD); \
+      op_assert(fn,"Class %s does implement %s.%s\n", isa->classname,#OP_TYPE,#METHOD); \
       method = (ClassMethod){.isa = isa, .fn = (void*) fn}; \
       atomic_store(&method_cache[idx], method); \
     } \
@@ -119,57 +119,57 @@ OP_END_DECLS
   } while (0);
 
 /*
-#define TC_CLASS_DECLARE_TC_METHODS(KLASS) \
+#define OP_CLASS_DECLARE_OP_METHODS(KLASS) \
   void KLASS ## _init(KLASS*); \
-  TC_MAP_SC_S1(_TC_CLASS_DECLARE_TC_METHOD,KLASS,
+  OP_MAP_SC_S1(_OP_CLASS_DECLARE_OP_METHOD,KLASS,
 
-#define _TC_CLASS_DECLARE_TC_METHOD(METHOD,I,KLASS,...) \
-  TC_METHOD_TYPE(METHOD) KLASS ## METHOD;
+#define _OP_CLASS_DECLARE_OP_METHOD(METHOD,I,KLASS,...) \
+  OP_METHOD_TYPE(METHOD) KLASS ## METHOD;
  */ 
 
-#define TC_CLASS_OBJ(KLASS) KLASS ## _klass_
+#define OP_CLASS_OBJ(KLASS) KLASS ## _klass_
 
-#define TC_DECLARE_ISA(KLASS) \
-extern Class TC_CLASS_OBJ(KLASS); \
+#define OP_DECLARE_ISA(KLASS) \
+extern Class OP_CLASS_OBJ(KLASS); \
 KLASS* KLASS##_init_isa(KLASS* self);
 
-#define TC_DEFINE_ISA(KLASS) \
-Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
+#define OP_DEFINE_ISA(KLASS) \
+Class OP_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
 __attribute__((constructor)) \
 void define_##KLASS##_ISA() { \
-  LPTypeMap_put(#KLASS, &TC_CLASS_OBJ(KLASS)); \
+  LPTypeMap_put(#KLASS, &OP_CLASS_OBJ(KLASS)); \
 } \
 KLASS* KLASS##_init_isa(KLASS* self) { \
-  ((TCObject*)self)->isa = &TC_CLASS_OBJ(KLASS); \
+  ((OPObject*)self)->isa = &OP_CLASS_OBJ(KLASS); \
   return self; \
 }
 
-#define TC_DEFINE_ISA_WITH_TYPECLASSES(KLASS,...) \
-Class TC_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
+#define OP_DEFINE_ISA_WITH_TYPECLASSES(KLASS,...) \
+Class OP_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
 __attribute__((constructor)) \
 void define_##KLASS##_ISA() { \
-  LPTypeMap_put(#KLASS, &TC_CLASS_OBJ(KLASS)); \
-  TC_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), TC_LENGTH(__VA_ARGS__) + 1); \
-  TC_MAP_SC_S1(TC_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__); \
+  LPTypeMap_put(#KLASS, &OP_CLASS_OBJ(KLASS)); \
+  OP_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), OP_LENGTH(__VA_ARGS__) + 1); \
+  OP_MAP_SC_S1(OP_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__); \
 } \
 KLASS* KLASS##_init_isa(KLASS* self) { \
-  ((TCObject*)self)->isa = &TC_CLASS_OBJ(KLASS); \
+  ((OPObject*)self)->isa = &OP_CLASS_OBJ(KLASS); \
   return self; \
 }
 
   
-#define TC_CLASS_ADD_TYPECLASS(TC_TRAIT_TYPE, SLOT, KLASS_TYPE,...) \
+#define OP_CLASS_ADD_TYPECLASS(OP_TRAIT_TYPE, SLOT, KLASS_TYPE,...) \
   do { \
-    TC_TRAIT_TYPE* TC_TRAIT_TYPE##_var = malloc(sizeof(TC_TRAIT_TYPE)); \
-    TC_TRAIT_TYPE##_var->base.name = #TC_TRAIT_TYPE; \
-    TC_MAP_SC_S2_(_TC_METHOD_ASSIGN_IMPL, \
-      TC_TRAIT_TYPE, KLASS_TYPE, \
-      TC_TYPECLASS_METHODS(TC_TRAIT_TYPE)); \
-    TC_CLASS_OBJ(KLASS_TYPE).traits[SLOT] = (TypeClass*) TC_TRAIT_TYPE##_var; \
+    OP_TRAIT_TYPE* OP_TRAIT_TYPE##_var = malloc(sizeof(OP_TRAIT_TYPE)); \
+    OP_TRAIT_TYPE##_var->base.name = #OP_TRAIT_TYPE; \
+    OP_MAP_SC_S2_(_OP_METHOD_ASSIGN_IMPL, \
+      OP_TRAIT_TYPE, KLASS_TYPE, \
+      OP_TYPECLASS_METHODS(OP_TRAIT_TYPE)); \
+    OP_CLASS_OBJ(KLASS_TYPE).traits[SLOT] = (TypeClass*) OP_TRAIT_TYPE##_var; \
   } while (0);
 
-#define _TC_METHOD_ASSIGN_IMPL(METHOD,I,TC_TRAIT_TYPE,KLASS_TYPE,...) \
-  TC_TRAIT_TYPE##_var->METHOD = &KLASS_TYPE##_##METHOD
+#define _OP_METHOD_ASSIGN_IMPL(METHOD,I,OP_TRAIT_TYPE,KLASS_TYPE,...) \
+  OP_TRAIT_TYPE##_var->METHOD = &KLASS_TYPE##_##METHOD
 
 
 #endif /* OP_TRAIT_H */

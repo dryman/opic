@@ -11,15 +11,15 @@ OP_BEGIN_DECLS
 // (>>=) :: m a -> (a -> m b) -> m b
 // (>>) :: m a -> m b -> m b
 
-typedef void (*m_bind_callback)(void*, TCObject*);
+typedef void (*m_bind_callback)(void*, OPObject*);
 
-#define Monad_TC_METHODS m_return, m_bind, m_then
-TC_DECLARE_METHOD(m_return, void, TCObject* self, void* data);
-TC_DECLARE_METHOD(m_bind, void, TCObject* self, m_bind_callback cb, TCObject* next);
-TC_DECLARE_METHOD(m_then, void, TCObject* self, TCObject* next);
-TC_DECLARE_TYPECLASS(Monad);
+#define Monad_OP_METHODS m_return, m_bind, m_then
+OP_DECLARE_METHOD(m_return, void, OPObject* self, void* data);
+OP_DECLARE_METHOD(m_bind, void, OPObject* self, m_bind_callback cb, OPObject* next);
+OP_DECLARE_METHOD(m_then, void, OPObject* self, OPObject* next);
+OP_DECLARE_TYPECLASS(Monad);
 
-void default_m_then(TCObject* self, TCObject* next);
+void default_m_then(OPObject* self, OPObject* next);
 
 OP_END_DECLS
 
