@@ -150,15 +150,35 @@ and it can emulate LISP machine as well.
 
 This model is also carefully picked for other practical reasons.
 
-* RAM model is harder to manage and make it deterministic on
-   serialization operation.
-* Pointer machine can trivially serialize
+* Since pointer machine can only use constant size objects, we can
+  group same type of objects in large chunk of array, and can serialize
+  it in batches.
+* Compare to the model above, RAM model is harder to manage and make
+  it deterministic on serialization operation.
 
-TO BE CONTINUED
-
-See examples in pm_serde_example/
+The detail explaination is in
+[pm_serde_example](https://github.com/dryman/opic/tree/master/pm_serde_example).
 
 [pmachine]: https://en.wikipedia.org/wiki/Pointer_machine
+
+### Primitive Serialization (TODO)
+
+* Row based, suite with TX enabled data processing or data stream
+* Columnar. Type based compression should get examined.
+* Dremel like nested columnar store. Except repetition number and
+  definition number are not packed with data, but stored separately as
+  integer type. This should improve the compression ratio.
+
+### Cache Oblivious Data Structures (TODO)
+
+See [Eric Demaine's Note][cache oblivious].
+
+[cache oblivious]: http://erikdemaine.org/papers/BRICS2002/paper.pdf
+
+### Freezable Lambda Calculus (TODO)
+
+Implement a simple compute engine that can serialize the whole state at
+any time.
 
 LICENSE
 -------
@@ -181,12 +201,14 @@ Copyright (c) Felix Chern
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+In future we may also form a commercial license and support.
+
 CODE STYLE FOR CONTRIBUTORS
 ---------------------------
 
-Please follow the [GNU C coding standards][gnuc]. On the moment of this
+Please follow the [GNU Coding Standards][gnuc]. On the moment of this
 writing we still have some portion of the code hasn't yet convert to GNU
 formatting styles, but this should be fixed in near future.
 
-[gnuc]: https://www.gnu.org/prep/standards/html_node/Writing-C.html
+[gnuc]: https://www.gnu.org/prep/standards/standards.html
 
