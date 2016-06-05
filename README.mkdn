@@ -161,6 +161,17 @@ The detail explaination is in
 
 [pmachine]: https://en.wikipedia.org/wiki/Pointer_machine
 
+### Common Abastract Data Types (TODO)
+
+Implements common collection types for good code reuse. In contrast to
+most real time applications, one major use of this library is for
+serialization which only require good amortized complexity. Therefore we
+permit and encourage amortized data structures like Fibonacci heap to be
+included in this library. This unleashes many powerful data structures
+that only exist in papers but yet used in real world.
+
+Sounds fun, right?
+
 ### Primitive Serialization (TODO)
 
 * Row based, suite with TX enabled data processing or data stream
