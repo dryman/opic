@@ -1,0 +1,3 @@
+[submodule "doxygen-bootstrapped"]
+	path = doxygen-bootstrapped
+	url = git@github.com:dryman/doxygen-bootstrapped.git

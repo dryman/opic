@@ -1,30 +1,4 @@
-Object Persistence In C (Pre-Alpha)
-=======================
-
-An experimental approach to serialize/deserialize primitive types as well
-as general abstract data types.
-
-SYNOPSIS
---------
-
-```c
-List* node_ptr;
-FILE* in = fopen("list_serialized", "r");
-
-/*
- * Deserialized object memory managed in ctx.
- * node points to the first item in list.
- */
-PMMemoryManager* ctx = PMDeserialize(in, &node_ptr);
-
-/*
- * release deserialized memory
- */
-PMMemoryManager_destroy(ctx);
-fclose(in);
-```
-
-RATIONALE AND ROADMAP
+RATIONALE AND ROADMAP {#rationale}
 ---------------------
 
 In most of the programming models, program operates on in memory
@@ -190,36 +164,3 @@ See [Eric Demaine's Note][cache oblivious].
 
 Implement a simple compute engine that can serialize the whole state at
 any time.
-
-LICENSE
--------
-
-Great software should have strong restriction to enforce public use.
-Therefore I select GPLv3 as the license for the project.
-
-Copyright (c) Felix Chern
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-In future we may also form a commercial license and support.
-
-CODE STYLE FOR CONTRIBUTORS
----------------------------
-
-Please follow the [GNU Coding Standards][gnuc]. On the moment of this
-writing we still have some portion of the code hasn't yet convert to GNU
-formatting styles, but this should be fixed in near future.
-
-[gnuc]: https://www.gnu.org/prep/standards/standards.html
-
