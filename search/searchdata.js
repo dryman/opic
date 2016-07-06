@@ -1,8 +1,8 @@
 var indexSectionsWithContent =
 {
-  0: "clopt",
+  0: "cloprt",
   1: "clopt",
-  2: "o"
+  2: "or"
 };
 
 var indexSectionNames =
