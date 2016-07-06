@@ -88,24 +88,17 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><h2>Object Persistence In C </h2>
-<p>OPIC is a new approach to serialize general data structures and primitive types. It aims for high performance load and off-load between memory and disk (or other secondary storage your operating system supports.) Some of the possible applications are:</p>
+<p>OPIC is a new approach to serialize general data structures, object types, and primitive types. It's a new data stack from the ground up &ndash; from object oriented model, generics, to memory management. With everything redesigned for scalability, we visioned a new distributed computing ecosystem for the 21st century.</p>
+<p>Our key to success is to extend the memory oriented programming model to other tier of storages: disk, SSD, network, or even tape. Accessing data should not be limited by memory address on single machine; instead, all data types should be serializable so that it can be shared across network or save for future use. Having serialzability as the core design brings many benefits for free:</p>
+<ul>
+<li>Scalability. When all the data types are serializable, the application can easily scale up with multiple strategies, including sharing data between nodes, off load certain data for later use, or build caches from the same serialization abstraction.</li>
+<li>Data persistence. Think of databases' durability. Since all the data types are serializable, you can save the snapshot of the entire program state whenever you want. This can make database applications way easier to build, and also make debugging easier.</li>
+<li>Generality for data processing applications. All the data processing systems, including RDBMS, map reduce, search engines, even RPC involves are some sort of special case of serialization. Why duplicates the effort for each of those applications instead of having one powerful and optimized framework?</li>
+</ul>
+<p>Most of the functionalities will be implemented in C. Our end goal is to embed this framework into other higher level languages like python, java, nodejs for wider adoption.</p>
 <ol type="1">
-<li>Create new databases. Database is a special case of object persistence. Both SQL and NoSQL are engines that stores and loads records to/from disk. The index to the records is usually implemented as serializable b-tree or other data structures as well, which is also a direct application that OPIC can bring to you.</li>
-<li>Search engines and information retrieval in general. Any data structures that doesn't fit into memory or need to save for later use can be built with OPIC.</li>
-<li>Persistent program state. If you built new runtime based on this framework, you can <em>save</em> the entire state of the program by serializing it out, and restore it back later on. The intermediate state between each snapshot can be implemented as WAL (Write Ahead Log) like most databases do.</li>
+<li><a class="el" href="rationale.html">RATIONALE AND ROADMAP</a> and roadmap of this project </li>
 </ol>
-<p>The project goals:</p>
-<p>Data processing applications.</p><ul>
-<li>batch class in background</li>
-<li>concurrent class for foreground serving.</li>
-</ul>
-<p>Compare to other approaches:</p><ul>
-<li>Unified serialization &lt;=&gt; custom serialization for different data types.</li>
-<li>Batch processing as primary citizen for better throughput.</li>
-<li>A new abstraction that blends primary storage and secondary storage.</li>
-<li>Batch processing as primary citizen.</li>
-</ul>
-<p>Currently OPIC is targeted for X86_64 architecture and POSIX compliant operating systems. It uses C99/C11 standards and some carefully picked GCC/Clang extensions. Once the core features are done it can be imported to other languages as extensions. </p>
 </div></div><!-- contents -->
 <!-- HTML footer for doxygen 1.8.8-->
 <!-- start footer part -->
@@ -115,7 +108,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div>
 </div>
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Jul 5 2016 17:36:40 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Jul 5 2016 22:24:23 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>
