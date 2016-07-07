@@ -34,7 +34,7 @@ wider adoption.
 
 To begin with, please check out our [documentation page][doc].
 
-[doc]: http://dryman.github.com/opic/
+[doc]: http://opic.rocks
 
 LICENSE
 -------
