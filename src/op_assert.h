@@ -8,6 +8,12 @@
 #ifndef OP_ASSERT_H
 #define OP_ASSERT_H 1
 
+/** @file */
+
+/** Print stack trace to specified stream. The printed stack length is configured
+ * by OP_ASSERT_STACK_LIMIT macro, which defaults to 2048.
+ * @param stream pointer to FILE object that specifies an output stream
+ */
 #define op_stacktrace(stream) \
   do {\
     void* stack[OP_ASSERT_STACK_LIMIT]; \
@@ -26,11 +32,16 @@
  */
 
 #ifndef OP_ASSERT_STACK_LIMIT
+/** maximum stack trace length */
 #define OP_ASSERT_STACK_LIMIT 2048
 #endif
 
 #ifndef NDEBUG
 
+/** Assert with formatted output to stderr.
+ * @param X assertion statement.
+ * @param ... (additional arguments) additional arguments passed to printf.
+ */
 #define op_assert(X, ...) \
  do{ \
    if (op_unlikely(!(X))) { \
@@ -40,7 +51,12 @@
    } \
  } while(0)
 
-
+/** Assert with callback function
+ * @param X assertion statement.
+ * @param cb callback function.
+ * @param ... (additional arguments) arguments passed to cb when assertion
+ * failed.
+ */
 #define op_assert_diagnose(X,cb, ...) \
   do { \
    if (op_unlikely(!(X))) { \
