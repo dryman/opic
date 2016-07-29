@@ -9,15 +9,17 @@ OP_BEGIN_DECLS
 
 #define OPIterator_OP_METHODS it_forEachRemaining, it_hasNext, \
   it_next, it_remove, it_type
-OP_DECLARE_METHOD(it_forEachRemaining, void, fp_unary func, void* ctx);
-OP_DECLARE_METHOD(it_hasNext, bool, void);
-OP_DECLARE_METHOD(it_next, void*, void);
-OP_DECLARE_METHOD(it_remove, void, void);
-OP_DECLARE_METHOD(it_type, OPType, void);
+OP_DECLARE_METHOD(it_forEachRemaining, void, OPObject* obj, fp_unary func, void* ctx);
+OP_DECLARE_METHOD(it_hasNext,          bool, OPObject* obj);
+OP_DECLARE_METHOD(it_next,            void*, OPObject* obj);
+OP_DECLARE_METHOD(it_remove,           void, OPObject* obj);
+OP_DECLARE_METHOD(it_type,           OPType, OPObject* obj);
+OP_DECLARE_TYPECLASS(OPIterator);
 
 #define OPIterable_OP_METHODS ib_forEach, ib_iterator, ib_type
-OP_DECLARE_METHOD(ib_forEach, void, fp_unary func, void* ctx);
-OP_DECLARE_METHOD(ib_iterator, OPObject*, void);
+OP_DECLARE_METHOD(ib_forEach,          void, OPObject* obj, fp_unary func, void* ctx);
+OP_DECLARE_METHOD(ib_iterator,    OPObject*, OPObject* obj);
+OP_DECLARE_METHOD(ib_type,           OPType, OPObject* obj);
 OP_DECLARE_TYPECLASS(OPIterable);
 
 OP_END_DECLS
