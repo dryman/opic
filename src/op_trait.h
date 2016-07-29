@@ -57,6 +57,21 @@ union PtrEquivalent
   double    float64;
 };
 
+typedef enum
+{
+  op_object = 0,
+  op_int8,
+  op_int16,
+  op_int32,
+  op_int64,
+  op_uint8,
+  op_uint16,
+  op_uint32,
+  op_uint64,
+  op_float32,
+  op_float64
+} OPType;
+
 Class* LPTypeMap_get(char* key);
 void LPTypeMap_put(char* key, Class* value);
 bool tc_isa_instance_of(Class* klass, char* trait);
