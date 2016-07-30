@@ -16,10 +16,12 @@ void* it_next(OPObject* obj)
   OP_TYPECLASS_METHOD_FACTORY(OPIterator, it_next, obj->isa, obj);
 }
 
+/*
 void it_remove(OPObject* obj)
 {
   OP_TYPECLASS_METHOD_FACTORY(OPIterator, it_remove, obj->isa, obj);
 }
+*/
 
 OPType it_type(OPObject* obj)
 {
