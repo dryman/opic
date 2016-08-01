@@ -4,7 +4,6 @@
 #include "op_macros.h"
 #include "op_trait.h"
 #include "op_functional.h"
-#include "op_iterator.h"
 
 OP_BEGIN_DECLS
 OP_DECLARE_TYPECLASS(OPListIterator);

@@ -172,7 +172,7 @@ KLASS* KLASS##_init_isa(KLASS* self) { \
   return self; \
 }
 
-  
+
 #define OP_CLASS_ADD_TYPECLASS(OP_TRAIT_TYPE, SLOT, KLASS_TYPE,...) \
   do { \
     OP_TRAIT_TYPE* OP_TRAIT_TYPE##_var = malloc(sizeof(OP_TRAIT_TYPE)); \

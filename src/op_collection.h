@@ -13,9 +13,9 @@ OP_DECLARE_TYPECLASS(OPCollection);
 OP_DECLARE_METHOD(coll_contains,      bool, OPObject* obj, OPGeneric element);
 OP_DECLARE_METHOD(coll_containsAll,   bool, OPObject* obj, OPObject* collection);
 OP_DECLARE_METHOD(coll_isEmpty,       bool, OPObject* obj);
-OP_DECLARE_METHOD(coll_size,      uint64_t, OPObject* obj);
-//OP_DECLARE_METHOD(coll_toArray,       bool, OPObject* obj, void* ptr, size_t* size);
+OP_DECLARE_METHOD(coll_size,        size_t, OPObject* obj);
 OP_DECLARE_METHOD(coll_type,        OPType, OPObject* obj);
+//OP_DECLARE_METHOD(coll_toArray,       bool, OPObject* obj, void* ptr, size_t* size);
 
 OP_DECLARE_TYPECLASS(OPMutableCollection);
 #define OPMutableCollection_OP_METHODS mcoll_initWithType, mcoll_add, mcoll_addAll, \
