@@ -4,15 +4,14 @@
 #include "op_macros.h"
 #include "op_trait.h"
 #include "op_functional.h"
-#include "op_list.h"
+#include "op_serializable.h"
 #include "op_collection.h"
+#include "op_list.h"
 
 OP_BEGIN_DECLS
 
 typedef struct OPLinkedList OPLinkedList;
 typedef struct OPLinkedListIterator OPLinkedListIterator;
-typedef struct OPMutableLinkedList OPMutableLinkedList;
-typedef struct OPMutableLinkedListIterator OPMutableLinkedListIterator;
 OP_DECLARE_ISA(OPLinkedList);
 OP_DECLARE_ISA(OPLinkedListIterator);
 OP_DECLARE_ISA(OPMutableLinkedList);
