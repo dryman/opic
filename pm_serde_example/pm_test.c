@@ -1,27 +1,29 @@
 #include "../src/op_trait.h"
 #include "../src/pm_memory_manager.h"
-#include "pm_simple_list.h"
+#include "../src/op_collection.h"
+#include "../src/op_list.h"
+#include "../src/op_linked_list.h"
 
 
 int main (int argc, char** argv)
 {
   PMMemoryManager* ctx;
   PMMemoryManager_new(&ctx);
-  List* node_iter, *node;
-  node_iter = node = List_init_isa(PM_ALLOC(ctx, List));
-  node_iter->value.uint64 = 0;
-  for (int i = 1; i<10; i++)
+  OPObject* list = (OPObject*)OPLinkedList_init_isa(PM_ALLOC(ctx, OPLinkedList));
+  mcoll_init(list, op_int32, ctx);
+
+  for (int i = 0; i<10; i++)
     {
-      node_iter->next = List_init_isa(PM_ALLOC(ctx, List));
-      node_iter = node_iter->next;
-      node_iter->value.uint64 = i;
+      mcoll_add(list, (uint64_t)i);
     }
-  for (node_iter = node; node_iter; node_iter = node_iter->next)
+  OPObject* it = lst_listIterator(list);
+  while(li_hasNext(it))
     {
-      printf("Node: %p, value %zu\n", node_iter, node_iter->value.uint64);
+      printf("Node value: %zu\n", li_next(it).uint64);
     }
+  free(it);
   FILE* out = fopen("list_serialized", "w");
-  PMSerialize(ctx, out, 1, node);
+  PMSerialize(ctx, out, 1, list);
   fclose(out);
 
   PMMemoryManager_destroy(ctx);

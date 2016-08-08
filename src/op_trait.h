@@ -126,7 +126,7 @@ OP_END_DECLS
           break; \
         } \
       } \
-      op_assert(fn,"Class %s does implement %s.%s\n", isa->classname,#OP_TYPE,#METHOD); \
+      op_assert(fn,"Class %s should implement %s.%s\n", isa->classname,#OP_TYPE,#METHOD); \
       method = (ClassMethod){.isa = isa, .fn = (void*) fn}; \
       atomic_store(&method_cache[idx], method); \
     } \

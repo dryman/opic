@@ -1,17 +1,21 @@
 #include "../src/op_trait.h"
 #include "../src/pm_memory_manager.h"
-#include "pm_simple_list.h"
+#include "../src/op_collection.h"
+#include "../src/op_list.h"
+#include "../src/op_linked_list.h"
 
 int main (int argc, char** argv)
 {
-  List* node_iter, *node;
+  OPObject* list;
   FILE* in = fopen("list_serialized", "r");
-  PMMemoryManager* ctx = PMDeserialize(in, &node);
+  PMMemoryManager* ctx = PMDeserialize(in, &list);
   fclose(in);
 
-  for (node_iter = node; node_iter; node_iter = node_iter->next)
+  OPObject* it = lst_listIterator(list);
+  while(li_hasNext(it))
     {
-      printf("Node: %p, value %zu\n", node_iter, node_iter->value.uint64);
+      printf("Node value: %zu\n", li_next(it).uint64);
     }
+  free(it);
   return 0;
 }

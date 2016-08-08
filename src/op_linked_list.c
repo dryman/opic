@@ -32,7 +32,7 @@ struct OPLinkedListIterator
 };
 
 OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListNode, OPSerializable)
-OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedList, OPSerializable, OPCollection, OPList, OPMutableList)
+OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedList, OPSerializable, OPCollection, OPMutableCollection, OPList, OPMutableList)
 OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListIterator, OPListIterator, OPMutableListIterator)
 
 void OPLinkedListNode_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
@@ -216,7 +216,6 @@ OPObject* OPLinkedList_lst_listIteratorFrom(OPObject* obj, size_t index)
 void      OPLinkedList_mcoll_init(OPObject* obj, OPType type, PMMemoryManager* manager)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
-  OPLinkedList_init_isa(self); // incase the isa wasn't initialized
   self->type = type;
   self->memory_manager = manager;
 }
