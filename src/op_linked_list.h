@@ -27,7 +27,7 @@ bool      OPLinkedList_coll_contains(OPObject* obj, OPGeneric element);
 bool      OPLinkedList_coll_containsAll(OPObject* obj, OPObject* collection);
 bool      OPLinkedList_coll_isEmpty(OPObject* obj);
 size_t    OPLinkedList_coll_size(OPObject* obj);
-OPTYpe    OPLinkedList_coll_type(OPObject* obj);
+OPType    OPLinkedList_coll_type(OPObject* obj);
 
 OPGeneric OPLinkedList_lst_get(OPObject* obj, size_t index);
 size_t    OPLinkedList_lst_indexOf(OPObject* obj, OPGeneric element);

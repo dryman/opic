@@ -2,8 +2,6 @@
 #include "op_linked_list.h"
 #include <limits.h>
 
-typedef struct OPLinkedListNode;
-
 // Last bit in ISA pointer denotes it is mutable or not
 struct OPLinkedList
 {
@@ -31,7 +29,7 @@ struct OPLinkedListIterator
   OPLinkedListNode* next;
   OPLinkedListNode* prev;
   OPLinkedList* container;
-}
+};
 
 OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListNode, OPSerializable)
 OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedList, OPSerializable, OPCollection, OPList, OPMutableList)
@@ -40,7 +38,6 @@ OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListIterator, OPListIterator, OPMutableLi
 void OPLinkedListNode_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
 {
   OPLinkedListNode* self = (OPLinkedListNode*) obj;
-  op_assert(ctx == self->memory_manager, "Inconsistent memory manager\n");
 
   if (self->next)
     self->next = PMSerializePtr2Ref(self->next, ctx);
@@ -48,33 +45,33 @@ void OPLinkedListNode_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
     self->prev = PMSerializePtr2Ref(self->prev, ctx);
 
   if (self->container->type == op_object)
-    self->value = PMSerializePtr2Ref(self->value, ctx);
+    self->value.obj = PMSerializePtr2Ref(self->value.obj, ctx);
   self->container = PMSerializePtr2Ref(self->container, ctx);
-  self->memory_manager = NULL;
 }
 
 void OPLinkedListNode_serde_deserialize(OPObject* obj, PMMemoryManager* ctx)
 {
   OPLinkedListNode* self = (OPLinkedListNode*) obj;
   if (self->next)
-    self->next = PMDeSerializePtr2Ref(self->next, ctx);
+    self->next = PMDeserializeRef2Ptr(self->next, ctx);
   if (self->prev)
-    self->prev = PMDeSerializePtr2Ref(self->prev, ctx);
+    self->prev = PMDeserializeRef2Ptr(self->prev, ctx);
 
-  self->container = PMDeSerializePtr2Ref(self->container, ctx);
+  self->container = PMDeserializeRef2Ptr(self->container, ctx);
   if (self->container->type == op_object)
-    self->value = PMDeSerializePtr2Ref(self->value, ctx);
-  self->memory_manager = ctx;
+    self->value.obj = PMDeserializeRef2Ptr(self->value.obj, ctx);
 }
 
 void OPLinkedList_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
+  op_assert(ctx == self->memory_manager, "Inconsistent memory manager\n");
   if (self->head)
     {
       self->head = PMSerializePtr2Ref(self->head, ctx);
       self->tail = PMSerializePtr2Ref(self->tail, ctx);
     }
+  self->memory_manager = NULL;
 }
 
 void OPLinkedList_serde_deserialize(OPObject* obj, PMMemoryManager* ctx)
@@ -85,6 +82,7 @@ void OPLinkedList_serde_deserialize(OPObject* obj, PMMemoryManager* ctx)
       self->head = PMDeserializeRef2Ptr(self->head, ctx);
       self->tail = PMDeserializeRef2Ptr(self->tail, ctx);
     }
+  self->memory_manager = ctx;
 }
 
 bool      OPLinkedList_coll_contains(OPObject* obj, OPGeneric element)
@@ -131,11 +129,12 @@ bool      OPLinkedList_coll_isEmpty(OPObject* obj)
 }
 
 size_t    OPLinkedList_coll_size(OPObject* obj)
+{
   OPLinkedList* self = (OPLinkedList*) obj;
   return self->size;
 }
 
-OPTYpe    OPLinkedList_coll_type(OPObject* obj)
+OPType    OPLinkedList_coll_type(OPObject* obj)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   return self->type;
@@ -170,7 +169,8 @@ size_t    OPLinkedList_lst_indexOf(OPObject* obj, OPGeneric element)
   free(it);
   return ret;
 }
-size_t    OPLinkedList_lst_lastIndexOf(OPObject* obj, OPGeneric element);
+
+size_t    OPLinkedList_lst_lastIndexOf(OPObject* obj, OPGeneric element)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   OPObject* it = OPLinkedList_lst_listIterator(obj);
@@ -198,14 +198,14 @@ OPObject* OPLinkedList_lst_listIterator(OPObject* obj)
   it->type = self->type;
   it->next = self->head;
   it->prev = NULL;
-  return it;
+  return (OPObject*)it;
 }
 
 OPObject* OPLinkedList_lst_listIteratorFrom(OPObject* obj, size_t index)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   op_assert(index < self->size, "Index out of bound error. Index: %ld, ListSize: %ld\n", index, self->size);
-  OPLinkedListIterator* it = OPLinkedList_lst_listIterator(obj);
+  OPObject* it = OPLinkedList_lst_listIterator(obj);
   for (int i = 0; i < index; i++)
     {
       li_next(it);
@@ -225,8 +225,8 @@ bool      OPLinkedList_mcoll_add(OPObject* obj, OPGeneric element)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   self->size++;
-  LinkedListNode* node = LinkedListNode_init_isa(
-      PM_ALLOC(self->memory_manager, LinkedListNode));
+  OPLinkedListNode* node = OPLinkedListNode_init_isa(
+      PM_ALLOC(self->memory_manager, OPLinkedListNode));
   node->container = self;
   // TODO how do we handle the possible reference count?
   node->value = element;
@@ -307,9 +307,6 @@ OPGeneric OPLinkedList_mlst_set(OPObject* obj, size_t index, OPGeneric element)
 void      OPLinkedList_mlst_sort(OPObject* obj, fp_comparator comparator)
 {
   // TODO
-  OPGeneric ret;
-  ret.obj = NULL;
-  return ret;
 }
 
 OPObject* OPLinkedList_mlst_mutableListIterator(OPObject* obj)
@@ -346,7 +343,7 @@ bool      OPLinkedListIterator_li_hasPrevious(OPObject* obj)
 OPGeneric OPLinkedListIterator_li_next(OPObject* obj)
 {
   OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
-  tc_assert(self->next != NULL, "next should not be null\n");
+  op_assert(self->next != NULL, "next should not be null\n");
   OPGeneric ret = self->next->value;
   self->prev = self->next->prev;
   self->next = self->next->next;
@@ -356,7 +353,7 @@ OPGeneric OPLinkedListIterator_li_next(OPObject* obj)
 OPGeneric OPLinkedListIterator_li_previous(OPObject* obj)
 {
   OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
-  tc_assert(self->prev != NULL, "prev should not be null\n");
+  op_assert(self->prev != NULL, "prev should not be null\n");
   OPGeneric ret = self->prev->value;
   self->prev = self->prev->prev;
   self->next = self->prev->next;

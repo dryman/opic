@@ -113,7 +113,7 @@ OPGeneric mlst_set(OPObject* obj, size_t index, OPGeneric element)
 
 void mlst_sort(OPObject* obj, fp_comparator comparator)
 {
-  OP_TYPECLASS_METHOD_FACTORY(OPMutableList, mlst_replaceAll, obj->isa, obj, comparator);
+  OP_TYPECLASS_METHOD_FACTORY(OPMutableList, mlst_sort, obj->isa, obj, comparator);
 }
 
 OPObject* mlst_mutableListIterator(OPObject* obj)

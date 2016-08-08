@@ -21,15 +21,15 @@ size_t coll_size(OPObject* obj)
   OP_TYPECLASS_METHOD_FACTORY(OPCollection, coll_size, obj->isa, obj);
 }
 
-OPTYpe coll_type(OPObject* obj)
+OPType coll_type(OPObject* obj)
 {
-  OP_TYPECLASS_METHOD_FACTORY(OPCollection, coll_contains, obj->isa, obj);
+  OP_TYPECLASS_METHOD_FACTORY(OPCollection, coll_type, obj->isa, obj);
 }
 
 
 void mcoll_init(OPObject* obj, OPType type, PMMemoryManager* manager)
 {
-  OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_initWithType, obj->isa, obj, type, manager);
+  OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_init, obj->isa, obj, type, manager);
 }
 
 bool mcoll_add(OPObject* obj, OPGeneric element)
