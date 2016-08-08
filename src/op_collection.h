@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "op_macros.h"
 #include "op_trait.h"
+#include "pm_memory_manager.h"
 
 OP_BEGIN_DECLS
 
@@ -20,7 +21,7 @@ OP_DECLARE_METHOD(coll_type,        OPType, OPObject* obj);
 OP_DECLARE_TYPECLASS(OPMutableCollection);
 #define OPMutableCollection_OP_METHODS mcoll_initWithType, mcoll_add, mcoll_addAll, \
   mcoll_clear, mcoll_removeIf, mcoll_retainAll
-OP_DECLARE_METHOD(mcoll_initWithType, void, OPObject* obj, OPType type);
+OP_DECLARE_METHOD(mcoll_init,         void, OPObject* obj, OPType type, PMMemoryManager* manager);
 OP_DECLARE_METHOD(mcoll_add,          bool, OPObject* obj, OPGeneric element);
 OP_DECLARE_METHOD(mcoll_addAll,       bool, OPObject* obj, OPObject* collection);
 OP_DECLARE_METHOD(mcoll_clear,        void, OPObject* obj);

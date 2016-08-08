@@ -27,9 +27,9 @@ OPTYpe coll_type(OPObject* obj)
 }
 
 
-void mcoll_initWithType(OPObject* obj, OPType type)
+void mcoll_init(OPObject* obj, OPType type, PMMemoryManager* manager)
 {
-  OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_initWithType, obj->isa, obj, type);
+  OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_initWithType, obj->isa, obj, type, manager);
 }
 
 bool mcoll_add(OPObject* obj, OPGeneric element)

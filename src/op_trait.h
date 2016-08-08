@@ -49,13 +49,13 @@ struct ClassMethod
 
 typedef _Atomic ClassMethod AtomicClassMethod;
 
-typedef union __attribute__ ((__transparent_union__))
+typedef union
 {
   OPObject* obj;
   uint64_t  uint64;
   int64_t   int64;
   double    float64;
-} OPGeneric;
+} OPGeneric __attribute__ ((__transparent_union__));
 
 typedef enum
 {

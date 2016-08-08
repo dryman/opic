@@ -21,20 +21,22 @@ OPGeneric li_next(OPObject* obj)
   OP_TYPECLASS_METHOD_FACTORY(OPListIterator, li_next, obj->isa, obj);
 }
 
-size_t li_nextIndex(OPObject* obj)
-{
-  OP_TYPECLASS_METHOD_FACTORY(OPListIterator, li_nextIndex, obj->isa, obj);
-}
-
 OPGeneric li_previous(OPObject* obj)
 {
   OP_TYPECLASS_METHOD_FACTORY(OPListIterator, li_previous, obj->isa, obj);
+}
+
+/*
+size_t li_nextIndex(OPObject* obj)
+{
+  OP_TYPECLASS_METHOD_FACTORY(OPListIterator, li_nextIndex, obj->isa, obj);
 }
 
 size_t li_previousIndex(OPObject* obj)
 {
   OP_TYPECLASS_METHOD_FACTORY(OPListIterator, li_previousIndex, obj->isa, obj);
 }
+*/
 
 
 void mli_insert(OPObject* obj, OPGeneric element)

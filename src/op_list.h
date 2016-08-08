@@ -13,9 +13,9 @@ OP_DECLARE_METHOD(li_forEachRemaining, void, OPObject* obj, fp_unary func, void*
 OP_DECLARE_METHOD(li_hasNext,                bool, OPObject* obj);
 OP_DECLARE_METHOD(li_hasPrevious,            bool, OPObject* obj);
 OP_DECLARE_METHOD(li_next,              OPGeneric, OPObject* obj);
-OP_DECLARE_METHOD(li_nextIndex,            size_t, OPObject* obj);
 OP_DECLARE_METHOD(li_previous,          OPGeneric, OPObject* obj);
-OP_DECLARE_METHOD(li_previousIndex,        size_t, OPObject* obj);
+// OP_DECLARE_METHOD(li_nextIndex,            size_t, OPObject* obj);
+// OP_DECLARE_METHOD(li_previousIndex,        size_t, OPObject* obj);
 
 OP_DECLARE_TYPECLASS(OPMutableListIterator);
 #define OPMutableListIterator_OP_METHODS mli_add, mli_remove, mli_set
