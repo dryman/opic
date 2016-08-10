@@ -49,13 +49,13 @@ struct ClassMethod
 
 typedef _Atomic ClassMethod AtomicClassMethod;
 
-union PtrEquivalent
+typedef union
 {
   OPObject* obj;
   uint64_t  uint64;
   int64_t   int64;
   double    float64;
-};
+} OPGeneric __attribute__ ((__transparent_union__));
 
 typedef enum
 {
@@ -126,7 +126,7 @@ OP_END_DECLS
           break; \
         } \
       } \
-      op_assert(fn,"Class %s does implement %s.%s\n", isa->classname,#OP_TYPE,#METHOD); \
+      op_assert(fn,"Class %s should implement %s.%s\n", isa->classname,#OP_TYPE,#METHOD); \
       method = (ClassMethod){.isa = isa, .fn = (void*) fn}; \
       atomic_store(&method_cache[idx], method); \
     } \
@@ -172,7 +172,7 @@ KLASS* KLASS##_init_isa(KLASS* self) { \
   return self; \
 }
 
-  
+
 #define OP_CLASS_ADD_TYPECLASS(OP_TRAIT_TYPE, SLOT, KLASS_TYPE,...) \
   do { \
     OP_TRAIT_TYPE* OP_TRAIT_TYPE##_var = malloc(sizeof(OP_TRAIT_TYPE)); \

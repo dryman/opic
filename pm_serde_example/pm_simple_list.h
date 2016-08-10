@@ -14,7 +14,7 @@ struct List
 {
   struct OPObject base;
   List* next;
-  union PtrEquivalent value;
+  PtrEquivalent value;
 };
 
 void List_serde_serialize(OPObject* obj, PMMemoryManager* ctx);

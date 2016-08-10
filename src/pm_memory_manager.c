@@ -383,7 +383,7 @@ int PMSlot_new(PMSlot** self, PMPool* pool, PMAVLNode** pointer_map, size_t size
   if(!(*self=calloc(sizeof(PMSlot), 1))) return -1;
   (*self)->pool = pool;
   (*self)->size = size;
-  (*self)->data = calloc(sizeof(pool->klass->size), size);
+  (*self)->data = calloc(pool->klass->size, size);
   (*self)->data_next_free = (*self)->data;
   (*self)->data_bound = (*self)->data + pool->klass->size * size;
   (*self)->pqueue = calloc(sizeof(void*), size);
