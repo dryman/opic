@@ -11,7 +11,7 @@ bool it_hasNext(OPObject* obj)
   OP_TYPECLASS_METHOD_FACTORY(OPIterator, it_hasNext, obj->isa, obj);
 }
 
-void* it_next(OPObject* obj)
+OPGeneric it_next(OPObject* obj)
 {
   OP_TYPECLASS_METHOD_FACTORY(OPIterator, it_next, obj->isa, obj);
 }
