@@ -39,10 +39,8 @@ void OPLinkedListNode_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
 {
   OPLinkedListNode* self = (OPLinkedListNode*) obj;
 
-  if (self->next)
-    self->next = PMSerializePtr2Ref(self->next, ctx);
-  if (self->prev)
-    self->prev = PMSerializePtr2Ref(self->prev, ctx);
+  self->next = self->next ?  PMSerializePtr2Ref(self->next, ctx) : (void*)~0L;
+  self->prev = self->prev ?  PMSerializePtr2Ref(self->prev, ctx) : (void*)~0L;
 
   if (self->container->type == op_object)
     self->value.obj = PMSerializePtr2Ref(self->value.obj, ctx);
@@ -52,10 +50,13 @@ void OPLinkedListNode_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
 void OPLinkedListNode_serde_deserialize(OPObject* obj, PMMemoryManager* ctx)
 {
   OPLinkedListNode* self = (OPLinkedListNode*) obj;
-  if (self->next)
-    self->next = PMDeserializeRef2Ptr(self->next, ctx);
-  if (self->prev)
-    self->prev = PMDeserializeRef2Ptr(self->prev, ctx);
+  // TODO if the pointer were ~0L, restore as null, else call deref
+  self->next = (size_t)self->next == ~0L? 
+    NULL:
+    PMDeserializeRef2Ptr(self->next, ctx);
+  self->prev = (size_t)self->prev == ~0L? 
+    NULL:
+    PMDeserializeRef2Ptr(self->prev, ctx);
 
   self->container = PMDeserializeRef2Ptr(self->container, ctx);
   if (self->container->type == op_object)
@@ -71,13 +72,23 @@ void OPLinkedList_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
       self->head = PMSerializePtr2Ref(self->head, ctx);
       self->tail = PMSerializePtr2Ref(self->tail, ctx);
     }
+  else
+    {
+      self->head = (void*)~0L;
+      self->tail = (void*)~0L;
+    }
   self->memory_manager = NULL;
 }
 
 void OPLinkedList_serde_deserialize(OPObject* obj, PMMemoryManager* ctx)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
-  if (self->head)
+  if ((size_t)self->head == ~0L)
+    {
+      self->head = NULL;
+      self->tail = NULL;
+    }
+  else
     {
       self->head = PMDeserializeRef2Ptr(self->head, ctx);
       self->tail = PMDeserializeRef2Ptr(self->tail, ctx);

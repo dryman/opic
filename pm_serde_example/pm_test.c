@@ -9,6 +9,7 @@ int main (int argc, char** argv)
 {
   PMMemoryManager* ctx;
   PMMemoryManager_new(&ctx);
+  printf("sizeof(OPType): %d\n", sizeof(OPType));
   OPObject* list = (OPObject*)OPLinkedList_init_isa(PM_ALLOC(ctx, OPLinkedList));
   mcoll_init(list, op_int32, ctx);
 
