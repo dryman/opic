@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "op_trait.h"
+#include "op_log.h"
+
+OP_LOGGER_FACTORY(logger, "opic.op_trait")
 
 #define LP_TYPE_MAP_INIT_SIZE 1024
 

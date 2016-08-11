@@ -1,7 +1,13 @@
-#include <log4c.h>
+#include <stdbool.h>
+#include "op_log.h"
 
-__attribute__((constructor(101)))
-static void opic_log4c_init()
+static bool _log4c_initialized;
+
+void opic_log4c_init()
 {
-  log4c_init();
+  if (!_log4c_initialized)
+    {
+      log4c_init();
+      _log4c_initialized = true;
+    }
 }
