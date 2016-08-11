@@ -23,6 +23,7 @@
  * Unlike other ANSI header files, <op_assert.h> may usefully be included
  * multiple times, with and without NDEBUG defined.
  * TODO: test the overhead of assert (though should have minimized by unlikely)
+ * TODO: Do we want to use log4c instead of stderr?
  */
 
 #ifndef OP_ASSERT_STACK_LIMIT

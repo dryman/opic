@@ -8,7 +8,6 @@
 #include "op_serializable.h"
 #include "op_log.h"
 
-OP_LOGGER_FACTORY(logger, "opic.pm_memory_manager")
 
 typedef struct PMPool PMPool;
 typedef struct PMSlot PMSlot;
@@ -254,6 +253,8 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
   free(ctx->klasses);
 }
 
+OP_LOGGER_FACTORY(de_logger, "opic.pm_memory_manager.PMDeserialize")
+
 PMMemoryManager* PMDeserialize(FILE* fd, ...)
 {
   PMMemoryManager* ctx;
@@ -273,12 +274,12 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
       fread(classname, 1, classname_len, fd);
       classname[classname_len] = '\0';
       fread(&total_size, sizeof(size_t), 1, fd);
-      log4c_category_log(logger, LOG4C_PRIORITY_INFO,
+      log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
         "Deserializing class: %s", classname);
       free(classname);
 
       Class* klass = LPTypeMap_get(classname);
-      log4c_category_log(logger, LOG4C_PRIORITY_INFO,
+      log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
         "Deserializing, found matching klass addr: %p, %s",
         klass, klass->classname);
       ctx->klasses[i] = klass;
@@ -300,7 +301,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
               *(Class**)p = klass;
               OPObject* obj = (OPObject*) p;
 #ifndef NDEBUG
-              log4c_category_log(logger, LOG4C_PRIORITY_DEBUG, 
+              log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
                 "obj->isa: %p", obj->isa);
 #endif
             }
@@ -409,25 +410,27 @@ void PMSlot_destroy(PMSlot* self)
   free(self);
 }
 
+OP_LOGGER_FACTORY(alloc_logger, "opic.pm_memory_manager.PMSlot_alloc_obj")
+
 void* PMSlot_alloc_obj(PMSlot* self)
 {
   void* obj;
   const size_t obj_size = self->pool->klass->size;
   if (self->pqueue != self->pqueue_next_free) {
-    log4c_category_log(logger, LOG4C_PRIORITY_INFO,
+    log4c_category_log(alloc_logger, LOG4C_PRIORITY_INFO,
       "alloc from pqueue, with slot: %p", self);
     obj = *self->pqueue;
     self->pqueue_next_free--;
     *self->pqueue = *self->pqueue_next_free;
     PMSlot_pqueue_heapify(self);
   } else if(self->data_next_free < self->data_bound) {
-    log4c_category_log(logger, LOG4C_PRIORITY_INFO,
+    log4c_category_log(alloc_logger, LOG4C_PRIORITY_INFO,
       "alloc from data chunk, with slot: %p", self);
     obj = self->data_next_free;
-    log4c_category_log(logger, LOG4C_PRIORITY_INFO,
+    log4c_category_log(alloc_logger, LOG4C_PRIORITY_INFO,
       "data_next_free: %p, size: %d", self->data_next_free, obj_size);
     self->data_next_free += obj_size;
-    log4c_category_log(logger, LOG4C_PRIORITY_INFO,
+    log4c_category_log(alloc_logger, LOG4C_PRIORITY_INFO,
       "data_next_free: %p, size: %d", self->data_next_free, obj_size);
   } else {
     return NULL;
