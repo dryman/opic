@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "op_trait.h"
+#include "op_log.h"
+
+OP_LOGGER_FACTORY(logger, "opic.op_trait")
 
 #define LP_TYPE_MAP_INIT_SIZE 1024
 
@@ -91,7 +94,7 @@ uint64_t sdbm(char* str)
 {
   uint64_t hash = 0;
   int c;
-  while (c = *str++)
+  while ((c = *str++))
     {
       hash = c + (hash << 6) + (hash << 16) - hash;
     }

@@ -29,5 +29,5 @@ int main(int argc, char** argv) {
   f_fmap((OPObject*)&a, (OPObject*)&a, &my_fmap);
   f_fmap((OPObject*)&a, (OPObject*)&a, &my_fmap);
   printf("%d\n",*(int*)a.data);
-  printf("sizeof object: %d, getting size from klass: %d\n", sizeof(a), a.base.isa->size);
+  printf("sizeof object: %lu, getting size from klass: %zu\n", sizeof(a), a.base.isa->size);
 }

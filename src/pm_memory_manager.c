@@ -6,6 +6,8 @@
 #include <string.h>
 #include "pm_memory_manager.h"
 #include "op_serializable.h"
+#include "op_log.h"
+
 
 typedef struct PMPool PMPool;
 typedef struct PMSlot PMSlot;
@@ -251,6 +253,8 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
   free(ctx->klasses);
 }
 
+OP_LOGGER_FACTORY(de_logger, "opic.pm_memory_manager.PMDeserialize")
+
 PMMemoryManager* PMDeserialize(FILE* fd, ...)
 {
   PMMemoryManager* ctx;
@@ -270,11 +274,14 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
       fread(classname, 1, classname_len, fd);
       classname[classname_len] = '\0';
       fread(&total_size, sizeof(size_t), 1, fd);
-      printf("classname is %s\n", classname);
+      log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
+        "Deserializing class: %s", classname);
       free(classname);
 
       Class* klass = LPTypeMap_get(classname);
-      printf("klass %p, %s\n", klass, klass->classname);
+      log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
+        "Deserializing, found matching klass addr: %p, %s",
+        klass, klass->classname);
       ctx->klasses[i] = klass;
       obj_size = klass->size;
       total_cnt = total_size / obj_size;
@@ -293,7 +300,10 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
             {
               *(Class**)p = klass;
               OPObject* obj = (OPObject*) p;
-              printf("ojb->isa: %p\n", obj->isa);
+#ifndef NDEBUG
+              log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
+                "obj->isa: %p", obj->isa);
+#endif
             }
           else
             {
@@ -314,9 +324,9 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
         {
           if (*(Class**)p)
             {
-              printf("deserailize %p\n", p);
+              // printf("deserailize %p\n", p);
               OPObject* obj = (OPObject*)p;
-              printf("class addr: %p, classname: %s\n", obj->isa, obj->isa->classname);
+              // printf("class addr: %p, classname: %s\n", obj->isa, obj->isa->classname);
               serde_deserialize(p, ctx);
             }
         }
@@ -400,22 +410,28 @@ void PMSlot_destroy(PMSlot* self)
   free(self);
 }
 
+OP_LOGGER_FACTORY(alloc_logger, "opic.pm_memory_manager.PMSlot_alloc_obj")
+
 void* PMSlot_alloc_obj(PMSlot* self)
 {
   void* obj;
   const size_t obj_size = self->pool->klass->size;
   if (self->pqueue != self->pqueue_next_free) {
-    printf("alloc from pqueue, with slot: %p\n", self);
+    log4c_category_log(alloc_logger, LOG4C_PRIORITY_INFO,
+      "alloc from pqueue, with slot: %p", self);
     obj = *self->pqueue;
     self->pqueue_next_free--;
     *self->pqueue = *self->pqueue_next_free;
     PMSlot_pqueue_heapify(self);
   } else if(self->data_next_free < self->data_bound) {
-    printf("alloc from data chunk, with slot: %p\n", self);
+    log4c_category_log(alloc_logger, LOG4C_PRIORITY_INFO,
+      "alloc from data chunk, with slot: %p", self);
     obj = self->data_next_free;
-    printf("data_next_free: %p, size: %d\n", self->data_next_free, obj_size);
+    log4c_category_log(alloc_logger, LOG4C_PRIORITY_INFO,
+      "data_next_free: %p, size: %d", self->data_next_free, obj_size);
     self->data_next_free += obj_size;
-    printf("data_next_free: %p, size: %d\n", self->data_next_free, obj_size);
+    log4c_category_log(alloc_logger, LOG4C_PRIORITY_INFO,
+      "data_next_free: %p, size: %d", self->data_next_free, obj_size);
   } else {
     return NULL;
   }
