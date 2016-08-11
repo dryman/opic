@@ -91,7 +91,7 @@ uint64_t sdbm(char* str)
 {
   uint64_t hash = 0;
   int c;
-  while (c = *str++)
+  while ((c = *str++))
     {
       hash = c + (hash << 6) + (hash << 16) - hash;
     }
