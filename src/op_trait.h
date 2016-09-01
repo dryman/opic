@@ -2,6 +2,7 @@
 #define OP_TRAIT_H 1
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
