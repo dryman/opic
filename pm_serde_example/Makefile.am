@@ -9,8 +9,7 @@ pm_test_SOURCES = \
  ../src/op_list.h \
  ../src/op_linked_list.h
 pm_test_CFLAGS = -std=c11 @log4c_CFLAGS@
-pm_test_LDADD = ../src/libopic.la @log4c_LIBS@
-pm_test_LDFLAGS = -latomic
+pm_test_LDADD = ../src/libopic.la @log4c_LIBS@ -latomic
 
 pm_read_SOURCES = \
  pm_read.c \
@@ -21,5 +20,4 @@ pm_read_SOURCES = \
  ../src/op_list.h \
  ../src/op_linked_list.h
 pm_read_CFLAGS = -std=c11 @log4c_CFLAGS@
-pm_read_LDADD = ../src/libopic.la @log4c_LIBS@
-pm_read_LDFLAGS = -latomic
+pm_read_LDADD = ../src/libopic.la @log4c_LIBS@ -latomic

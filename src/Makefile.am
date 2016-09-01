@@ -20,6 +20,7 @@ libopic_la_SOURCES = \
   op_trait.c \
   pm_memory_manager.c
 libopic_la_CFLAGS = @log4c_CFLAGS@
+libopic_la_LDFLAGS = @log4c_LIBS@
 
 include_HEADERS = \
   op_assert.h \
