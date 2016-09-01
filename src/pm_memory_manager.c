@@ -107,13 +107,14 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
     PMSlot_new(&pool->slot, pool, &ctx->pointer_map, 2048);
     PMLPMap_put(ctx->type_map, klass, pool);
   }
-  PMSlot* slot = pool->slot, *prev_slot;
+  PMSlot* slot = pool->slot, *prev_slot = NULL;
   while(slot) {
     void* obj = PMSlot_alloc_obj(slot);
     if (obj) return obj;
     prev_slot = slot;
     slot = slot->next;
   }
+  if (!prev_slot) return NULL;
   PMSlot_new(&prev_slot->next, pool, &ctx->pointer_map, prev_slot->size*2);
   slot = prev_slot->next;
   return PMSlot_alloc_obj(slot);
@@ -121,7 +122,8 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
     
 void* PMFree(PMMemoryManager* ctx, void* obj)
 {
-  op_assert((*(Class**)obj), "object %p is already freed\n", obj);
+  op_assert(obj, "Object pointer should not be NULL");
+  op_assert(((OPObject*)obj)->isa, "object %p is already freed\n", obj);
   PMSlot* slot = PMAVLFind(ctx->pointer_map, obj);
   PMSlot_free_obj(slot, obj);
   /* TODO if slot is empty, free the slot */
