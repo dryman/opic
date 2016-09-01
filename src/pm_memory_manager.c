@@ -447,6 +447,7 @@ void* PMSlot_alloc_obj(PMSlot* self)
 
 void PMSlot_free_obj(PMSlot* self, void* obj)
 {
+  op_assert(obj, "Object pointer should not be NULL");
   const size_t obj_size = self->pool->klass->size;
   memset(obj, 0, obj_size);
   if (self->data_next_free == obj + obj_size)
