@@ -85,7 +85,10 @@ static int ptr_cmp (const void* a, const void* b)
 int PMMemoryManager_new(PMMemoryManager** self)
 {
   if (!(*self = calloc(sizeof(PMMemoryManager),1))) return -1;
-  if (PMLPMap_new(&(*self)->type_map, 128)) return -1;
+  if (PMLPMap_new(&(*self)->type_map, 128)) {
+    free(*self);
+    return -1;
+  }
   return 0;
 }
 
