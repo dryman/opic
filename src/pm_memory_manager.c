@@ -149,7 +149,8 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
           klass_num++;
         }
     }
-  op_assert(klass_num <= UINT8_MAX);
+  op_assert(klass_num <= UINT8_MAX,
+    "Number of available classes exceeds 256\n");
   ctx->klass_num = (uint8_t) klass_num;
   ctx->klasses = malloc(sizeof(Class*)*klass_num);
     // TODO assert types not larger than 255
