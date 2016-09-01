@@ -280,12 +280,13 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
       fread(&total_size, sizeof(size_t), 1, fd);
       log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
         "Deserializing class: %s", classname);
-      free(classname);
 
       Class* klass = LPTypeMap_get(classname);
       log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
         "Deserializing, found matching klass addr: %p, %s",
         klass, klass->classname);
+      free(classname);
+
       ctx->klasses[i] = klass;
       obj_size = klass->size;
       total_cnt = total_size / obj_size;
