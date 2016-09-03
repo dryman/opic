@@ -2,6 +2,11 @@
 #include "op_linked_list.h"
 #include <limits.h>
 
+/* Max integer that can be stored in a size_t object. */
+#ifndef SIZE_T_MAX
+#define SIZE_T_MAX UINT_MAX
+#endif /* !SIZE_T_MAX */
+
 // Last bit in ISA pointer denotes it is mutable or not
 struct OPLinkedList
 {
