@@ -7,8 +7,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdatomic.h>
-#include "op_assert.h"
-#include "op_macros.h"
+#include "../common/op_assert.h"
+#include "../common/op_macros.h"
 
 OP_BEGIN_DECLS
 

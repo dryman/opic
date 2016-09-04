@@ -2,8 +2,7 @@
 #define MONAD_H 1
 
 #include <stdbool.h>
-#include "../src/op_macros.h"
-#include "../src/op_trait.h"
+#include "../src/opic.h"
 
 OP_BEGIN_DECLS
 

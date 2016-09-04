@@ -1,7 +1,6 @@
 #ifndef FUNCTOR_H
 #define FUNCTOR_H 1
-#include "../src/op_macros.h"
-#include "../src/op_trait.h"
+#include "../src/opic.h"
 
 OP_BEGIN_DECLS
 // fmap :: (a -> b) -> f a -> f b

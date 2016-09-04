@@ -2,8 +2,8 @@
 #define PM_MEMORY_MANAGER_H 1
 
 #include <stdint.h>
+#include "../common/op_macros.h"
 #include "op_trait.h"
-#include "op_macros.h"
 
 OP_BEGIN_DECLS
 

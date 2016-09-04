@@ -1,6 +1,6 @@
 AC_INIT([OPIC],[0.1])
 
-AC_CONFIG_SRCDIR([src/op_trait.h])
+AC_CONFIG_SRCDIR([src/opic.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 

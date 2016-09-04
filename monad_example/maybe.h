@@ -2,8 +2,7 @@
 #define MAYBE_H 1
 
 #include <stdbool.h>
-#include "../src/op_macros.h"
-#include "../src/op_trait.h"
+#include "../src/opic.h"
 #include "monad.h"
 #include "functor.h"
 

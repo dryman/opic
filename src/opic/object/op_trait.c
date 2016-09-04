@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "op_trait.h"
-#include "op_log.h"
+#include "../common/op_log.h"
 
 OP_LOGGER_FACTORY(logger, "opic.op_trait")
 

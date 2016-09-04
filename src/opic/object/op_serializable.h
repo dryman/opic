@@ -1,6 +1,6 @@
 #ifndef OP_SERIALIZABLE_H
 
-#include "op_macros.h"
+#include "../common/op_macros.h"
 #include "op_trait.h"
 #include "pm_memory_manager.h"
 

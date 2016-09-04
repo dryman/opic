@@ -1,8 +1,7 @@
 #ifndef OP_LIST_H
 #define OP_LIST_H 1
 #include <stdbool.h>
-#include "op_macros.h"
-#include "op_trait.h"
+#include "opic.h"
 #include "op_functional.h"
 
 OP_BEGIN_DECLS

@@ -2,10 +2,8 @@
 #define OP_COLLECTION_H 1
 #include <stdint.h>
 #include <stdbool.h>
-#include "op_macros.h"
-#include "op_trait.h"
+#include "opic.h"
 #include "op_functional.h"
-#include "pm_memory_manager.h"
 
 OP_BEGIN_DECLS
 

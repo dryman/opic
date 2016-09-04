@@ -6,7 +6,7 @@
 #include <string.h>
 #include "pm_memory_manager.h"
 #include "op_serializable.h"
-#include "op_log.h"
+#include "../common/op_log.h"
 
 
 typedef struct PMPool PMPool;
