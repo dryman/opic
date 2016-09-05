@@ -2,7 +2,6 @@
 #define OP_LINKDED_LIST_H 1
 #include <stdbool.h>
 #include "opic.h"
-#include "opic/object/op_trait.h"
 #include "op_functional.h"
 #include "op_collection.h"
 #include "op_list.h"
