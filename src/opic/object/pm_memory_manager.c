@@ -9,14 +9,12 @@
 #include "../common/op_log.h"
 
 
-typedef struct PMPool PMPool;
-typedef struct PMSlot PMSlot;
 typedef struct PMLPMap PMLPMap; // LP states for Linear Probing
 typedef struct PMLPMapData PMLPMapData;
 
 struct PMMemoryManager {
   PMLPMap* type_map;
-  PMAVLNode* pointer_map;
+  PRMObj* pointer_map;
   Class** klasses;
   uint8_t klass_num;
 };
@@ -38,15 +36,6 @@ struct PMSlot {
   PMSlot* next;
 };
 
-struct PMAVLNode {
-  unsigned int height;
-  void* ptr_low;
-  void* ptr_high; // close-open interval
-  PMSlot* slot;
-  PMAVLNode* left;
-  PMAVLNode* right;
-};
-
 struct PMLPMap {
   size_t size;
   PMLPMapData* data;
@@ -57,16 +46,10 @@ struct PMLPMapData {
   PMPool* pool;
 };
 
-static int PMSlot_new(PMSlot** self, PMPool* pool, PMAVLNode** pointer_map, size_t size);
+static int PMSlot_new(PMSlot** self, PMPool* pool, PRMObj* pointer_map, size_t size);
 static void* PMSlot_alloc_obj(PMSlot* self);
 static void PMSlot_free_obj(PMSlot* self, void* obj);
 static inline void PMSlot_pqueue_heapify(PMSlot* self);
-static inline void PMAVLRotateLeft(PMAVLNode** node);
-static inline void PMAVLRotateRight(PMAVLNode** node);
-static inline unsigned int PMAVLGetHeight(PMAVLNode* node);
-static unsigned int PMAVLInsert(PMAVLNode** node, void* ptr_low, void* ptr_high, PMSlot* slot);
-static PMSlot* PMAVLFind(PMAVLNode* node, void* ptr);
-static void PMAVL_destroy(PMAVLNode* node);
 static int PMLPMap_new(PMLPMap** self, size_t size);
 static void PMLPMap_destroy(PMLPMap* self);
 static PMPool* PMLPMap_get(PMLPMap* self, Class* key);
@@ -85,14 +68,24 @@ static int ptr_cmp (const void* a, const void* b)
 int PMMemoryManager_new(PMMemoryManager** self)
 {
   if (!(*self = calloc(sizeof(PMMemoryManager),1))) return -1;
-  if (PMLPMap_new(&(*self)->type_map, 128)) return -1;
+  if (PRMCreate(&(*self)->pointer_map))
+    {
+      free(*self);
+      return -1;
+    }
+  if (PMLPMap_new(&(*self)->type_map, 128)) 
+    {
+      PRMDestroy((*self)->pointer_map);
+      free(*self);
+      return -1;
+    }
   return 0;
 }
 
 void PMMemoryManager_destroy(PMMemoryManager* self)
 {
   PMLPMap_destroy(self->type_map);
-  PMAVL_destroy(self->pointer_map);
+  PRMDestroy(self->pointer_map);
 }
 
 void* PMAlloc(PMMemoryManager* ctx, Class* klass)
@@ -101,7 +94,7 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
   if (!pool) {
     pool = calloc(sizeof(PMPool), 1);
     pool->klass = klass;
-    PMSlot_new(&pool->slot, pool, &ctx->pointer_map, 2048);
+    PMSlot_new(&pool->slot, pool, ctx->pointer_map, 2048);
     PMLPMap_put(ctx->type_map, klass, pool);
   }
   PMSlot* slot = pool->slot, *prev_slot;
@@ -111,7 +104,7 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
     prev_slot = slot;
     slot = slot->next;
   }
-  PMSlot_new(&prev_slot->next, pool, &ctx->pointer_map, prev_slot->size*2);
+  PMSlot_new(&prev_slot->next, pool, ctx->pointer_map, prev_slot->size*2);
   slot = prev_slot->next;
   return PMSlot_alloc_obj(slot);
 }
@@ -119,7 +112,7 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
 void* PMFree(PMMemoryManager* ctx, void* obj)
 {
   op_assert((*(Class**)obj), "object %p is already freed\n", obj);
-  PMSlot* slot = PMAVLFind(ctx->pointer_map, obj);
+  PMSlot* slot = PRMFind(ctx->pointer_map, obj);
   PMSlot_free_obj(slot, obj);
   /* TODO if slot is empty, free the slot */
 }
@@ -288,7 +281,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
       total_cnt = total_size / obj_size;
       PMPool* pool = calloc(sizeof(PMPool), 1);
       pool->klass = klass;
-      PMSlot_new(&pool->slot, pool, &ctx->pointer_map, total_cnt);
+      PMSlot_new(&pool->slot, pool, ctx->pointer_map, total_cnt);
 
       PMSlot* slot = pool->slot;
       fread(slot->data, 1, total_size, fd);
@@ -353,7 +346,7 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
 
 void* PMSerializePtr2Ref (void* ptr, PMMemoryManager* ctx)
 {
-  PMSlot* slot = PMAVLFind(ctx->pointer_map, ptr);
+  PMSlot* slot = PRMFind(ctx->pointer_map, ptr);
   Class* klass = slot->pool->klass;
   Class** klasses = ctx->klasses;
   uint8_t low=0, high = ctx->klass_num-1, type_id;
@@ -389,7 +382,7 @@ void* PMDeserializeRef2Ptr(void* ref, PMMemoryManager* ctx)
 
 /* Start of internal functions */
 
-int PMSlot_new(PMSlot** self, PMPool* pool, PMAVLNode** pointer_map, size_t size)
+int PMSlot_new(PMSlot** self, PMPool* pool, PRMObj* pointer_map, size_t size)
 {
   if(!(*self=calloc(sizeof(PMSlot), 1))) return -1;
   (*self)->pool = pool;
@@ -399,13 +392,14 @@ int PMSlot_new(PMSlot** self, PMPool* pool, PMAVLNode** pointer_map, size_t size
   (*self)->data_bound = (*self)->data + pool->klass->size * size;
   (*self)->pqueue = calloc(sizeof(void*), size);
   (*self)->pqueue_next_free = (*self)->pqueue;
-  PMAVLInsert(pointer_map, (*self)->data, (*self)->data_bound, *self);
+  PRMInsert(pointer_map, (*self)->data, (*self)->data_bound, *self);
   return 0;
 }
 
 void PMSlot_destroy(PMSlot* self)
 {
   if (self->next) PMSlot_destroy(self->next);
+  // TODO should pass PRMObj in and delete ptr ranges
   free(self->data);
   free(self->pqueue);
   free(self);
@@ -467,85 +461,6 @@ static inline void PMSlot_pqueue_heapify(PMSlot* self)
       break;
     }
   }
-}
-
-
-unsigned int PMAVLInsert(PMAVLNode** node, void* ptr_low, void* ptr_high, PMSlot* slot)
-{
-  if (*node == NULL) {
-    *node = calloc(sizeof(PMAVLNode),1);
-    (*node)->ptr_low = ptr_low;
-    (*node)->ptr_high = ptr_high;
-    (*node)->slot = slot;
-    (*node)->height = 1;
-    return (*node)->height;
-  }
-  op_assert(ptr_low != (*node)->ptr_low, "should not see address collision\n");
-  if (ptr_low < (*node)->ptr_low) {
-    unsigned int h = PMAVLInsert(&(*node)->left, ptr_low, ptr_high, slot);
-    if (!(*node)->right && h > 1) {
-      PMAVLRotateRight(node);
-    } else if ((*node)->right) {
-      PMAVLNode* right = (*node)->right;
-      if (h > right->height+1) PMAVLRotateRight(node);
-    }
-  } else {
-    unsigned int h = PMAVLInsert(&(*node)->right, ptr_low, ptr_high, slot);
-    if (!(*node)->left && h > 1) {
-      PMAVLRotateLeft(node);
-    } else if ((*node)->left) {
-      PMAVLNode* left = (*node)->right;
-      if (h > left->height+1) PMAVLRotateLeft(node);
-    }
-  }
-  (*node)->height = PMAVLGetHeight(*node);
-  return (*node)->height;
-}
-
-PMSlot* PMAVLFind(PMAVLNode* node, void* ptr)
-{
-  op_assert(node, "NULL PMAVLNode\n");
-  if (ptr < node->ptr_low)
-    return PMAVLFind(node->left, ptr);
-  if (ptr < node->ptr_high)
-    return node->slot;
-  return PMAVLFind(node->right, ptr);
-}
-
-void PMAVL_destroy(PMAVLNode* node)
-{
-  if (!node) return;
-  PMAVL_destroy(node->left);
-  PMAVL_destroy(node->right);
-  free(node);
-}
-
-void PMAVLRotateLeft(PMAVLNode** node)
-{
-  PMAVLNode* p = *node, *r = (*node)->right;
-  p->right = r->left;
-  r->left = p;
-  p->height = PMAVLGetHeight(p);
-  r->height = PMAVLGetHeight(r);
-  *node = r;
-}
-
-void PMAVLRotateRight(PMAVLNode** node)
-{
-  PMAVLNode* p = *node, *l = (*node)->left;
-  p->left = l->right;
-  l->left = p;
-  p->height = PMAVLGetHeight(p);
-  l->height = PMAVLGetHeight(l);
-  *node = l;
-}
-
-unsigned int PMAVLGetHeight(PMAVLNode* node)
-{
-  unsigned int left_h, right_h;
-  left_h = node->left ? node->left->height : 0;
-  right_h = node->right ? node->right->height : 0;
-  return left_h > right_h ? left_h : right_h;
 }
 
 int PMLPMap_new(PMLPMap** self, size_t size)

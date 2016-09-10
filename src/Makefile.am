@@ -1,4 +1,5 @@
-# should removed and recursively define subdir
+# TODO: Can we put Makefile.am in subdir?
+# https://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html
 AUTOMAKE_OPTIONS = subdir-objects
 
 lib_LTLIBRARIES = libopic.la
@@ -13,6 +14,8 @@ libopic_la_SOURCES = \
   opic/object/op_trait.h \
   opic/object/pm_memory_manager.c \
   opic/object/pm_memory_manager.h \
+  opic/object/ptr_range_map_splay.c \
+  opic/object/ptr_range_map.h \
   opic.h \
   op_collection.h \
   op_functional.h \
@@ -23,7 +26,7 @@ libopic_la_SOURCES = \
   op_iterator.c \
   op_linked_list.c \
   op_list.c
-libopic_la_CFLAGS = @log4c_CFLAGS@
+libopic_la_CFLAGS = @log4c_CFLAGS@ @PTHREAD_CFLAGS@
 libopic_la_LDFLAGS = @log4c_LIBS@
 
 include_HEADERS = \
@@ -34,7 +37,7 @@ include_HEADERS = \
   op_linked_list.h \
   op_list.h
 
-pkginclude_HEADERS = \
+nobase_include_HEADERS = \
   opic/common/op_assert.h \
   opic/common/op_log.h \
   opic/common/op_macros.h \

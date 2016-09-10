@@ -9,69 +9,9 @@
 #include <stdatomic.h>
 #include "../common/op_assert.h"
 #include "../common/op_macros.h"
+#include "op_object_def.h"
 
 OP_BEGIN_DECLS
-
-typedef struct TypeClass TypeClass;
-typedef struct Class Class __attribute__ ((aligned(256)));
-typedef struct OPObject OPObject;
-typedef struct ClassMethod ClassMethod;
-
-struct TypeClass
-{
-  const char* name;
-};
-
-// TODO: find good way to implement super
-// two possible ways:
-// 1. anonymous embeded super
-//    Hard to handle traits (reuse, overwrite, ...)
-// 2. pointer to supers (traverse pointers may take time..)
-// Hakell type doesn't seems to have inheritance?
-// Maybe we don't need it at all
-struct Class
-{
-  const char* const classname; // useful for debugging
-  const size_t size;
-  TypeClass** traits;
-  // methods should be struct extending class
-}; 
-
-struct OPObject
-{
-  Class* isa;
-};
-
-struct ClassMethod
-{
-  Class* isa;
-  void*  fn;
-};
-
-typedef _Atomic ClassMethod AtomicClassMethod;
-
-typedef union
-{
-  OPObject* obj;
-  uint64_t  uint64;
-  int64_t   int64;
-  double    float64;
-} OPGeneric __attribute__ ((__transparent_union__));
-
-typedef enum
-{
-  op_object = 0,
-  op_int8,
-  op_int16,
-  op_int32,
-  op_int64,
-  op_uint8,
-  op_uint16,
-  op_uint32,
-  op_uint64,
-  op_float32,
-  op_float64
-} OPType;
 
 Class* LPTypeMap_get(char* key);
 void LPTypeMap_put(char* key, Class* value);

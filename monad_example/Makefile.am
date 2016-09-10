@@ -9,6 +9,6 @@ maybe_SOURCES = \
   maybe.h \
   maybe.c \
   maybe_main.c
-maybe_LDADD = ../src/libopic.la
-maybe_CFLAGS = -std=c11
+maybe_LDADD = ../src/libopic.la @PTHREAD_LIBS@
+maybe_CFLAGS = -std=c11 @log4c_CFLAGS@ @PTHREAD_CFLAGS@
 maybe_LDFLAGS = -latomic

@@ -4,11 +4,12 @@
 #include <stdint.h>
 #include "../common/op_macros.h"
 #include "op_trait.h"
+#include "op_object_def.h"
+#include "ptr_range_map.h"
 
 OP_BEGIN_DECLS
 
 typedef struct PMMemoryManager PMMemoryManager;
-typedef struct PMAVLNode PMAVLNode;
 
 int PMMemoryManager_new(PMMemoryManager**);
 void PMMemoryManager_destroy(PMMemoryManager*);
