@@ -12,8 +12,11 @@ libopic_la_SOURCES = \
   opic/object/op_serializable.h \
   opic/object/op_trait.c \
   opic/object/op_trait.h \
-  opic/object/pm_memory_manager.c \
-  opic/object/pm_memory_manager.h \
+  opic/object/op_object.h \
+  opic/object/op_object_def.h \
+  opic/object/op_malloc_manager.c \
+  opic/object/class_map.c \
+  opic/object/class_map.h \
   opic/object/ptr_range_map_splay.c \
   opic/object/ptr_range_map.h \
   opic.h \
@@ -43,4 +46,4 @@ nobase_include_HEADERS = \
   opic/common/op_macros.h \
   opic/object/op_serializable.h \
   opic/object/op_trait.h \
-  opic/object/pm_memory_manager.h
+  opic/object/op_object.h

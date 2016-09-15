@@ -10,9 +10,9 @@ typedef struct PRMObj PRMObj;
 
 int PRMCreate(PRMObj** ctx);
 void PRMDestroy(PRMObj* ctx);
-void PRMInsert(PRMObj* ctx, void* ptr_low, void* ptr_high, PMSlot* slot);
+void PRMInsert(PRMObj* ctx, void* ptr_low, void* ptr_high, OPMSlot* slot);
 void PRMDelete(PRMObj* ctx, void* ptr_low);
-PMSlot* PRMFind(PRMObj* ctx, void* ptr);
+OPMSlot* PRMFind(PRMObj* ctx, void* ptr);
 
 OP_END_DECLS
 

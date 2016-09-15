@@ -15,11 +15,9 @@ typedef struct TypeClass TypeClass;
 typedef struct Class Class __attribute__ ((aligned(256)));
 typedef struct OPObject OPObject;
 typedef struct ClassMethod ClassMethod;
-//typedef struct OPMallocManager;
-//typedef struct OPMPool;
-//typedef struct OPMSlot;
-typedef struct PMPool PMPool;
-typedef struct PMSlot PMSlot; // TODO workaround for refactoring
+typedef struct OPMallocManager OPMallocManager;
+typedef struct OPMPool OPMPool;
+typedef struct OPMSlot OPMSlot;
 
 struct TypeClass
 {
@@ -30,6 +28,7 @@ struct Class
 {
   const char* const classname;
   const size_t size;
+  uint64_t hash;
   TypeClass** traits;
 }; 
 

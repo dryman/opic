@@ -19,7 +19,7 @@ OP_DECLARE_TYPECLASS(OPCollection);
 
 #define OPMutableCollection_OP_METHODS mcoll_init, mcoll_add, mcoll_addAll, \
   mcoll_clear, mcoll_removeIf, mcoll_retainAll
-OP_DECLARE_METHOD(mcoll_init,         void, OPObject* obj, OPType type, PMMemoryManager* manager);
+OP_DECLARE_METHOD(mcoll_init,         void, OPObject* obj, OPType type, OPMallocManager* manager);
 OP_DECLARE_METHOD(mcoll_add,          bool, OPObject* obj, OPGeneric element);
 OP_DECLARE_METHOD(mcoll_addAll,       bool, OPObject* obj, OPObject* collection);
 OP_DECLARE_METHOD(mcoll_clear,        void, OPObject* obj);

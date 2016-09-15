@@ -12,19 +12,19 @@
 typedef struct PMLPMap PMLPMap; // LP states for Linear Probing
 typedef struct PMLPMapData PMLPMapData;
 
-struct PMMemoryManager {
+struct OPMMallocManager {
   PMLPMap* type_map;
   PRMObj* pointer_map;
   Class** klasses;
   uint8_t klass_num;
 };
 
-struct PMPool {
+struct OPMPool {
   Class* klass;
   PMSlot* slot;
 };
 
-struct PMSlot {
+struct OPMSlot {
   PMPool* pool;
   size_t size;
   size_t offset; // only used in serialization

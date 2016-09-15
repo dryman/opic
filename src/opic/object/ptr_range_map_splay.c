@@ -14,14 +14,14 @@ struct PRMObj
 struct PRMNode {
   void* ptr_low;
   void* ptr_high;
-  PMSlot* slot;
+  OPMSlot* slot;
   PRMNode* left;
   PRMNode* right;
 };
 
 static void PRMDestroyNode(PRMNode* node);
 static PRMNode* PRMSplay(PRMNode* node, void* ptr_low);
-
+// TODO need a non-blocking find for OPFree
 
 
 int PRMCreate(PRMObj** tree)
@@ -41,7 +41,7 @@ void PRMDestroy(PRMObj* tree)
   free(tree);
 }
 
-void PRMInsert(PRMObj* tree, void* ptr_low, void* ptr_high, PMSlot* slot)
+void PRMInsert(PRMObj* tree, void* ptr_low, void* ptr_high, OPMSlot* slot)
 {
   if (tree == NULL) return;
   
@@ -111,11 +111,11 @@ void PRMDelete(PRMObj* tree, void* ptr)
   pthread_mutex_unlock(&(tree->lock));
 }
 
-PMSlot* PRMFind(PRMObj* tree, void* ptr)
+OPMSlot* PRMFind(PRMObj* tree, void* ptr)
 {
   op_assert(tree, "Tree should not be NULL\n");
 
-  PMSlot* ret = NULL;
+  OPMSlot* ret = NULL;
 
   pthread_mutex_lock(&(tree->lock));
   tree->root = PRMSplay(tree->root, ptr);

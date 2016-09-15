@@ -101,3 +101,14 @@ uint64_t sdbm(char* str)
   return hash;
 }
 
+uint64_t op_murmur_hash(void* ptr)
+{
+  // copied from murmur hash 3.. 
+  uint64_t k = (uint64_t) ptr;
+  k ^= k >> 33;
+  k *= 0xff51afd7ed558ccd;
+  k ^= k >> 33;
+  k *= 0xc4ceb9fe1a85ec53;
+  k ^= k >> 33;
+  return k;
+}

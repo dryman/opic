@@ -6,10 +6,11 @@
 
 int main (int argc, char** argv)
 {
-  PMMemoryManager* ctx;
-  PMMemoryManager_new(&ctx);
+  OPMallocManager* ctx;
+  
+  OPMallocManagerCreate(&ctx);
   printf("sizeof(OPType): %d\n", sizeof(OPType));
-  OPObject* list = (OPObject*)OPLinkedList_init_isa(PM_ALLOC(ctx, OPLinkedList));
+  OPObject* list = (OPObject*)OPLinkedList_init_isa(OP_MALLOC(ctx, OPLinkedList));
   mcoll_init(list, op_int32, ctx);
 
   for (int i = 0; i<10; i++)
@@ -23,10 +24,10 @@ int main (int argc, char** argv)
     }
   free(it);
   FILE* out = fopen("list_serialized", "w");
-  PMSerialize(ctx, out, 1, list);
+  OPSerialize(ctx, out, 1, list);
   fclose(out);
 
-  PMMemoryManager_destroy(ctx);
+  OPMallocManagerDestroy(ctx);
   /*
   PMFree(ctx,node);
   node = List_init_isa(PM_ALLOC(ctx, List));

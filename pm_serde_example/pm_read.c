@@ -7,7 +7,8 @@ int main (int argc, char** argv)
 {
   OPObject* list;
   FILE* in = fopen("list_serialized", "r");
-  PMMemoryManager* ctx = PMDeserialize(in, &list);
+  OPMallocManager* ctx;
+  OPDeserialize(&ctx, in, &list);
   fclose(in);
 
   OPObject* it = lst_listIterator(list);
@@ -16,5 +17,6 @@ int main (int argc, char** argv)
       printf("Node value: %zu\n", li_next(it).uint64);
     }
   free(it);
+  OPMallocManagerDestroy(ctx);
   return 0;
 }

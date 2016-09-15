@@ -15,11 +15,11 @@ OP_DECLARE_ISA(OPLinkedList);
 OP_DECLARE_ISA(OPLinkedListIterator);
 OP_DECLARE_ISA(OPLinkedListNode);
 
-void      OPLinkedListNode_serde_serialize(OPObject* obj, PMMemoryManager* ctx);
-void      OPLinkedListNode_serde_deserialize(OPObject* obj, PMMemoryManager* ctx);
+void      OPLinkedListNode_serde_serialize(OPObject* obj, OPMallocManager* ctx);
+void      OPLinkedListNode_serde_deserialize(OPObject* obj, OPMallocManager* ctx);
 
-void      OPLinkedList_serde_serialize(OPObject* obj, PMMemoryManager* ctx);
-void      OPLinkedList_serde_deserialize(OPObject* obj, PMMemoryManager* ctx);
+void      OPLinkedList_serde_serialize(OPObject* obj, OPMallocManager* ctx);
+void      OPLinkedList_serde_deserialize(OPObject* obj, OPMallocManager* ctx);
 
 bool      OPLinkedList_coll_contains(OPObject* obj, OPGeneric element);
 bool      OPLinkedList_coll_containsAll(OPObject* obj, OPObject* collection);
@@ -33,7 +33,7 @@ size_t    OPLinkedList_lst_lastIndexOf(OPObject* obj, OPGeneric element);
 OPObject* OPLinkedList_lst_listIterator(OPObject* obj);
 OPObject* OPLinkedList_lst_listIteratorFrom(OPObject* obj, size_t index);
 
-void      OPLinkedList_mcoll_init(OPObject* obj, OPType type, PMMemoryManager* manager);
+void      OPLinkedList_mcoll_init(OPObject* obj, OPType type, OPMallocManager* manager);
 bool      OPLinkedList_mcoll_add(OPObject* obj, OPGeneric element);
 bool      OPLinkedList_mcoll_addAll(OPObject* obj, OPObject* collection);
 void      OPLinkedList_mcoll_clear(OPObject* obj);

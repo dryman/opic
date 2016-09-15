@@ -13,7 +13,7 @@ struct OPLinkedList
   struct OPObject base;
   OPType type;
   size_t size;
-  PMMemoryManager* memory_manager;
+  OPMallocManager* memory_manager;
   OPLinkedListNode* head;
   OPLinkedListNode* tail;
 };
@@ -40,42 +40,42 @@ OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListNode, OPSerializable)
 OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedList, OPSerializable, OPCollection, OPMutableCollection, OPList, OPMutableList)
 OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListIterator, OPListIterator, OPMutableListIterator)
 
-void OPLinkedListNode_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
+void OPLinkedListNode_serde_serialize(OPObject* obj, OPMallocManager* ctx)
 {
   OPLinkedListNode* self = (OPLinkedListNode*) obj;
 
-  self->next = self->next ?  PMSerializePtr2Ref(self->next, ctx) : (void*)~0L;
-  self->prev = self->prev ?  PMSerializePtr2Ref(self->prev, ctx) : (void*)~0L;
+  self->next = self->next ?  OPPtr2Ref(ctx, self->next) : (void*)~0L;
+  self->prev = self->prev ?  OPPtr2Ref(ctx, self->prev) : (void*)~0L;
 
   if (self->container->type == op_object)
-    self->value.obj = PMSerializePtr2Ref(self->value.obj, ctx);
-  self->container = PMSerializePtr2Ref(self->container, ctx);
+    self->value.obj = OPPtr2Ref(ctx, self->value.obj);
+  self->container = OPPtr2Ref(ctx, self->container);
 }
 
-void OPLinkedListNode_serde_deserialize(OPObject* obj, PMMemoryManager* ctx)
+void OPLinkedListNode_serde_deserialize(OPObject* obj, OPMallocManager* ctx)
 {
   OPLinkedListNode* self = (OPLinkedListNode*) obj;
   // TODO if the pointer were ~0L, restore as null, else call deref
   self->next = (size_t)self->next == ~0L? 
     NULL:
-    PMDeserializeRef2Ptr(self->next, ctx);
+    OPRef2Ptr(ctx, self->next);
   self->prev = (size_t)self->prev == ~0L? 
     NULL:
-    PMDeserializeRef2Ptr(self->prev, ctx);
+    OPRef2Ptr(ctx, self->prev);
 
-  self->container = PMDeserializeRef2Ptr(self->container, ctx);
+  self->container = OPRef2Ptr(ctx, self->container);
   if (self->container->type == op_object)
-    self->value.obj = PMDeserializeRef2Ptr(self->value.obj, ctx);
+    self->value.obj = OPRef2Ptr(ctx, self->value.obj);
 }
 
-void OPLinkedList_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
+void OPLinkedList_serde_serialize(OPObject* obj, OPMallocManager* ctx)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   op_assert(ctx == self->memory_manager, "Inconsistent memory manager\n");
   if (self->head)
     {
-      self->head = PMSerializePtr2Ref(self->head, ctx);
-      self->tail = PMSerializePtr2Ref(self->tail, ctx);
+      self->head = OPPtr2Ref(ctx, self->head);
+      self->tail = OPPtr2Ref(ctx, self->tail);
     }
   else
     {
@@ -85,7 +85,7 @@ void OPLinkedList_serde_serialize(OPObject* obj, PMMemoryManager* ctx)
   self->memory_manager = NULL;
 }
 
-void OPLinkedList_serde_deserialize(OPObject* obj, PMMemoryManager* ctx)
+void OPLinkedList_serde_deserialize(OPObject* obj, OPMallocManager* ctx)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   if ((size_t)self->head == ~0L)
@@ -95,8 +95,8 @@ void OPLinkedList_serde_deserialize(OPObject* obj, PMMemoryManager* ctx)
     }
   else
     {
-      self->head = PMDeserializeRef2Ptr(self->head, ctx);
-      self->tail = PMDeserializeRef2Ptr(self->tail, ctx);
+      self->head = OPRef2Ptr(ctx, self->head);
+      self->tail = OPRef2Ptr(ctx, self->tail);
     }
   self->memory_manager = ctx;
 }
@@ -229,7 +229,7 @@ OPObject* OPLinkedList_lst_listIteratorFrom(OPObject* obj, size_t index)
   return it;
 }
 
-void      OPLinkedList_mcoll_init(OPObject* obj, OPType type, PMMemoryManager* manager)
+void      OPLinkedList_mcoll_init(OPObject* obj, OPType type, OPMallocManager* manager)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   self->type = type;
@@ -241,7 +241,7 @@ bool      OPLinkedList_mcoll_add(OPObject* obj, OPGeneric element)
   OPLinkedList* self = (OPLinkedList*) obj;
   self->size++;
   OPLinkedListNode* node = OPLinkedListNode_init_isa(
-      PM_ALLOC(self->memory_manager, OPLinkedListNode));
+      OP_MALLOC(self->memory_manager, OPLinkedListNode));
   node->container = self;
   // TODO how do we handle the possible reference count?
   node->value = element;

@@ -27,7 +27,7 @@ OPType coll_type(OPObject* obj)
 }
 
 
-void mcoll_init(OPObject* obj, OPType type, PMMemoryManager* manager)
+void mcoll_init(OPObject* obj, OPType type, OPMallocManager* manager)
 {
   OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_init, obj->isa, obj, type, manager);
 }
