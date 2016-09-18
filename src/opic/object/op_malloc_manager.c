@@ -117,14 +117,20 @@ void* OPMalloc(OPMallocManager* self, Class* klass)
   obj = OPMSlotAlloc(slot);
   
  return_barier:
+  ((OPObject*) obj)->manager = self;
+  ((OPObject*) obj)->isa = klass;
+  OPRetain((OPObject*) obj);
   pthread_mutex_unlock(&self->m_lock);
   return obj;
 }
 
 OP_LOGGER_FACTORY(free_logger, "opic.op_malloc_manager.OPFree")
 
-void OPFree(OPMallocManager* self, void* obj)
+void OPFree(void* obj)
 {
+  if (obj == NULL) return;
+
+  OPMallocManager* self = ((OPObject*)obj)->manager;
   pthread_mutex_lock(&self->m_lock);
   if (obj == NULL || *(Class**)obj == NULL)
     {
@@ -488,8 +494,3 @@ void OPMSlotHeapifyPQueue(OPMSlot* self)
         }
     }
 }
-
-
-      
-
-

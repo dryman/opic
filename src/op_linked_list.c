@@ -36,9 +36,24 @@ struct OPLinkedListIterator
   OPLinkedList* container;
 };
 
-OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListNode, OPSerializable)
-OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedList, OPSerializable, OPCollection, OPMutableCollection, OPList, OPMutableList)
+OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListNode, OPObjectBase, OPSerializable)
+OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedList, OPObjectBase, OPSerializable,
+                               OPCollection, OPMutableCollection,
+                               OPList, OPMutableList)
 OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListIterator, OPListIterator, OPMutableListIterator)
+
+void OPLinkedListNode_op_dealloc(void* obj)
+{
+  OPLinkedListNode* self = (OPLinkedListNode*) obj;
+  if (self->container->type == op_object)
+    {
+      OPRelease(self->value);
+    }
+  if (self->next)
+    {
+      OPRelease(self->next);
+    }
+}
 
 void OPLinkedListNode_serde_serialize(OPObject* obj, OPMallocManager* ctx)
 {
@@ -83,6 +98,15 @@ void OPLinkedList_serde_serialize(OPObject* obj, OPMallocManager* ctx)
       self->tail = (void*)~0L;
     }
   self->memory_manager = NULL;
+}
+
+void OPLinkedList_op_dealloc(void* obj)
+{
+  OPLinkedList* self = (OPLinkedList*) obj;
+  if (self->head)
+    {
+      OPRelease(self->head);
+    }
 }
 
 void OPLinkedList_serde_deserialize(OPObject* obj, OPMallocManager* ctx)

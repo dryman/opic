@@ -15,9 +15,11 @@ OP_DECLARE_ISA(OPLinkedList);
 OP_DECLARE_ISA(OPLinkedListIterator);
 OP_DECLARE_ISA(OPLinkedListNode);
 
+void      OPLinkedListNode_op_dealloc(void* obj);
 void      OPLinkedListNode_serde_serialize(OPObject* obj, OPMallocManager* ctx);
 void      OPLinkedListNode_serde_deserialize(OPObject* obj, OPMallocManager* ctx);
 
+void      OPLinkedList_op_dealloc(void* obj);
 void      OPLinkedList_serde_serialize(OPObject* obj, OPMallocManager* ctx);
 void      OPLinkedList_serde_deserialize(OPObject* obj, OPMallocManager* ctx);
 

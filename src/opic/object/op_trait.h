@@ -59,16 +59,17 @@ OP_END_DECLS
     if (method.isa == isa) {                                            \
       fn = (OP_METHOD_TYPE(METHOD)*) method.fn;                         \
     } else {                                                            \
-      TypeClass** trait_it = isa->traits;                               \
-      int i=0;                                                          \
-      for (TypeClass** trait_it = isa->traits; *trait_it; trait_it++) { \
-        if(!strcmp((*trait_it)->name, #OP_TYPE)) {                      \
-          OP_TYPE* tc = *(OP_TYPE**) trait_it;                          \
-          fn = tc->METHOD;                                              \
-          break;                                                        \
+      for (TypeClass** trait_it = isa->traits; *trait_it; trait_it++)   \
+        {                                                               \
+          if(!strcmp((*trait_it)->name, #OP_TYPE))                      \
+            {                                                           \
+              OP_TYPE* tc = *(OP_TYPE**) trait_it;                      \
+              fn = tc->METHOD;                                          \
+              break;                                                    \
+            }                                                           \
         }                                                               \
-      }                                                                 \
-      op_assert(fn,"Class %s should implement %s.%s\n", isa->classname,#OP_TYPE,#METHOD); \
+      op_assert(fn,"Class %s should implement %s.%s\n",                 \
+                isa->classname,#OP_TYPE,#METHOD);                       \
       method = (ClassMethod){.isa = isa, .fn = (void*) fn};             \
       atomic_store(&method_cache[idx], method);                         \
     }                                                                   \

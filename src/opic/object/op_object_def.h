@@ -35,7 +35,8 @@ struct Class
 struct OPObject
 {
   Class* isa;
-  //OPMallocManager* manager;
+  OPMallocManager* manager;
+  atomic_uint refcount;
 };
 
 struct ClassMethod
