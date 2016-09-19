@@ -85,7 +85,10 @@ static int ptr_cmp (const void* a, const void* b)
 int PMMemoryManager_new(PMMemoryManager** self)
 {
   if (!(*self = calloc(sizeof(PMMemoryManager),1))) return -1;
-  if (PMLPMap_new(&(*self)->type_map, 128)) return -1;
+  if (PMLPMap_new(&(*self)->type_map, 128)) {
+    free(*self);
+    return -1;
+  }
   return 0;
 }
 
@@ -104,13 +107,14 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
     PMSlot_new(&pool->slot, pool, &ctx->pointer_map, 2048);
     PMLPMap_put(ctx->type_map, klass, pool);
   }
-  PMSlot* slot = pool->slot, *prev_slot;
+  PMSlot* slot = pool->slot, *prev_slot = NULL;
   while(slot) {
     void* obj = PMSlot_alloc_obj(slot);
     if (obj) return obj;
     prev_slot = slot;
     slot = slot->next;
   }
+  if (!prev_slot) return NULL;
   PMSlot_new(&prev_slot->next, pool, &ctx->pointer_map, prev_slot->size*2);
   slot = prev_slot->next;
   return PMSlot_alloc_obj(slot);
@@ -118,7 +122,8 @@ void* PMAlloc(PMMemoryManager* ctx, Class* klass)
     
 void* PMFree(PMMemoryManager* ctx, void* obj)
 {
-  op_assert((*(Class**)obj), "object %p is already freed\n", obj);
+  op_assert(obj, "Object pointer should not be NULL");
+  op_assert(((OPObject*)obj)->isa, "object %p is already freed\n", obj);
   PMSlot* slot = PMAVLFind(ctx->pointer_map, obj);
   PMSlot_free_obj(slot, obj);
   /* TODO if slot is empty, free the slot */
@@ -151,6 +156,7 @@ int PMSerialize(PMMemoryManager* ctx, FILE* fd, uint32_t n, ...)
     }
   op_assert(klass_num <= UINT8_MAX,
     "Number of available classes exceeds 256\n");
+  op_assert(klass_num > 0, "Allocation size of 0 bytes");
   ctx->klass_num = (uint8_t) klass_num;
   ctx->klasses = malloc(sizeof(Class*)*klass_num);
     // TODO assert types not larger than 255
@@ -277,12 +283,13 @@ PMMemoryManager* PMDeserialize(FILE* fd, ...)
       fread(&total_size, sizeof(size_t), 1, fd);
       log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
         "Deserializing class: %s", classname);
-      free(classname);
 
       Class* klass = LPTypeMap_get(classname);
       log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
         "Deserializing, found matching klass addr: %p, %s",
         klass, klass->classname);
+      free(classname);
+
       ctx->klasses[i] = klass;
       obj_size = klass->size;
       total_cnt = total_size / obj_size;
@@ -441,6 +448,7 @@ void* PMSlot_alloc_obj(PMSlot* self)
 
 void PMSlot_free_obj(PMSlot* self, void* obj)
 {
+  op_assert(obj, "Object pointer should not be NULL");
   const size_t obj_size = self->pool->klass->size;
   memset(obj, 0, obj_size);
   if (self->data_next_free == obj + obj_size)
