@@ -21,7 +21,6 @@ int main(int argc, char** argv) {
   Maybe a = {};
   int x = 3;
   just(&a,&x);
-  Maybe b = {};
   m_bind((OPObject*)&a, &my_bind, (OPObject*)&a);
   m_bind((OPObject*)&a, &my_bind, (OPObject*)&a);
   m_bind((OPObject*)&a, &my_bind, (OPObject*)&a);
