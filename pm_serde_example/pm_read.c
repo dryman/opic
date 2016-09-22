@@ -17,5 +17,6 @@ int main (int argc, char** argv)
       printf("Node value: %zu\n", li_next(it).uint64);
     }
   free(it);
+  PMMemoryManager_destroy(ctx);
   return 0;
 }
