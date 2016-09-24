@@ -39,7 +39,7 @@ size_t li_previousIndex(OPObject* obj)
 */
 
 
-void mli_insert(OPObject* obj, OPGeneric element)
+bool mli_insert(OPObject* obj, OPGeneric element)
 {
   OP_TYPECLASS_METHOD_FACTORY(OPMutableListIterator, mli_insert, obj->isa, obj, element);
 }

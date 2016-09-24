@@ -26,10 +26,14 @@ OPType coll_type(OPObject* obj)
   OP_TYPECLASS_METHOD_FACTORY(OPCollection, coll_type, obj->isa, obj);
 }
 
-
-void mcoll_init(OPObject* obj, OPType type, PMMemoryManager* manager)
+OPObject* coll_iterator(OPObject* obj)
 {
-  OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_init, obj->isa, obj, type, manager);
+  OP_TYPECLASS_METHOD_FACTORY(OPCollection, coll_iterator, obj->isa, obj);
+}
+
+void mcoll_init(OPObject* obj, OPType type)
+{
+  OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_init, obj->isa, obj, type);
 }
 
 bool mcoll_add(OPObject* obj, OPGeneric element)
@@ -47,6 +51,7 @@ void mcoll_clear(OPObject* obj)
   OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_clear, obj->isa, obj);
 }
 
+/*
 bool mcoll_removeIf(OPObject* obj, fp_predicate predicate)
 {
   OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_removeIf, obj->isa, obj, predicate);
@@ -56,4 +61,5 @@ bool mcoll_retainAll(OPObject* obj, OPObject* collection)
 {
   OP_TYPECLASS_METHOD_FACTORY(OPMutableCollection, mcoll_retainAll, obj->isa, obj, collection);
 }
+*/
 

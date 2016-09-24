@@ -1,18 +1,17 @@
 #ifndef OP_ITERATOR_H
 #define OP_ITERATOR_H 1
 #include <stdbool.h>
-#include "op_macros.h"
-#include "op_trait.h"
+#include "opic.h"
 #include "op_functional.h"
 
 OP_BEGIN_DECLS
 
 #define OPIterator_OP_METHODS it_forEachRemaining, it_hasNext, \
-  it_next, it_type
+  it_next
 OP_DECLARE_METHOD(it_forEachRemaining, void, OPObject* obj, fp_unary func, void* ctx);
 OP_DECLARE_METHOD(it_hasNext,          bool, OPObject* obj);
 OP_DECLARE_METHOD(it_next,        OPGeneric, OPObject* obj);
-OP_DECLARE_METHOD(it_type,           OPType, OPObject* obj);
+/* OP_DECLARE_METHOD(it_type,           OPType, OPObject* obj); */
 OP_DECLARE_TYPECLASS(OPIterator);
 
 #define OPMutableIterator_OP_METHODS mit_remove
