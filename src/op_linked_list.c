@@ -453,20 +453,20 @@ OPGeneric OPLinkedListIterator_li_next(OPObject* obj)
 {
   OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
   op_assert(self->next != NULL, "next should not be null\n");
-  OPGeneric ret = self->next->value;
+  self->last = self->next;
   self->prev = self->next->prev;
   self->next = self->next->next;
-  return ret;
+  return self->last->value;
 }
 
 OPGeneric OPLinkedListIterator_li_previous(OPObject* obj)
 {
   OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
   op_assert(self->prev != NULL, "prev should not be null\n");
-  OPGeneric ret = self->prev->value;
+  self->last = self->prev;
   self->prev = self->prev->prev;
   self->next = self->prev->next;
-  return ret;
+  return self->last->value;
 }
 
 bool    OPLinkedListIterator_mli_insert(OPObject* obj, OPGeneric element)
@@ -509,13 +509,16 @@ bool    OPLinkedListIterator_mli_insert(OPObject* obj, OPGeneric element)
 
 void   OPLinkedListIterator_mli_remove(OPObject* obj)
 {
-  // TODO logic wrong
   OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
-  
-  if (!self->next) return;
 
-  OPLinkedListNode* node = self->next;
+  op_assert(self->last, "mli_remove can only be invoked after li_next"
+            "or li_previous\n");
+  if (!self->last) return;
+
+  OPLinkedListNode* node = self->last;
   self->next = node->next;
+  self->prev = node->prev;
+  self->last = NULL;
   
   if (self->next)
     {
@@ -539,32 +542,30 @@ void   OPLinkedListIterator_mli_remove(OPObject* obj)
   OPGeneric value = node->value;
   if (self->container->type == op_object)
     {
-      OPRetain(value.obj);
+      OPRelease(value.obj);
     }
   
   node->next = NULL;
   node->prev = NULL;
   OPRelease(node);
-  
-  //return value;
 }
+
 void      OPLinkedListIterator_mli_set(OPObject* obj, OPGeneric element)
 {
-  // TODO logic wrong
   OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
 
-  op_assert(self->next, "mli_set can only set value when"
-            "iterator's next object is present\n");
+  op_assert(self->last, "mli_set can only be invoked after li_next"
+            "or li_previous\n");
 
-  OPLinkedListNode* node = self->next;
+  OPLinkedListNode* node = self->last;
   OPGeneric value = node->value;
 
-  node->value = element;
-  if (self->container->type == op_object)
+  if (self->container->type == op_object &&
+      node->value.obj != element.obj)
     {
+      OPRelease(node->value.obj);
       OPRetain(element.obj);
     }
-
-  // TODO need deferred release pool for value
-  //return value;
+  
+  node->value = element;
 }
