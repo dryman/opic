@@ -1,1 +1,1 @@
-SUBDIRS = src monad_example pm_serde_example
+SUBDIRS = src pm_serde_example

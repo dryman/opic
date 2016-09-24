@@ -16,7 +16,7 @@ int main (int argc, char** argv)
     {
       printf("Node value: %zu\n", li_next(it).uint64);
     }
-  free(it);
+  OPRelease(it);
   OPMallocManagerDestroy(ctx);
   return 0;
 }

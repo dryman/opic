@@ -1,4 +1,4 @@
-AC_INIT([OPIC],[0.1])
+AC_INIT([OPIC],[0.3])
 
 AC_CONFIG_SRCDIR([src/opic.h])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -31,6 +31,6 @@ AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_MMAP
 
-AC_CONFIG_FILES([Makefile src/Makefile monad_example/Makefile pm_serde_example/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile pm_serde_example/Makefile])
 
 AC_OUTPUT

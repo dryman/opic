@@ -220,6 +220,7 @@ int OPSerialize(OPMallocManager* self, FILE* fd, uint32_t n, ...)
       size_t total_cnt = slot->offset + 
         (slot->data_next_free - slot->data) / obj_size;
       size_t total_size = total_cnt * obj_size;
+      printf("total size for class %s: %zu\n", pool->klass->classname, total_size);
       fwrite(&total_size, sizeof(size_t), 1, fd);
   
       // 3.3 packed data
@@ -308,51 +309,79 @@ int OPDeserialize(OPMallocManager** self_ref, FILE* fd, ...)
       fread(&total_size, sizeof(size_t), 1, fd);
       obj_size = klass->size;
       total_cnt = total_size / obj_size;
+      
       pool = calloc(sizeof(OPMPool), 1);
       pool->klass = klass;
       CMPut(self->class_map, klass, pool);
-      
-      OPMSlotCreate(&pool->slot, pool, self->pointer_map, total_cnt);
 
-      slot = pool->slot;
-      fread(slot->data, 1, total_size, fd);
-      slot->data_next_free = slot->data + total_size;
-      for (void* p = slot->data;
-           p < slot->data_next_free;
-           p += obj_size)
+      // A workaround for memory manager version 2
+      if (total_cnt == 0) 
         {
-          if (*(Class**)p)
-            {
-              // BUG: Need to copy the last byte
-              *(Class**)p = klass;
 #ifndef NDEBUG
-              OPObject* obj = (OPObject*) p;
-              log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
-                "obj->isa: %p", obj->isa);
+          log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
+                             "Empty class: %s", klass->classname);
 #endif
-            }
-          else
+          OPMSlotCreate(&pool->slot, pool, self->pointer_map, 2048);
+        }
+      else 
+        {
+          OPMSlotCreate(&pool->slot, pool, self->pointer_map, total_cnt);
+
+          slot = pool->slot;
+          fread(slot->data, 1, total_size, fd);
+          slot->data_next_free = slot->data + total_size;
+          for (void* p = slot->data;
+               p < slot->data_next_free;
+               p += obj_size)
             {
-              // put the reference into pqueue
-              OPMSlotFree(slot, p);
+              if (*(Class**)p)
+                {
+                  // BUG: Need to copy the last byte
+                  *(Class**)p = klass;
+#ifndef NDEBUG
+                  OPObject* obj = (OPObject*) p;
+                  log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
+                                     "obj->isa: %p", obj->isa);
+#endif
+                }
+              else
+                {
+                  // put the reference into pqueue
+                  OPMSlotFree(slot, p);
+                }
             }
         }
+      
     }
 
+  log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG,
+                     "entering second pass");
+  
   // Second pass, restore the pointers
   self->classes = CMIterator(self->class_map);
   for (uint16_t i = 0; i < klass_num; i++)
     {
       OPMPool* pool = CMGet(self->class_map, self->classes[i]);
       OPMSlot* slot = pool->slot;
+      log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
+                         "Second pass for klass %s",
+                         pool->klass->classname);
+
+      
       const size_t obj_size = pool->klass->size;
       for (void* p = slot->data;
            p < slot->data_next_free;
            p += obj_size)
         {
+#ifndef NDEBUG
+          log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
+                             "Restoring pointer %p for klass %s",
+                             p, pool->klass->classname);
+#endif
           if (*(Class**)p)
             {
               OPObject* obj = (OPObject*)p;
+              obj->manager = self;
               serde_deserialize(p, self);
             }
         }
@@ -442,6 +471,7 @@ void* OPMSlotAlloc(OPMSlot* self)
 {
   void* obj;
   const size_t obj_size = self->pool->klass->size;
+  
   if (self->pqueue != self->pqueue_next_free)
     {
       obj = *self->pqueue;

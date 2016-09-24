@@ -22,7 +22,7 @@ int main (int argc, char** argv)
     {
       printf("Node value: %zu\n", li_next(it).uint64);
     }
-  free(it);
+  OPRelease(it);
   FILE* out = fopen("list_serialized", "w");
   OPSerialize(ctx, out, 1, list);
   fclose(out);
