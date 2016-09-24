@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include "op_linked_list.h"
 #include <limits.h>
+#include "op_linked_list.h"
 
 /* Max integer that can be stored in a size_t object. */
 #ifndef SIZE_T_MAX
@@ -13,7 +13,6 @@ struct OPLinkedList
   struct OPObject base;
   OPType type;
   size_t size;
-  OPMallocManager* memory_manager;
   OPLinkedListNode* head;
   OPLinkedListNode* tail;
 };
@@ -33,6 +32,7 @@ struct OPLinkedListIterator
   OPType type;
   OPLinkedListNode* next;
   OPLinkedListNode* prev;
+  OPLinkedListNode* last;
   OPLinkedList* container;
 };
 
@@ -40,14 +40,15 @@ OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListNode, OPObjectBase, OPSerializable)
 OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedList, OPObjectBase, OPSerializable,
                                OPCollection, OPMutableCollection,
                                OPList, OPMutableList)
-OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListIterator, OPListIterator, OPMutableListIterator)
+OP_DEFINE_ISA_WITH_TYPECLASSES(OPLinkedListIterator, OPIterator, OPMutableIterator,
+                               OPListIterator, OPMutableListIterator)
 
 void OPLinkedListNode_op_dealloc(void* obj)
 {
   OPLinkedListNode* self = (OPLinkedListNode*) obj;
   if (self->container->type == op_object)
     {
-      OPRelease(self->value);
+      OPRelease(self->value.obj);
     }
   if (self->next)
     {
@@ -86,7 +87,6 @@ void OPLinkedListNode_serde_deserialize(OPObject* obj, OPMallocManager* ctx)
 void OPLinkedList_serde_serialize(OPObject* obj, OPMallocManager* ctx)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
-  op_assert(ctx == self->memory_manager, "Inconsistent memory manager\n");
   if (self->head)
     {
       self->head = OPPtr2Ref(ctx, self->head);
@@ -97,7 +97,6 @@ void OPLinkedList_serde_serialize(OPObject* obj, OPMallocManager* ctx)
       self->head = (void*)~0L;
       self->tail = (void*)~0L;
     }
-  self->memory_manager = NULL;
 }
 
 void OPLinkedList_op_dealloc(void* obj)
@@ -122,7 +121,6 @@ void OPLinkedList_serde_deserialize(OPObject* obj, OPMallocManager* ctx)
       self->head = OPRef2Ptr(ctx, self->head);
       self->tail = OPRef2Ptr(ctx, self->tail);
     }
-  self->memory_manager = ctx;
 }
 
 bool      OPLinkedList_coll_contains(OPObject* obj, OPGeneric element)
@@ -180,13 +178,18 @@ OPType    OPLinkedList_coll_type(OPObject* obj)
   return self->type;
 }
 
+OPObject* OPLinkedList_coll_iterator(OPObject* obj)
+{
+  return OPLinkedList_lst_listIterator(obj);
+}
+
 OPGeneric OPLinkedList_lst_get(OPObject* obj, size_t index)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   op_assert(index < self->size, "Index out of bound error. Index: %ld, ListSize: %ld\n", index, self->size);
   OPObject* it = OPLinkedList_lst_listIteratorFrom(obj, index);
   OPGeneric item = li_next(it);
-  free(it);
+  OPRelease(it);
   return item;
 }
 
@@ -206,7 +209,7 @@ size_t    OPLinkedList_lst_indexOf(OPObject* obj, OPGeneric element)
         }
       cnt++;
     }
-  free(it);
+  OPRelease(it);
   return ret;
 }
 
@@ -225,15 +228,14 @@ size_t    OPLinkedList_lst_lastIndexOf(OPObject* obj, OPGeneric element)
         }
       cnt++;
     }
-  free(it);
+  OPRelease(it);
   return ret;
 }
 
 OPObject* OPLinkedList_lst_listIterator(OPObject* obj)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
-  OPLinkedListIterator* it = malloc(sizeof(OPLinkedListIterator));
-  OPLinkedListIterator_init_isa(it);
+  OPLinkedListIterator* it = OP_MALLOC(self->base.manager, OPLinkedListIterator);
   it->container = self;
   it->type = self->type;
   it->next = self->head;
@@ -253,22 +255,23 @@ OPObject* OPLinkedList_lst_listIteratorFrom(OPObject* obj, size_t index)
   return it;
 }
 
-void      OPLinkedList_mcoll_init(OPObject* obj, OPType type, OPMallocManager* manager)
+void      OPLinkedList_mcoll_init(OPObject* obj, OPType type)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   self->type = type;
-  self->memory_manager = manager;
 }
 
 bool      OPLinkedList_mcoll_add(OPObject* obj, OPGeneric element)
 {
   OPLinkedList* self = (OPLinkedList*) obj;
   self->size++;
-  OPLinkedListNode* node = OPLinkedListNode_init_isa(
-      OP_MALLOC(self->memory_manager, OPLinkedListNode));
+  OPLinkedListNode* node = OP_MALLOC(self->base.manager, OPLinkedListNode);
   node->container = self;
-  // TODO how do we handle the possible reference count?
   node->value = element;
+  if (self->type == op_object)
+    {
+      OPRetain(node->value.obj);
+    }
 
   if (self->tail)
     {
@@ -285,45 +288,91 @@ bool      OPLinkedList_mcoll_add(OPObject* obj, OPGeneric element)
 
 bool      OPLinkedList_mcoll_addAll(OPObject* obj, OPObject* collection)
 {
-  // TODO crap.. I need to asure collection have iterator
-  // If Iterator contains ListIterator, we need to manage reference
-  // memory as well...
-  // iter->dealloc() => iter->iter->dealloc?
-  //
-  // or simply forward the call to ListIterator...
+  OPLinkedList* self = (OPLinkedList*) obj;
+  if (!tc_instance_of(collection, "OPCollection")) 
+    {
+      // log error
+      return false;
+    }
+  if (coll_type(collection) != self->type)
+    {
+      // log error
+      return false;
+    }
+  
+  OPObject* it = coll_iterator(collection);
 
+  while (it_hasNext(it))
+    {
+      mcoll_add(obj, it_next(it));
+    }
+  OPRelease(it);
 }
+
 void      OPLinkedList_mcoll_clear(OPObject* obj)
 {
-  // TODO how do I handle dealloc here?
+  OPLinkedList* self = (OPLinkedList*) obj;
+  if (self->head) 
+    {
+      OPRelease(self->head);
+      self->head = self->tail = NULL;
+      self->size = 0;
+    }
 }
+
+/*
 bool      OPLinkedList_mcoll_removeIf(OPObject* obj, fp_predicate predicate)
 {
   // TODO
   return false;
 }
+
 bool      OPLinkedList_mcoll_retainAll(OPObject* obj, OPObject* collection)
 {
   // TODO
   return false;
 }
+*/
+
 bool      OPLinkedList_mlst_insert(OPObject* obj, size_t index, OPGeneric element)
 {
-  // TODO
-  return false;
+  OPObject* it = mlst_mutableListIteratorFrom(obj, index);
+  mli_insert(it, element);
+  OPRelease(it);
+  return true;
 }
+
 bool      OPLinkedList_mlst_insertAll(OPObject* obj, size_t index, OPObject* collection)
 {
-  // TODO
+  OPLinkedList* self = (OPLinkedList*) obj;
+  if (!tc_instance_of(collection, "OPCollection")) 
+    {
+      // TODO log error
+      return false;
+    }
+  if (coll_type(collection) != self->type)
+    {
+      // TODO log error
+      return false;
+    }
+  OPObject* self_it = mlst_mutableListIteratorFrom(obj, index);
+  OPObject* other_it = coll_iterator(collection);
+
+  while (it_hasNext(other_it))
+    {
+      mli_insert(self_it, it_next(other_it));
+      it_next(self_it);
+    }
   return false;
 }
 
 OPGeneric OPLinkedList_mlst_remove(OPObject* obj, size_t index)
 {
-  // TODO
-  OPGeneric ret;
-  ret.obj = NULL;
-  return ret;
+  OPObject* it = mlst_mutableListIteratorFrom(obj, index);
+  OPGeneric value = li_next(it);
+  mli_remove(it);
+  OPRelease(it);
+  return value;
 }
 OPGeneric OPLinkedList_mlst_removeAll(OPObject* obj, OPObject* collection)
 {
@@ -343,6 +392,7 @@ OPGeneric OPLinkedList_mlst_set(OPObject* obj, size_t index, OPGeneric element)
   ret.obj = NULL;
   return ret;
 }
+
 void      OPLinkedList_mlst_sort(OPObject* obj, fp_comparator comparator)
 {
   // TODO
@@ -356,6 +406,26 @@ OPObject* OPLinkedList_mlst_mutableListIterator(OPObject* obj)
 OPObject* OPLinkedList_mlst_mutableListIteratorFrom(OPObject* obj, size_t index)
 {
   return OPLinkedList_lst_listIteratorFrom(obj, index);
+}
+
+void      OPLinkedListIterator_it_forEachRemaining(OPObject* obj, fp_unary func, void* ctx)
+{
+  OPLinkedListIterator_li_forEachRemaining(obj, func, ctx);
+}
+
+bool      OPLinkedListIterator_it_hasNext(OPObject* obj)
+{
+  return OPLinkedListIterator_li_hasNext(obj);
+}
+
+OPGeneric OPLinkedListIterator_it_next(OPObject* obj)
+{
+  return OPLinkedListIterator_li_next(obj);
+}
+
+void      OPLinkedListIterator_mit_remove(OPObject* obj)
+{
+  OPLinkedListIterator_mli_remove(obj);
 }
 
 void      OPLinkedListIterator_li_forEachRemaining(OPObject* obj, fp_unary func, void* ctx)
@@ -399,15 +469,102 @@ OPGeneric OPLinkedListIterator_li_previous(OPObject* obj)
   return ret;
 }
 
-void      OPLinkedListIterator_mli_insert(OPObject* obj, OPGeneric element)
+bool    OPLinkedListIterator_mli_insert(OPObject* obj, OPGeneric element)
 {
-  // TODO
+  OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
+
+  OPLinkedListNode* new_node = OP_MALLOC(self->base.manager, OPLinkedListNode);
+  new_node->container = self->container;
+  new_node->value = element;
+  if (self->container->type == op_object)
+    {
+      OPRetain(element.obj);
+    }
+
+  new_node->next = self->next;
+  new_node->prev = self->prev;
+  
+  if (self->next)
+    {
+      self->next->prev = new_node;
+    }
+  else
+    {
+      self->container->tail = new_node;
+    }
+  
+  if (self->prev)
+    {
+      self->prev->next = new_node;
+      self->prev = new_node;
+    }
+  else
+    {
+      self->container->head = new_node;
+    }
+  
+  self->container->size++;
+  return true;
 }
-void      OPLinkedListIterator_mli_remove(OPObject* obj)
+
+void   OPLinkedListIterator_mli_remove(OPObject* obj)
 {
-  // TODO
+  // TODO logic wrong
+  OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
+  
+  if (!self->next) return;
+
+  OPLinkedListNode* node = self->next;
+  self->next = node->next;
+  
+  if (self->next)
+    {
+      self->next->prev = self->prev;
+    }
+  else
+    {
+      self->container->tail = self->prev;
+    }
+
+  if (self->prev)
+    {
+      self->prev->next = self->next;
+    }
+  else
+    {
+      self->container->head = self->next;
+    }
+  
+  self->container->size--;
+  OPGeneric value = node->value;
+  if (self->container->type == op_object)
+    {
+      OPRetain(value.obj);
+    }
+  
+  node->next = NULL;
+  node->prev = NULL;
+  OPRelease(node);
+  
+  //return value;
 }
 void      OPLinkedListIterator_mli_set(OPObject* obj, OPGeneric element)
 {
-  // TODO
+  // TODO logic wrong
+  OPLinkedListIterator* self = (OPLinkedListIterator*) obj;
+
+  op_assert(self->next, "mli_set can only set value when"
+            "iterator's next object is present\n");
+
+  OPLinkedListNode* node = self->next;
+  OPGeneric value = node->value;
+
+  node->value = element;
+  if (self->container->type == op_object)
+    {
+      OPRetain(element.obj);
+    }
+
+  // TODO need deferred release pool for value
+  //return value;
 }

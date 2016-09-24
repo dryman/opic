@@ -10,6 +10,13 @@ void OPRetain(void* obj)
 void OPRelease(void* obj)
 {
   OPObject* _obj = (OPObject*) obj;
+  if (_obj == NULL || *(Class**)_obj == NULL)
+    {
+      /* log4c_category_log(free_logger, LOG4C_PRIORITY_ERROR, */
+      /*                    "Attempt to free invalid ptr %p", obj); */
+      return;
+    }
+
   if (atomic_fetch_sub_explicit(&_obj->refcount, 1,
                                 memory_order_release)
       == 1)

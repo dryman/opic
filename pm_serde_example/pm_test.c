@@ -10,8 +10,8 @@ int main (int argc, char** argv)
   
   OPMallocManagerCreate(&ctx);
   printf("sizeof(OPType): %d\n", sizeof(OPType));
-  OPObject* list = (OPObject*)OPLinkedList_init_isa(OP_MALLOC(ctx, OPLinkedList));
-  mcoll_init(list, op_int32, ctx);
+  OPObject* list = OP_MALLOC(ctx, OPLinkedList);
+  mcoll_init(list, op_int32);
 
   for (int i = 0; i<10; i++)
     {

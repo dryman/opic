@@ -8,13 +8,13 @@
 OP_DEFINE_ISA_WITH_TYPECLASSES(Maybe,Monad,Functor,Applicative)
 
 void just(Maybe* self, void* data) {
-  Maybe_init_isa(self);
+  /* Maybe_init_isa(self); */
   self->maybe_e = MAYBE_JUST;
   self->data = data;
 }
 
 void nothing(Maybe* self) {
-  Maybe_init_isa(self);
+  /* Maybe_init_isa(self); */
   self->maybe_e = MAYBE_NOTHING;
 }
 

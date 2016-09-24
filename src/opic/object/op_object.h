@@ -25,6 +25,7 @@ void OPRelease(void* obj);
 
 #define OP_MALLOC(ctx, KLASS) OPMalloc((ctx), &OP_CLASS_OBJ(KLASS))
 
+// Should add copy, deep_copy, hash, isEqual, etc
 #define OPObjectBase_OP_METHODS op_dealloc
 OP_DECLARE_METHOD(op_dealloc, void, void* obj);
 OP_DECLARE_TYPECLASS(OPObjectBase);

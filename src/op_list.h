@@ -17,7 +17,7 @@ OP_DECLARE_TYPECLASS(OPListIterator);
 // OP_DECLARE_METHOD(li_previousIndex,        size_t, OPObject* obj);
 
 #define OPMutableListIterator_OP_METHODS mli_insert, mli_remove, mli_set
-OP_DECLARE_METHOD(mli_insert,                void, OPObject* obj, OPGeneric element);
+OP_DECLARE_METHOD(mli_insert,                bool, OPObject* obj, OPGeneric element);
 OP_DECLARE_METHOD(mli_remove,                void, OPObject* obj);
 OP_DECLARE_METHOD(mli_set,                   void, OPObject* obj, OPGeneric element);
 OP_DECLARE_TYPECLASS(OPMutableListIterator);

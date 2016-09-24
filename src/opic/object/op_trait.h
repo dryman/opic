@@ -88,8 +88,7 @@ OP_END_DECLS
 #define OP_CLASS_OBJ(KLASS) KLASS ## _klass_
 
 #define OP_DECLARE_ISA(KLASS)                   \
-  extern Class OP_CLASS_OBJ(KLASS);             \
-  KLASS* KLASS##_init_isa(KLASS* self);
+  extern Class OP_CLASS_OBJ(KLASS);
 
 #define OP_DEFINE_ISA(KLASS)                                            \
   Class OP_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
@@ -97,11 +96,7 @@ OP_END_DECLS
   void define_##KLASS##_ISA() {                                         \
     LPTypeMap_put(#KLASS, &OP_CLASS_OBJ(KLASS));                        \
     OP_CLASS_OBJ(KLASS).hash = op_murmur_hash(&OP_CLASS_OBJ(KLASS));    \
-  }                                                                     \
-  KLASS* KLASS##_init_isa(KLASS* self) {                                \
-    ((OPObject*)self)->isa = &OP_CLASS_OBJ(KLASS);                      \
-    return self;                                                        \
-}
+  }
 
 #define OP_DEFINE_ISA_WITH_TYPECLASSES(KLASS,...)                       \
   Class OP_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
@@ -111,11 +106,7 @@ OP_END_DECLS
     OP_CLASS_OBJ(KLASS).hash = op_murmur_hash(&OP_CLASS_OBJ(KLASS));    \
       OP_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), OP_LENGTH(__VA_ARGS__) + 1); \
     OP_MAP_SC_S1(OP_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__);             \
-  }                                                                     \
-  KLASS* KLASS##_init_isa(KLASS* self) {                                \
-    ((OPObject*)self)->isa = &OP_CLASS_OBJ(KLASS);                      \
-  return self; \
-}
+  }
 
 
 #define OP_CLASS_ADD_TYPECLASS(OP_TRAIT_TYPE, SLOT, KLASS_TYPE,...)     \

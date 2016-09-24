@@ -22,10 +22,10 @@ void mit_remove(OPObject* obj)
   OP_TYPECLASS_METHOD_FACTORY(OPMutableIterator, mit_remove, obj->isa, obj);
 }
 
-OPType it_type(OPObject* obj)
-{
-  OP_TYPECLASS_METHOD_FACTORY(OPIterator, it_type, obj->isa, obj);
-}
+/* OPType it_type(OPObject* obj) */
+/* { */
+/*   OP_TYPECLASS_METHOD_FACTORY(OPIterator, it_type, obj->isa, obj); */
+/* } */
 
 void ib_forEach(OPObject* obj, fp_unary func, void* ctx)
 {
