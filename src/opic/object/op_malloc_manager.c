@@ -12,6 +12,7 @@
 #include "ptr_range_map.h"
 #include "../common/op_log.h"
 
+OP_LOGGER_FACTORY(logger, "opic.op_malloc_manager")
 
 typedef struct ClassMap ClassMap;
 typedef struct ClassNode ClassNode;
@@ -124,8 +125,6 @@ void* OPMalloc(OPMallocManager* self, Class* klass)
   return obj;
 }
 
-OP_LOGGER_FACTORY(free_logger, "opic.op_malloc_manager.OPFree")
-
 void OPFree(void* obj)
 {
   if (obj == NULL) return;
@@ -134,8 +133,7 @@ void OPFree(void* obj)
   pthread_mutex_lock(&self->m_lock);
   if (obj == NULL || *(Class**)obj == NULL)
     {
-      log4c_category_log(free_logger, LOG4C_PRIORITY_ERROR,
-                         "Attempt to free invalid ptr %p", obj);
+      OP_LOG_ERROR(logger, "Attempt to free invalid ptr %p", obj);
       goto return_barier;
     }
   OPMSlotFree(PRMFind(self->pointer_map, obj), obj);
@@ -274,7 +272,6 @@ int OPSerialize(OPMallocManager* self, FILE* fd, uint32_t n, ...)
   return 0;
 }
 
-OP_LOGGER_FACTORY(de_logger, "opic.op_malloc_manager.OPDeserialize")
 
 int OPDeserialize(OPMallocManager** self_ref, FILE* fd, ...)
 {
@@ -298,10 +295,10 @@ int OPDeserialize(OPMallocManager** self_ref, FILE* fd, ...)
       fread(classname, 1, classname_len, fd);
       classname[classname_len] = '\0';
             
-      log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
-        "Deserializing class: %s", classname);
+      OP_LOG_INFO(logger, "Deserializing class: %s", classname);
+        
       Class* klass = LPTypeMap_get(classname);
-      log4c_category_log(de_logger, LOG4C_PRIORITY_INFO,
+      OP_LOG_INFO(logger,
         "Deserializing, found matching klass addr: %p, %s",
         klass, klass->classname);
       free(classname);
@@ -318,8 +315,7 @@ int OPDeserialize(OPMallocManager** self_ref, FILE* fd, ...)
       if (total_cnt == 0) 
         {
 #ifndef NDEBUG
-          log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
-                             "Empty class: %s", klass->classname);
+          OP_LOG_DEBUG(logger, "Empty class: %s", klass->classname);
 #endif
           OPMSlotCreate(&pool->slot, pool, self->pointer_map, 2048);
         }
@@ -339,9 +335,7 @@ int OPDeserialize(OPMallocManager** self_ref, FILE* fd, ...)
                   // BUG: Need to copy the last byte
                   *(Class**)p = klass;
 #ifndef NDEBUG
-                  OPObject* obj = (OPObject*) p;
-                  log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
-                                     "obj->isa: %p", obj->isa);
+                  OP_LOG_DEBUG(logger, "obj->isa: %p", ((OPObject*)p)->isa);
 #endif
                 }
               else
@@ -353,9 +347,6 @@ int OPDeserialize(OPMallocManager** self_ref, FILE* fd, ...)
         }
       
     }
-
-  log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG,
-                     "entering second pass");
   
   // Second pass, restore the pointers
   self->classes = CMIterator(self->class_map);
@@ -363,10 +354,6 @@ int OPDeserialize(OPMallocManager** self_ref, FILE* fd, ...)
     {
       OPMPool* pool = CMGet(self->class_map, self->classes[i]);
       OPMSlot* slot = pool->slot;
-      log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
-                         "Second pass for klass %s",
-                         pool->klass->classname);
-
       
       const size_t obj_size = pool->klass->size;
       for (void* p = slot->data;
@@ -374,9 +361,8 @@ int OPDeserialize(OPMallocManager** self_ref, FILE* fd, ...)
            p += obj_size)
         {
 #ifndef NDEBUG
-          log4c_category_log(de_logger, LOG4C_PRIORITY_DEBUG, 
-                             "Restoring pointer %p for klass %s",
-                             p, pool->klass->classname);
+          OP_LOG_DEBUG(logger, "Restoring pointer %p for klass %s",
+                        p, pool->klass->classname);
 #endif
           if (*(Class**)p)
             {

@@ -1,8 +1,11 @@
+#include <log4c.h>
 #include "../src/opic.h"
 #include "../src/op_collection.h"
 #include "../src/op_list.h"
 #include "../src/op_linked_list.h"
 
+
+OP_LOGGER_FACTORY(logger, "pm_test");
 
 int main (int argc, char** argv)
 {
