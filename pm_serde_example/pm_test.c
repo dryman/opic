@@ -1,8 +1,9 @@
 #include <log4c.h>
-#include "../src/opic.h"
-#include "../src/op_collection.h"
-#include "../src/op_list.h"
-#include "../src/op_linked_list.h"
+#include "config.h"
+#include "opic.h"
+#include "op_collection.h"
+#include "op_list.h"
+#include "op_linked_list.h"
 
 
 OP_LOGGER_FACTORY(logger, "pm_test");

@@ -1,7 +1,8 @@
-#include "../src/opic.h"
-#include "../src/op_collection.h"
-#include "../src/op_list.h"
-#include "../src/op_linked_list.h"
+#include "config.h"
+#include "opic.h"
+#include "op_collection.h"
+#include "op_list.h"
+#include "op_linked_list.h"
 
 int main (int argc, char** argv)
 {

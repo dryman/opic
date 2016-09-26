@@ -1,3 +1,4 @@
+#include "config.h"
 #include "op_iterator.h"
 
 

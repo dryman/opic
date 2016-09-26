@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "config.h"
 #include "ptr_range_map.h"
 
 typedef struct PRMNode PRMNode;

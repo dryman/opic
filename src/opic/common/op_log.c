@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include "config.h"
 #include "op_log.h"
 
 static bool _log4c_initialized;

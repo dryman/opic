@@ -1,4 +1,5 @@
 #include "op_object.h"
+#include "config.h"
 
 
 void OPRetain(void* obj)

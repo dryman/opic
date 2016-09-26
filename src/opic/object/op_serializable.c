@@ -1,4 +1,5 @@
 #include "op_serializable.h"
+#include "config.h"
 
 void serde_serialize(OPObject* obj, OPMallocManager* ctx)
 {

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "config.h"
 #include "class_map.h"
 
 struct ClassMap

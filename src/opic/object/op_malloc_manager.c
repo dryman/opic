@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
+#include "config.h"
 #include "op_object_def.h"
 #include "op_object.h"
 #include "class_map.h"

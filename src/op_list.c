@@ -1,5 +1,5 @@
+#include "config.h"
 #include "op_list.h"
-
 
 void li_forEachRemaining(OPObject* obj, fp_unary func, void* ctx)
 {

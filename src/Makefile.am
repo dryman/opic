@@ -2,6 +2,8 @@
 # https://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html
 AUTOMAKE_OPTIONS = subdir-objects
 
+AM_CPPFLAGS = -I$(top_srcdir)/src
+
 lib_LTLIBRARIES = libopic.la
 libopic_la_SOURCES = \
   opic/common/op_assert.h \
