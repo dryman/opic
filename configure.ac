@@ -1,8 +1,9 @@
-AC_INIT([OPIC],[0.3])
+AC_INIT([OPIC],[0.2])
 
 AC_CONFIG_SRCDIR([src/opic.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
+AM_CONFIG_HEADER([src/config.h])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR
@@ -30,6 +31,7 @@ fi
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_MMAP
+
 
 AC_CONFIG_FILES([Makefile src/Makefile pm_serde_example/Makefile])
 

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <limits.h>
+#include "config.h"
 #include "op_linked_list.h"
 
 /* Max integer that can be stored in a size_t object. */
