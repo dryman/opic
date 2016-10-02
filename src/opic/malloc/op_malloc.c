@@ -4,7 +4,7 @@
  * Description: 
  * Author: Felix Chern
  * Maintainer: Felix Chern
- * Created: Sat Oct  1 16:25:47 2016 (-0700)
+ * Created: Sat Oct  1 16:25:47 2016
  * Version: 
  * Package-Requires: ()
  * Last-Updated: 
@@ -29,20 +29,21 @@
  */
 
 /* This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or (at
- * your option) any later version.
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
+ * Lesser General Public License for more details.
  * 
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "op_malloc.h"
+#include "../common/op_utils.h"
 //#include "../common/op_log.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,9 +63,6 @@ struct OPMemoryManager
   atomic_uint_fast64_t vspan_header_bmap[512];
 };
 
-// find first trailing string of 1 bits
-// return -1 if no such string exists
-static inline int fftstr1l (uint64_t x, int n);
 
 int OPMemoryManagerCreate(OPMemoryManager** ref)
 {
@@ -154,19 +152,6 @@ void* OPMallocVSpan(OPMemoryManager* self, int pages)
 
 void OPFreeVSpan(OPMemoryManager* self, void* addr, int pages)
 {
-}
-
-int fftstr1l (uint64_t x, int n)
-{
-  int s;
-  while (n > 1)
-    {
-      s = n >> 1;
-      x = x & (x >> s);
-      n = n - s;
-    }
-  if (x == 0) return -1;
-  return __builtin_ctzl(x);
 }
 
 int main(int argc, char** argv)
