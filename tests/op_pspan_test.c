@@ -50,22 +50,97 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
+#include <stdint.h>
 #include "opic/malloc/op_pspan.h"
+#include <sys/mman.h>
 
 
-static void null_test_success(void **state)
+static void invalid_address_test(void **state)
 {
-  (void) state;
+  assert_null(OPSingularPSpanInit(NULL, 0, 1, 2));
 }
+
+static void invalid_object_size(void **state)
+{
+  void* addr = malloc(1<<12);
+  assert_null(OPSingularPSpanInit(addr, 0, 0, 1));
+  free(addr);
+}
+
+static void invalid_page_cnt(void **state)
+{
+  void* addr = malloc(1<<12);
+  assert_null(OPSingularPSpanInit(addr, 0, 1, 0));
+  free(addr);
+}
+
+static void obj_size_4byte(void **state)
+{
+  void* addr = malloc(1<<12);
+  OPSingularPSpan* span;
+  span = OPSingularPSpanInit(addr, 0, 4, 1);
+  assert_int_equal(span->bitmap_cnt, 16);
+  assert_int_equal(span->bitmap_headroom, 38);
+  assert_int_equal(span->bitmap_padding, 0);
+  uint64_t bitmaps [16] = { (1UL << 38)-1 };
+  assert_memory_equal(span+1, &bitmaps, sizeof(bitmaps));
+  
+  free(addr);
+}
+
+static void obj_size_8byte(void **state)
+{
+  void* addr = malloc(1<<12);
+  OPSingularPSpan* span;
+  span = OPSingularPSpanInit(addr, 0, 8, 1);
+  assert_int_equal(span->bitmap_cnt, 8);
+  assert_int_equal(span->bitmap_headroom, 11);
+  assert_int_equal(span->bitmap_padding, 0);
+  uint64_t bitmaps_1p [8] = { (1UL << 11)-1 };
+  assert_memory_equal(span+1, &bitmaps_1p, sizeof(bitmaps_1p));
+  free(addr);
+  
+  addr = malloc(2<<12);
+  span = OPSingularPSpanInit(addr, 0, 8, 2);
+  assert_int_equal(span->bitmap_cnt, 16);
+  assert_int_equal(span->bitmap_headroom, 19);
+  assert_int_equal(span->bitmap_padding, 0);
+  uint64_t bitmaps_2p [16] = { (1UL << 19)-1 };
+  assert_memory_equal(span+1, &bitmaps_2p, sizeof(bitmaps_2p));
+  free(addr);
+
+  addr = malloc(3<<12);
+  span = OPSingularPSpanInit(addr, 0, 8, 3);
+  assert_int_equal(span->bitmap_cnt, 24);
+  assert_int_equal(span->bitmap_headroom, 27);
+  assert_int_equal(span->bitmap_padding, 0);
+  uint64_t bitmaps_3p [24] = { (1UL << 27)-1 };
+  assert_memory_equal(span+1, &bitmaps_3p, sizeof(bitmaps_3p));
+  free(addr);
+
+  addr = malloc(4<<12);
+  span = OPSingularPSpanInit(addr, 0, 8, 4);
+  assert_int_equal(span->bitmap_cnt, 32);
+  assert_int_equal(span->bitmap_headroom, 35);
+  assert_int_equal(span->bitmap_padding, 0);
+  uint64_t bitmaps_4p [32] = { (1UL << 35)-1 };
+  assert_memory_equal(span+1, &bitmaps_4p, sizeof(bitmaps_4p));
+  free(addr);
+}
+
 
 int main(void)
 {
-  const struct CMUnitTest tests[] =
+  const struct CMUnitTest init_tests[] =
     {
-      cmocka_unit_test(null_test_success),
+      cmocka_unit_test(invalid_address_test),
+      cmocka_unit_test(invalid_object_size),
+      cmocka_unit_test(invalid_page_cnt),
+      cmocka_unit_test(obj_size_4byte),
+      cmocka_unit_test(obj_size_8byte),
     };
   
-  return cmocka_run_group_tests(tests, NULL, NULL);
+  return cmocka_run_group_tests(init_tests, NULL, NULL);
 }
 
 

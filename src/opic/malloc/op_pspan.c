@@ -53,14 +53,27 @@
 
 #define OP_PAGE_SIZE (1u << 12)
 
-void OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
+OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
                          uint16_t obj_size, uint8_t page_cnt)
 {
+  /* Unit test as of Oct 9, 2016 doesn't support op_assert
+     Our workaround is return NULL instead. But this should be fixed.
+  op_assert(addr, "address cannot be NULL");
+  op_assert(obj_size, "object size in bytes should be greater than 0\n");
+  op_assert(page_cnt, "allocated physical pages should be greater than 0\n");
+  */
+  if (op_unlikely(!addr)) return NULL;
+  if (op_unlikely(!obj_size)) return NULL;
+  if (op_unlikely(!page_cnt)) return NULL;
+  
   unsigned int obj_cnt, bitmap_cnt, padding, headroom;
   obj_cnt = page_cnt * OP_PAGE_SIZE / obj_size;
   bitmap_cnt = (obj_cnt + 64 - 1) >> 6;
   padding = (bitmap_cnt << 6) - obj_cnt;
   headroom = (sizeof(OPSingularPSpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
+
+  op_assert(headroom < 64,
+            "headroom should be less equal to 64, but it is %d\n", headroom);
   
   OPSingularPSpan span = 
     {
@@ -75,13 +88,17 @@ void OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
     };
 
   memcpy(addr, &span, sizeof(span));
+  OPSingularPSpan* self = addr;
 
   addr += sizeof(OPSingularPSpan);
 
   memset(addr, 0, bitmap_cnt << 3);
   atomic_fetch_or((_Atomic uint64_t *) addr, (1UL << headroom)-1);
-  atomic_fetch_or((_Atomic uint64_t *) (addr + ((bitmap_cnt-1) << 3)),
-                  ~((1UL << (64-padding))-1));
+  if (padding)
+    atomic_fetch_or((_Atomic uint64_t *) (addr + ((bitmap_cnt-1) << 3)),
+                    ~((1UL << (64-padding))-1));
+
+  return self;
 }
 
 void* OPSingularPSpanMalloc(OPSingularPSpan* self)
@@ -102,7 +119,10 @@ void* OPSingularPSpanMalloc(OPSingularPSpan* self)
         } while(!atomic_compare_exchange_weak(bitmap, &old_bmap, new_bmap));
       
       addr = (void*)self + ((i << 6) + diff) * self->obj_size;
-      *(uint16_t*)addr = self->ta_idx;
+
+      // ta_idx == 0 is for primitives
+      if (self->ta_idx)
+        *(uint16_t*)addr = self->ta_idx;
       return addr;
       
     next_bmap:
@@ -138,11 +158,12 @@ bool OPSingularPSpanFree(OPSingularPSpan* self, void* addr)
     {
       goto try_fullfree;
     }
-  else if (bmap_idx == self->bitmap_cnt - 1 &&
-           atomic_load(&bitmap[bmap_idx]) ==
-           ~((1UL << (64-self->bitmap_padding))-1))
+  else if (bmap_idx == self->bitmap_cnt - 1)
     {
-      goto try_fullfree;
+      uint64_t padding = self->bitmap_padding ?
+        ~((1UL << (64 - self->bitmap_padding))-1) : 0UL;
+      if (atomic_load(&bitmap[bmap_idx]) == padding)
+        goto try_fullfree;
     }
   else if (!atomic_load(&bitmap[bmap_idx]))
     {
@@ -159,7 +180,8 @@ bool OPSingularPSpanFree(OPSingularPSpan* self, void* addr)
   iter = 0;
   expected_headroom = (1UL << self->bitmap_headroom)-1;
   expected_body = ~0UL;
-  expected_padding = ~((1UL << (64-self->bitmap_padding))-1);
+  expected_padding = self->bitmap_padding ?
+    ~((1UL << (64 - self->bitmap_padding))-1) : 0UL;
 
   // headroom
   if (!atomic_compare_exchange_strong(&bitmap[0],

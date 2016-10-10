@@ -70,6 +70,13 @@ struct OPSingularPSpan
   OPSingularPSpan* next;
 };
 
+OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
+                                     uint16_t obj_size, uint8_t page_cnt);
+
+void* OPSingularPSpanMalloc(OPSingularPSpan* self);
+
+bool OPSingularPSpanFree(OPSingularPSpan* self, void* addr);
+
 OP_END_DECLS
 
 #endif
