@@ -69,7 +69,9 @@ void OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
       .page_cnt = page_cnt,
       .bitmap_cnt = (uint8_t)bitmap_cnt,
       .bitmap_headroom = (uint8_t)headroom,
-      .bitmap_padding = (uint8_t)padding
+      .bitmap_padding = (uint8_t)padding,
+      .prev = NULL,
+      .next = NULL
     };
 
   memcpy(addr, &span, sizeof(span));

@@ -10,6 +10,7 @@ libopic_la_SOURCES = \
   opic/common/op_log.c \
   opic/common/op_log.h \
   opic/common/op_macros.h \
+  opic/malloc/op_pspan.c \
   opic/object/op_serializable.c \
   opic/object/op_serializable.h \
   opic/object/op_trait.c \
@@ -33,6 +34,7 @@ libopic_la_SOURCES = \
   op_linked_list.c \
   op_list.c
 libopic_la_CFLAGS = @log4c_CFLAGS@ @PTHREAD_CFLAGS@
+# TODO: is LDFLAGS necessary??
 libopic_la_LDFLAGS = @log4c_LIBS@
 
 include_HEADERS = \
@@ -47,6 +49,7 @@ nobase_include_HEADERS = \
   opic/common/op_assert.h \
   opic/common/op_log.h \
   opic/common/op_macros.h \
+  opic/malloc/op_pspan.h \
   opic/object/op_serializable.h \
   opic/object/op_trait.h \
   opic/object/op_object_def.h \
