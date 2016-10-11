@@ -62,16 +62,17 @@ struct OPSingularPSpan
 {
   const uint16_t ta_idx;
   const uint16_t obj_size;
-  const uint8_t page_cnt;
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
+  uint8_t bitmap_hint;
+  // TODO: squeeze some bits for varying pspan
   OPSingularPSpan* prev;
   OPSingularPSpan* next;
 };
 
 OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
-                                     uint16_t obj_size, uint8_t page_cnt);
+                                     uint16_t obj_size, size_t span_size);
 
 void* OPSingularPSpanMalloc(OPSingularPSpan* self);
 

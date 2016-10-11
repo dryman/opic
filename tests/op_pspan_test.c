@@ -78,7 +78,7 @@ static void obj_size_4byte(void **state)
 {
   void* addr = malloc(1<<12);
   OPSingularPSpan* span;
-  span = OPSingularPSpanInit(addr, 0, 4, 1);
+  span = OPSingularPSpanInit(addr, 0, 4, 1<<12);
   assert_int_equal(span->bitmap_cnt, 16);
   assert_int_equal(span->bitmap_headroom, 38);
   assert_int_equal(span->bitmap_padding, 0);
@@ -88,11 +88,12 @@ static void obj_size_4byte(void **state)
   free(addr);
 }
 
+// TODO(fchern): Use parameterized test or macro
 static void obj_size_8byte(void **state)
 {
   void* addr = malloc(1<<12);
   OPSingularPSpan* span;
-  span = OPSingularPSpanInit(addr, 0, 8, 1);
+  span = OPSingularPSpanInit(addr, 0, 8, 1<<12);
   assert_int_equal(span->bitmap_cnt, 8);
   assert_int_equal(span->bitmap_headroom, 11);
   assert_int_equal(span->bitmap_padding, 0);
@@ -101,7 +102,7 @@ static void obj_size_8byte(void **state)
   free(addr);
   
   addr = malloc(2<<12);
-  span = OPSingularPSpanInit(addr, 0, 8, 2);
+  span = OPSingularPSpanInit(addr, 0, 8, 2<<12);
   assert_int_equal(span->bitmap_cnt, 16);
   assert_int_equal(span->bitmap_headroom, 19);
   assert_int_equal(span->bitmap_padding, 0);
@@ -110,7 +111,7 @@ static void obj_size_8byte(void **state)
   free(addr);
 
   addr = malloc(3<<12);
-  span = OPSingularPSpanInit(addr, 0, 8, 3);
+  span = OPSingularPSpanInit(addr, 0, 8, 3<<12);
   assert_int_equal(span->bitmap_cnt, 24);
   assert_int_equal(span->bitmap_headroom, 27);
   assert_int_equal(span->bitmap_padding, 0);
@@ -119,12 +120,45 @@ static void obj_size_8byte(void **state)
   free(addr);
 
   addr = malloc(4<<12);
-  span = OPSingularPSpanInit(addr, 0, 8, 4);
+  span = OPSingularPSpanInit(addr, 0, 8, 4<<12);
   assert_int_equal(span->bitmap_cnt, 32);
   assert_int_equal(span->bitmap_headroom, 35);
   assert_int_equal(span->bitmap_padding, 0);
   uint64_t bitmaps_4p [32] = { (1UL << 35)-1 };
   assert_memory_equal(span+1, &bitmaps_4p, sizeof(bitmaps_4p));
+  free(addr);
+}
+
+// TODO(fchern): test alloc and free behavior
+
+static void malloc_4byte(void **state)
+{
+  void* addr = malloc(1<<12);
+  OPSingularPSpan* span;
+  span = OPSingularPSpanInit(addr, 0, 4, 1<<12);
+  uint64_t bitmaps [16] = { (1UL << 38)-1 };
+  assert_memory_equal(span+1, &bitmaps, sizeof(bitmaps));
+
+  for (int i = 0; i<1024-38; i++)
+    {
+      assert_non_null(OPSingularPSpanMalloc(span));
+    }
+  assert_null(OPSingularPSpanMalloc(span));
+
+  void* item = addr + 38*4;
+  
+  for (int i = 0; i<1024-37; i++)
+    {
+      assert_false(OPSingularPSpanFree(span, item));
+      item+=4;
+    }
+  assert_true(OPSingularPSpanFree(span, item));
+
+  for (int i = 0; i<16; i++)
+    bitmaps[i]=~0UL;
+
+  assert_memory_equal(span+1, &bitmaps, sizeof(bitmaps));
+  
   free(addr);
 }
 

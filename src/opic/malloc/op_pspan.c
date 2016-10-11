@@ -51,23 +51,22 @@
 #include <string.h>
 #include <stddef.h>
 
-#define OP_PAGE_SIZE (1u << 12)
 
 OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
-                         uint16_t obj_size, uint8_t page_cnt)
+                                     uint16_t obj_size, size_t span_size)
 {
   /* Unit test as of Oct 9, 2016 doesn't support op_assert
      Our workaround is return NULL instead. But this should be fixed.
   op_assert(addr, "address cannot be NULL");
   op_assert(obj_size, "object size in bytes should be greater than 0\n");
-  op_assert(page_cnt, "allocated physical pages should be greater than 0\n");
+  op_assert(page_size, "allocated physical pages should be greater than 0\n");
   */
   if (op_unlikely(!addr)) return NULL;
   if (op_unlikely(!obj_size)) return NULL;
-  if (op_unlikely(!page_cnt)) return NULL;
+  if (op_unlikely(!span_size)) return NULL;
   
   unsigned int obj_cnt, bitmap_cnt, padding, headroom;
-  obj_cnt = page_cnt * OP_PAGE_SIZE / obj_size;
+  obj_cnt = span_size / obj_size;
   bitmap_cnt = (obj_cnt + 64 - 1) >> 6;
   padding = (bitmap_cnt << 6) - obj_cnt;
   headroom = (sizeof(OPSingularPSpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
@@ -79,10 +78,10 @@ OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
     {
       .ta_idx = ta_idx,
       .obj_size = obj_size,
-      .page_cnt = page_cnt,
       .bitmap_cnt = (uint8_t)bitmap_cnt,
       .bitmap_headroom = (uint8_t)headroom,
       .bitmap_padding = (uint8_t)padding,
+      .bitmap_hint = 0,
       .prev = NULL,
       .next = NULL
     };
@@ -103,9 +102,15 @@ OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
 
 void* OPSingularPSpanMalloc(OPSingularPSpan* self)
 {
-  _Atomic uint64_t *bitmap = (_Atomic uint64_t *)(self+1);
+  op_assert(self, "Address cannot be NULL");
+  _Atomic uint64_t *bitmap_base, *bitmap;
+  ptrdiff_t bitmap_offset, item_offset;
   uint64_t old_bmap, new_bmap;
-  ptrdiff_t diff;
+  
+  bitmap_base = (_Atomic uint64_t *)(self+1);
+  bitmap_offset = (ptrdiff_t)self->bitmap_hint;
+  bitmap = bitmap_base + bitmap_offset;
+
   void* addr;
   for (int i = 0; i < self->bitmap_cnt; i++)
     {
@@ -114,11 +119,15 @@ void* OPSingularPSpanMalloc(OPSingularPSpan* self)
           old_bmap = atomic_load_explicit(bitmap, memory_order_consume);
           if (old_bmap == ~0UL) goto next_bmap;
           new_bmap = (old_bmap + 1);
-          diff = __builtin_ctzl(new_bmap);
+          item_offset = __builtin_ctzl(new_bmap);
           new_bmap |= old_bmap;
         } while(!atomic_compare_exchange_weak(bitmap, &old_bmap, new_bmap));
       
-      addr = (void*)self + ((i << 6) + diff) * self->obj_size;
+      addr = (void*)self +
+        (((bitmap_offset % self->bitmap_cnt) << 6) + item_offset)
+        * self->obj_size;
+
+      self->bitmap_hint = (uint8_t)(bitmap_offset % self->bitmap_cnt);
 
       // ta_idx == 0 is for primitives
       if (self->ta_idx)
@@ -126,7 +135,8 @@ void* OPSingularPSpanMalloc(OPSingularPSpan* self)
       return addr;
       
     next_bmap:
-      bitmap++;
+      bitmap_offset++;
+      bitmap = bitmap_base + (bitmap_offset % self->bitmap_cnt);
       continue;
     }
   return NULL;
@@ -134,8 +144,10 @@ void* OPSingularPSpanMalloc(OPSingularPSpan* self)
 
 bool OPSingularPSpanFree(OPSingularPSpan* self, void* addr)
 {
+  op_assert(self, "Address cannot be NULL");
   ptrdiff_t diff = (addr - (void*)self) / self->obj_size;
   // assert diff*obj_size + self == addr
+  // assert attempt to free is not freed
 
   _Atomic uint64_t *bitmap = (_Atomic uint64_t *)(self+1);
   const int bmap_idx = diff >> 6;
