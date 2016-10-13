@@ -1,12 +1,12 @@
-/* op_pspan.h --- 
+/* op_vpage.h --- 
  * 
- * Filename: op_pspan.h
+ * Filename: op_vpage.h
  * Description: 
  * Author: Felix Chern
  * Maintainer: 
  * Copyright: (c) 2016 Felix Chern
- * Created: Sat Oct 8, 2016
- * Version: 0.3.0
+ * Created: Tue Oct 11 2016
+ * Version: 
  * Package-Requires: ()
  * Last-Updated: 
  *           By: 
@@ -45,40 +45,39 @@
 
 /* Code: */
 
-#ifndef OP_PSPAN_H
-#define OP_PSPAN_H 1
+#ifndef OP_VPAGE_H
+#define OP_VPAGE_H 1
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 #include "opic/common/op_macros.h"
 #include "opic/common/op_assert.h"
 #include "opic/common/op_log.h"
+#include "opic/malloc/op_pspan.h"
 
 OP_BEGIN_DECLS
 
-typedef struct OPSingularPSpan OPSingularPSpan;
+typedef struct OPVPage OPVPage;
 
-struct OPSingularPSpan
+struct OPVPage 
 {
-  const uint16_t ta_idx;
-  const uint16_t obj_size;
-  const uint8_t bitmap_cnt;
-  const uint8_t bitmap_headroom;
-  const uint8_t bitmap_padding;
-  uint8_t bitmap_hint;
-  // TODO: squeeze some bits for varying pspan
-  OPSingularPSpan* prev;
-  OPSingularPSpan* next;
+  _Atomic uint64_t occupy_bmap[512];
+  _Atomic uint64_t header_bmap[512];
 };
 
-OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
-                                     uint16_t obj_size, size_t span_size);
+OPVPage* OPVPageInit(void* addr);
 
-void* OPSingularPSpanMalloc(OPSingularPSpan* self);
+OPSingularPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
+                                   uint16_t ta_idx,
+                                   uint16_t obj_size,
+                                   unsigned int span_cnt);
 
-bool OPSingularPSpanFree(OPSingularPSpan* self, void* addr);
+bool OPVPageFree(OPVPage* restrict self, void* addr);
+
+
 
 OP_END_DECLS
 
 #endif
-/* op_pspan.h ends here */
+/* op_vpage.h ends here */

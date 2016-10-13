@@ -61,6 +61,10 @@ static inline int fftstr1 (uint32_t x, int n)
   return __builtin_ctz(x);
 }
 
+static inline int fftstr0 (uint32_t x, int n)
+{
+  return fftstr1(~x, n);
+}
 
 // find first trailing string of 1 bits
 // return -1 if no such string exists
@@ -75,6 +79,11 @@ static inline int fftstr1l (uint64_t x, int n)
     }
   if (x == 0) return -1;
   return __builtin_ctzl(x);
+}
+
+static inline int fftstr0l (uint64_t x, int n)
+{
+  return fftstr1l(~x, n);
 }
 
 OP_END_DECLS

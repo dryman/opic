@@ -135,6 +135,7 @@ void* OPMallocVSpan(OPMemoryManager* self, int pages)
               if (mask == 0) break;
               int pos = fftstr1l(mask, pages);
               if (pos == -1) break;
+              // TODO bug
               new_mask = mask & ((1L << (pos + 1)) -1);
               if (atomic_compare_exchange_weak(&self->vspan_avail_bmap[i],
                                                &mask, new_mask))

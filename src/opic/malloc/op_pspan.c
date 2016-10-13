@@ -100,7 +100,7 @@ OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
   return self;
 }
 
-void* OPSingularPSpanMalloc(OPSingularPSpan* self)
+void* OPSingularPSpanMalloc(OPSingularPSpan* restrict self)
 {
   op_assert(self, "Address cannot be NULL");
   _Atomic uint64_t *bitmap_base, *bitmap;
@@ -142,7 +142,7 @@ void* OPSingularPSpanMalloc(OPSingularPSpan* self)
   return NULL;
 }
 
-bool OPSingularPSpanFree(OPSingularPSpan* self, void* addr)
+bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
 {
   op_assert(self, "Address cannot be NULL");
   ptrdiff_t diff = (addr - (void*)self) / self->obj_size;
@@ -222,7 +222,7 @@ bool OPSingularPSpanFree(OPSingularPSpan* self, void* addr)
   // body
   for (int i = 1; i < iter; i++)
     {
-      atomic_store(&bitmap[i], 0L);
+      atomic_store(&bitmap[i], 0UL);
     }
   
   return false;
