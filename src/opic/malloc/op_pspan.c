@@ -114,14 +114,17 @@ void* OPSingularPSpanMalloc(OPSingularPSpan* restrict self)
   void* addr;
   for (int i = 0; i < self->bitmap_cnt; i++)
     {
-      do 
+      old_bmap = atomic_load_explicit(bitmap, memory_order_relaxed);
+      do
         {
-          old_bmap = atomic_load_explicit(bitmap, memory_order_consume);
           if (old_bmap == ~0UL) goto next_bmap;
           new_bmap = (old_bmap + 1);
           item_offset = __builtin_ctzl(new_bmap);
           new_bmap |= old_bmap;
-        } while(!atomic_compare_exchange_weak(bitmap, &old_bmap, new_bmap));
+        } while(!atomic_compare_exchange_weak_explicit
+                (bitmap, &old_bmap, new_bmap,
+                 memory_order_relaxed,
+                 memory_order_relaxed));
       
       addr = (void*)self +
         (((bitmap_offset % self->bitmap_cnt) << 6) + item_offset)
@@ -157,24 +160,27 @@ bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
 
   if (self->bitmap_cnt == 1)
     {
-      const uint64_t expected_empty_bmap =
+      uint64_t expected_empty_bmap =
         ((1UL << self->bitmap_headroom)-1) |
         ~((1UL << (64-self->bitmap_padding))-1);
-      if (atomic_compare_exchange_strong(bitmap,
-                                         &expected_empty_bmap,
-                                         ~0UL))
+      if (atomic_compare_exchange_strong_explicit
+          (bitmap, &expected_empty_bmap, ~0UL,
+           memory_order_release,
+           memory_order_relaxed))
       return true;
     }
   else if (bmap_idx == 0 &&
-           atomic_load(bitmap) == (1UL << self->bitmap_headroom)-1)
+           atomic_load_explicit(bitmap, memory_order_relaxed)==
+           (1UL << self->bitmap_headroom)-1)
     {
       goto try_fullfree;
     }
   else if (bmap_idx == self->bitmap_cnt - 1)
     {
-      uint64_t padding = self->bitmap_padding ?
-        ~((1UL << (64 - self->bitmap_padding))-1) : 0UL;
-      if (atomic_load(&bitmap[bmap_idx]) == padding)
+      if (atomic_load_explicit(&bitmap[bmap_idx], memory_order_relaxed) ==
+          (self->bitmap_padding ?
+           ~((1UL << (64 - self->bitmap_padding))-1) :
+           0UL))
         goto try_fullfree;
     }
   else if (!atomic_load(&bitmap[bmap_idx]))
@@ -191,38 +197,45 @@ bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
   
   iter = 0;
   expected_headroom = (1UL << self->bitmap_headroom)-1;
-  expected_body = ~0UL;
+  expected_body = 0UL;
   expected_padding = self->bitmap_padding ?
     ~((1UL << (64 - self->bitmap_padding))-1) : 0UL;
 
   // headroom
-  if (!atomic_compare_exchange_strong(&bitmap[0],
-                                      &expected_headroom,
-                                      ~0UL))
+  if (!atomic_compare_exchange_strong_explicit
+      (&bitmap[0], &expected_headroom, ~0UL,
+       memory_order_relaxed,
+       memory_order_relaxed))
     return false;
 
   // body
   for (iter = 1; iter < self->bitmap_cnt - 1; iter++)
-    if (!atomic_compare_exchange_strong(&bitmap[iter],
-                                        &expected_body,
-                                        ~0UL))
-      goto catch_nonempty_exception;      
+    {
+      expected_body = 0UL;
+    if (!atomic_compare_exchange_strong_explicit
+        (&bitmap[iter], &expected_body, ~0UL,
+         memory_order_relaxed,
+         memory_order_relaxed))
+      goto catch_nonempty_exception;
+    }
 
   // padding
-  if (atomic_compare_exchange_strong(&bitmap[iter],
-                                     &expected_padding,
-                                     ~0UL))
+  if (atomic_compare_exchange_strong_explicit
+      (&bitmap[iter], &expected_padding, ~0UL,
+       memory_order_relaxed,
+       memory_order_relaxed))
     return true;
 
  catch_nonempty_exception:
 
   // headroom
-  atomic_store(&bitmap[0], expected_headroom);
+  expected_headroom = (1UL << self->bitmap_headroom)-1;
+  atomic_store_explicit(&bitmap[0], expected_headroom, memory_order_relaxed);
 
   // body
   for (int i = 1; i < iter; i++)
     {
-      atomic_store(&bitmap[i], 0UL);
+      atomic_store_explicit(&bitmap[i], 0UL, memory_order_relaxed);
     }
   
   return false;

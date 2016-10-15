@@ -1,11 +1,11 @@
-/* op_vpage.h --- 
+/* op_vpage_test.c --- 
  * 
- * Filename: op_vpage.h
+ * Filename: op_vpage_test.c
  * Description: 
  * Author: Felix Chern
  * Maintainer: 
  * Copyright: (c) 2016 Felix Chern
- * Created: Tue Oct 11 2016
+ * Created: Wed Oct 12 21:39:56 2016 (-0700)
  * Version: 
  * Package-Requires: ()
  * Last-Updated: 
@@ -45,43 +45,29 @@
 
 /* Code: */
 
-#ifndef OP_VPAGE_H
-#define OP_VPAGE_H 1
-
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include <stdatomic.h>
-#include "opic/common/op_macros.h"
-#include "opic/common/op_assert.h"
-#include "opic/common/op_log.h"
-#include "opic/malloc/op_pspan.h"
+#include "opic/malloc/op_vpage.h"
+#include <sys/mman.h>
 
-OP_BEGIN_DECLS
-
-typedef struct OPVPage OPVPage;
-
-struct OPVPage 
+static void vpage_init_test(void **state)
 {
-  _Atomic uint64_t occupy_bmap[512];
-  _Atomic uint64_t header_bmap[512];
-};
-
-OPVPage* OPVPageInit(void* addr)
-  __attribute__((nonnull));
-
-OPSingularPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
-                                   uint16_t ta_idx,
-                                   uint16_t obj_size,
-                                   unsigned int span_cnt)
-  __attribute__((nonnull));
-
-bool OPVPageFree(OPVPage* restrict self, void* addr)
-  __attribute__((nonnull));
+  //OPVPageInit(NULL);
+  
+}
 
 
+int main(void)
+{
+  const struct CMUnitTest vpage_tests[] =
+    {
+      cmocka_unit_test(vpage_init_test),
+    };
+  
+  return cmocka_run_group_tests(vpage_tests, NULL, NULL);
+}
 
-
-OP_END_DECLS
-
-#endif
-/* op_vpage.h ends here */
+/* op_vpage_test.c ends here */

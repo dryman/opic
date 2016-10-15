@@ -129,15 +129,15 @@ static void obj_size_8byte(void **state)
   free(addr);
 }
 
-// TODO(fchern): test alloc and free behavior
+// TODO: test malloc that has padding
 
 static void malloc_4byte(void **state)
 {
-  void* addr = malloc(1<<12);
+  void* const addr = malloc(1<<12);
   OPSingularPSpan* span;
   span = OPSingularPSpanInit(addr, 0, 4, 1<<12);
   uint64_t bitmaps [16] = { (1UL << 38)-1 };
-  assert_memory_equal(span+1, &bitmaps, sizeof(bitmaps));
+  assert_memory_equal(span+1, bitmaps, sizeof(bitmaps));
 
   for (int i = 0; i<1024-38; i++)
     {
@@ -147,20 +147,23 @@ static void malloc_4byte(void **state)
 
   void* item = addr + 38*4;
   
-  for (int i = 0; i<1024-37; i++)
+  for (int i = 0; i<1024-38-1; i++)
     {
       assert_false(OPSingularPSpanFree(span, item));
       item+=4;
     }
+  assert_ptr_equal(addr+(1<<12)-4, item);
   assert_true(OPSingularPSpanFree(span, item));
 
   for (int i = 0; i<16; i++)
     bitmaps[i]=~0UL;
 
-  assert_memory_equal(span+1, &bitmaps, sizeof(bitmaps));
+  assert_memory_equal(span+1, bitmaps, sizeof(bitmaps));
   
   free(addr);
 }
+
+// TODO: test free headroom and padding
 
 
 int main(void)
@@ -172,6 +175,7 @@ int main(void)
       cmocka_unit_test(invalid_page_cnt),
       cmocka_unit_test(obj_size_4byte),
       cmocka_unit_test(obj_size_8byte),
+      cmocka_unit_test(malloc_4byte),
     };
   
   return cmocka_run_group_tests(init_tests, NULL, NULL);

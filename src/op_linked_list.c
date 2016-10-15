@@ -126,7 +126,6 @@ void OPLinkedList_serde_deserialize(OPObject* obj, OPMallocManager* ctx)
 
 bool      OPLinkedList_coll_contains(OPObject* obj, OPGeneric element)
 {
-  OPLinkedList* self = (OPLinkedList*) obj;
   OPObject* it = OPLinkedList_lst_listIterator(obj);
   bool ret = false;
   while(li_hasNext(it))
@@ -145,7 +144,6 @@ bool      OPLinkedList_coll_contains(OPObject* obj, OPGeneric element)
 bool      OPLinkedList_coll_containsAll(OPObject* obj, OPObject* collection)
 {
   // TODO Need to check if collection is Iterable or Colleciton
-  OPLinkedList* self = (OPLinkedList*) obj;
   OPObject* it = OPLinkedList_lst_listIterator(obj);
   bool ret = true;
   while(li_hasNext(it))
@@ -196,7 +194,6 @@ OPGeneric OPLinkedList_lst_get(OPObject* obj, size_t index)
 
 size_t    OPLinkedList_lst_indexOf(OPObject* obj, OPGeneric element)
 {
-  OPLinkedList* self = (OPLinkedList*) obj;
   OPObject* it = OPLinkedList_lst_listIterator(obj);
   size_t ret = SIZE_T_MAX;
   size_t cnt = 0;
@@ -216,7 +213,6 @@ size_t    OPLinkedList_lst_indexOf(OPObject* obj, OPGeneric element)
 
 size_t    OPLinkedList_lst_lastIndexOf(OPObject* obj, OPGeneric element)
 {
-  OPLinkedList* self = (OPLinkedList*) obj;
   OPObject* it = OPLinkedList_lst_listIterator(obj);
   size_t ret = SIZE_T_MAX;
   size_t cnt = 0;
@@ -308,6 +304,7 @@ bool      OPLinkedList_mcoll_addAll(OPObject* obj, OPObject* collection)
       mcoll_add(obj, it_next(it));
     }
   OPRelease(it);
+  return true;
 }
 
 void      OPLinkedList_mcoll_clear(OPObject* obj)
@@ -559,7 +556,6 @@ void      OPLinkedListIterator_mli_set(OPObject* obj, OPGeneric element)
             "or li_previous\n");
 
   OPLinkedListNode* node = self->last;
-  OPGeneric value = node->value;
 
   if (self->container->type == op_object &&
       node->value.obj != element.obj)

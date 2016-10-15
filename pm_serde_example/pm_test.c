@@ -13,7 +13,7 @@ int main (int argc, char** argv)
   OPMallocManager* ctx;
   
   OPMallocManagerCreate(&ctx);
-  printf("sizeof(OPType): %d\n", sizeof(OPType));
+  printf("sizeof(OPType): %zu\n", sizeof(OPType));
   OPObject* list = OP_MALLOC(ctx, OPLinkedList);
   mcoll_init(list, op_int32);
 
@@ -24,7 +24,7 @@ int main (int argc, char** argv)
   OPObject* it = lst_listIterator(list);
   while(li_hasNext(it))
     {
-      printf("Node value: %zu\n", li_next(it).uint64);
+      printf("Node value: %llu\n", li_next(it).uint64);
     }
   OPRelease(it);
   FILE* out = fopen("list_serialized", "w");
