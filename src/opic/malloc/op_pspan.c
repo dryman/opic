@@ -148,13 +148,42 @@ void* OPSingularPSpanMalloc(OPSingularPSpan* restrict self)
 bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
 {
   op_assert(self, "Address cannot be NULL");
-  ptrdiff_t diff = (addr - (void*)self) / self->obj_size;
-  // assert diff*obj_size + self == addr
-  // assert attempt to free is not freed
+  void* const base = (void*)self;
+  void* const bound = base+
+    self->obj_size*(64*self->bitmap_cnt - self->bitmap_padding);
 
+  op_assert(addr > base && addr < bound,
+            "Free address %p should within span from %p and %p",
+            addr, base, bound);
+  
+  ptrdiff_t diff = (addr - base) / self->obj_size;
   _Atomic uint64_t *bitmap = (_Atomic uint64_t *)(self+1);
   const int bmap_idx = diff >> 6;
   const int remainder = diff - (bmap_idx << 6);
+
+  op_assert(diff*self->obj_size + base == addr,
+            "Free address %p should align with obj_size %d\n",
+            addr, self->obj_size);
+  if (bmap_idx == 0)
+    op_assert(remainder >= self->bitmap_headroom,
+              "Free address %p cannot overlap span %p headroom\n",
+              addr, self);
+
+  // A very special condition: While we're in try_full_free mode, if
+  // someone tries to free element that is marked occupied, which were
+  // marked by try_full_free, it's really hard to detect such invalid
+  // free. In the context of full free it's not an issue, but if we
+  // used it as conjunction with alloc, we get into an ABA problem.
+  // The alloc will fill in the double free address, but the full_free
+  // may still satisfy and free the span.  We need some way to prevent
+  // people from doing stupid things, or at least make the problem
+  // easy to diagnose.
+  //
+  // A possible solution is to use the LSB of headroom to indicate
+  // we're in full_free mode, guard with memory_order_release, and
+  // have alloc to acquire a spin lock on that bit.  For invalid
+  // double-free, we might just ignore it so we can squeez out a bit
+  // more performance.
   
   atomic_fetch_and(&bitmap[bmap_idx], ~(1UL<<remainder));
 
@@ -183,7 +212,7 @@ bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
            0UL))
         goto try_fullfree;
     }
-  else if (!atomic_load(&bitmap[bmap_idx]))
+  else if (!atomic_load_explicit(&bitmap[bmap_idx], memory_order_relaxed))
     {
       goto try_fullfree;
     }
