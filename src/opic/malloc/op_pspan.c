@@ -233,7 +233,7 @@ bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
   // headroom
   if (!atomic_compare_exchange_strong_explicit
       (&bitmap[0], &expected_headroom, ~0UL,
-       memory_order_relaxed,
+       memory_order_release,
        memory_order_relaxed))
     return false;
 
@@ -243,7 +243,7 @@ bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
       expected_body = 0UL;
     if (!atomic_compare_exchange_strong_explicit
         (&bitmap[iter], &expected_body, ~0UL,
-         memory_order_relaxed,
+         memory_order_release,
          memory_order_relaxed))
       goto catch_nonempty_exception;
     }
@@ -251,7 +251,7 @@ bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
   // padding
   if (atomic_compare_exchange_strong_explicit
       (&bitmap[iter], &expected_padding, ~0UL,
-       memory_order_relaxed,
+       memory_order_release,
        memory_order_relaxed))
     return true;
 
@@ -264,7 +264,7 @@ bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
   // body
   for (int i = 1; i < iter; i++)
     {
-      atomic_store_explicit(&bitmap[i], 0UL, memory_order_relaxed);
+      atomic_store_explicit(&bitmap[i], 0UL, memory_order_release);
     }
   
   return false;

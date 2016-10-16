@@ -50,9 +50,13 @@
 #include "op_vpage.h"
 #include "opic/common/op_utils.h"
 
+OP_LOGGER_FACTORY(logger, "opic.malloc.op_vpage");
+
 OPVPage* OPVPageInit(void* addr)
 {
-  // use function attribute to check addr not null
+  op_assert(addr, "address should not be null\n");
+  op_assert(((size_t)addr & (1UL<<21)-1) == 0,
+            "OPVPage address should align 2MB, but were %p\n", addr);
   memset(addr, 0, sizeof(OPVPage));
   OPVPage *self = addr;
   return self;
@@ -63,27 +67,34 @@ OPSingularPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
                                    uint16_t obj_size,
                                    unsigned int span_cnt)
 {
+  op_assert(self, "OPVPage cannot be NULL\n");
   op_assert(span_cnt <= 256, "span_cnt is limited to 256 pages, aka 1MB\n");
 
   uint64_t old_bmap, new_bmap;
   void* base = self;
 
-  for (int i = 0; i < 512; i++)
+  for (int i = 0; i < 8; i++)
     {
+      old_bmap = atomic_load_explicit(&self->occupy_bmap[i],
+                                      memory_order_relaxed);
       while(1)
         {
-          old_bmap = atomic_load_explicit(&self->occupy_bmap[i],
-                                          memory_order_consume);
           if (old_bmap == ~0UL) break;
           int pos = fftstr0l(old_bmap, span_cnt);
           if (pos == -1) break;
           new_bmap = old_bmap | ((1UL << span_cnt)-1) << pos;
 
-          if (atomic_compare_exchange_weak(&self->occupy_bmap[i],
-                                           &old_bmap, new_bmap))
+          if (atomic_compare_exchange_weak_explicit
+              (&self->occupy_bmap[i], &old_bmap, new_bmap,
+               memory_order_acquire,
+               memory_order_relaxed))
             {
+              // Write to OPSingularPSpan should not be visible before
+              // occupy_bmap is set. This is enforced by
+              // memory_order_acquire on success. OPSingularPSpan is
+              // visible after we set the header_bmap.
               OPSingularPSpan* span;
-              
+
               if (i == 0 && pos == 0)
                 {
                   span = OPSingularPSpanInit
@@ -98,6 +109,7 @@ OPSingularPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
                      ta_idx, obj_size,
                      span_cnt << 12);
                 }
+
               // TODO setup linked list of TA
               atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << pos,
                                        memory_order_release);
@@ -114,52 +126,81 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
   ptrdiff_t diff = addr - base;
   OPSingularPSpan* span;
   int page_idx = diff >> 12;
-  uint64_t mask = ~0UL;
+  int span_header_idx;
+  uint64_t header_mask, occupy_mask;
+  size_t span_size;
+
+  // TODO: this implementation is assuming pspan can only be
+  // OPSingularPSpan, but we might have Varying PSpan (alloc multiple
+  // element at same time), and Array PSpan (array of objects cross
+  // multiple pages) in near future.
   
   if (page_idx == 0)
     {
       span = base + sizeof(OPVPage);
-      mask = ~1UL;
+      header_mask = ~1UL;
+      span_header_idx = 0;
     }
   else 
     {    
       uint64_t bitmap = atomic_load_explicit(&self->header_bmap[page_idx >> 6],
-                                             memory_order_consume);
+                                             memory_order_relaxed);
       uint64_t clear_low = bitmap & ~((1UL << page_idx % 64)-1);
-      int span_header_idx = ((page_idx >> 6) << 6) + __builtin_ctzl(clear_low);
+      span_header_idx = ((page_idx >> 6) << 6) + __builtin_ctzl(clear_low);
       span = base + (span_header_idx << 12);
-      mask = ~(clear_low & (~(clear_low) + 1));
+      header_mask = ~(clear_low & (~(clear_low) + 1));
     }
 
   if (!OPSingularPSpanFree(span, addr))
     return false;
-  
-  atomic_fetch_and_explicit(&self->header_bmap[page_idx >> 6], mask,
+
+  // PSpan is freed.
+  atomic_fetch_and_explicit(&self->header_bmap[page_idx >> 6], header_mask,
                             memory_order_relaxed);
 
-  if (atomic_load_explicit(&self->header_bmap[page_idx >> 6],
-                           memory_order_consume))
+  span_size = span->obj_size*(64*span->bitmap_cnt - span->bitmap_padding);
+  // first occupy bitmap is different
+  if (page_idx == 0) span_size += sizeof(OPVPage);
+  op_assert((span_size & (1UL<<12)-1)==0,
+            "span size should align page, but were %zu", span_size);
+  occupy_mask = ~(((1UL << (span_size >> 12))-1) << span_header_idx);
+
+  // Release semantic to ensure header unmark happens before occupy unmark
+  atomic_fetch_and_explicit(&self->occupy_bmap[page_idx >> 6], occupy_mask,
+                            memory_order_release);
+
+
+  
+  if (atomic_load_explicit(&self->occupy_bmap[page_idx >> 6],
+                           memory_order_relaxed))
     return false;
+
+  atomic_thread_fence(memory_order_acquire);
 
   uint64_t expected_empty = 0UL;
   int iter = 0;
 
-  for (iter = 0; iter < 512; iter++)
-    if (!atomic_compare_exchange_strong(&self->header_bmap[iter],
-                                        &expected_empty,
-                                        ~0UL))
-      goto catch_nonempty_exception;
+  // BUG: first occupy bitmap is different
+  
+  for (iter = 1; iter < 8; iter++)
+    {
+      expected_empty = 0UL;
+      if (!atomic_compare_exchange_strong_explicit
+          (&self->header_bmap[iter], &expected_empty, ~0UL,
+           memory_order_release,
+           memory_order_relaxed))
+        goto catch_nonempty_exception;
+    }
 
   return true;
   
  catch_nonempty_exception:
 
   for (int i = 0; i < iter; i++)
-    atomic_store(&self->header_bmap[i], 0UL);
+    atomic_store_explicit(&self->header_bmap[i], 0UL,
+                          memory_order_release);
       
   return false;
 }
-
-  
 
 /* op_vpage.c ends here */

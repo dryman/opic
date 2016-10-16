@@ -62,8 +62,8 @@ typedef struct OPVPage OPVPage;
 
 struct OPVPage 
 {
-  _Atomic uint64_t occupy_bmap[512];
-  _Atomic uint64_t header_bmap[512];
+  _Atomic uint64_t occupy_bmap[8];
+  _Atomic uint64_t header_bmap[8];
 };
 
 OPVPage* OPVPageInit(void* addr)
