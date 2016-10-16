@@ -32,7 +32,7 @@ void op_dealloc(void* obj)
   OPObject* _obj = obj;
   Class* isa = (Class*)((size_t)_obj->isa & (size_t)(~0x0FL));
   static AtomicClassMethod method_cache[65536];
-  size_t idx = ((size_t) isa >> 3) & (1<<16 - 1);
+  size_t idx = ((size_t) isa >> 3) & ((1<<16) - 1);
   
   ClassMethod method = atomic_load(&method_cache[idx]);
   void(*fn)(void*) = NULL;
@@ -43,7 +43,6 @@ void op_dealloc(void* obj)
   else
     {
       TypeClass** trait_it = isa->traits;
-      int i = 0;
       for (; *trait_it; trait_it++)
         {
           if (!strcmp((*trait_it)->name, "OPObjectBase"))

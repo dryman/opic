@@ -22,14 +22,6 @@
 #define op_unlikely(x) (x)
 #endif
 
-#ifndef INLINE
-# if __GNUC__ && !__GNUC_STDC_INLINE__
-#  define INLINE extern inline
-# else
-#  define INLINE inline
-# endif
-#endif
-
 #define _OP_GET_MACRO_BY_ARGS(_01,_02,_03,_04,_05,_06,_07,_08,_09,_10, \
                               _11,_12,_13,_14,_15,_16,_17,_18,_19,_20, \
                               _21,_22,_23,_24,_25,_26,_27,_28,_29,_30, \

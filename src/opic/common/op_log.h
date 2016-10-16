@@ -107,6 +107,8 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_INFO, __VA_ARGS__)
+
+#ifndef NDEBUG
   
 #define OP_LOG_DEBUG(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
@@ -132,6 +134,15 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_TRACE, __VA_ARGS__)
 
+#else
+
+#define OP_LOG_DEBUG(LOGGER, ...) ((void) 0)
+#define OP_LOG_TRACE(LOGGER, ...) ((void) 0)
+
+#endif
+
+#ifndef UNIT_TESTING
+
 #define OP_LOG_NOTEST(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -143,6 +154,12 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_NOTEST, __VA_ARGS__)
+
+#else
+
+#define OP_LOG_NOTEST(LOGGER, ...) ((void) 0)
+
+#endif
 
 #define OP_LOG_UNKNOWN(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \

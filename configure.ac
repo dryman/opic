@@ -12,11 +12,18 @@ LT_INIT
 AC_PROG_CC
 AC_PROG_CC_C99
 AC_PROG_LIBTOOL
+AC_C_INLINE
 
+
+AX_CFLAGS_WARN_ALL
 AX_PTHREAD
 
 AC_HEADER_STDBOOL
 AC_CHECK_HEADERS([limits.h inttypes.h])
+
+# TODO(fchern):
+# check cmocka
+# check c11
 
 # Checks for log4c
 AC_PATH_PROG([LOG4C_CONFIG], [log4c-config])
@@ -28,11 +35,14 @@ if test x"$LOG4C_CONFIG" != x""; then
 	AC_DEFINE([HAS_LOG4C], [1], [Define to 1 if log4c is available.])
 fi
 
+PKG_CHECK_MODULES([cmocka], [cmocka >= 1.0.1])
+
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
 AC_FUNC_MMAP
 
 
-AC_CONFIG_FILES([Makefile src/Makefile pm_serde_example/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile pm_serde_example/Makefile
+tests/Makefile])
 
 AC_OUTPUT

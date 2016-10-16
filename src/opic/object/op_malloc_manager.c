@@ -107,7 +107,7 @@ void* OPMalloc(OPMallocManager* self, Class* klass)
   OPMSlot *slot = pool->slot, *prev_slot = NULL;
   while (slot)
     {
-      if (obj = OPMSlotAlloc(slot))
+      if ((obj = OPMSlotAlloc(slot)))
         {
           goto return_barier;
         }
@@ -184,7 +184,6 @@ int OPSerialize(OPMallocManager* self, FILE* fd, uint32_t n, ...)
   for (uint16_t i = 0; i < klass_num; i++)
     {
       OPMPool* pool = CMGet(self->class_map, self->classes[i]);
-      const size_t obj_size = pool->klass->size;
       size_t offset = 0;
       OPMSlot* slot = pool->slot;
       while(slot)
@@ -395,7 +394,7 @@ void* OPPtr2Ref(OPMallocManager* self, void* ptr)
 {
   OPMSlot* slot = PRMFind(self->pointer_map, ptr);
   int order = CMGetOrder(self->class_map, slot->pool->klass);
-  op_assert(order >= 0, "Could not find class for pointer %p\n");
+  op_assert(order >= 0, "Could not find class for pointer %p\n", ptr);
 
   size_t offset, ref;
   offset = ptr - slot->data + slot->offset;
