@@ -93,7 +93,9 @@ OP_END_DECLS
 /* OPIC-32 Sadly, even if we specify the constructor functions as used
    and externally_visible, it still get striped out when link
    statically. For now we'll just keep it as-is and work with compiler
-   team to fix it in future.
+   team to fix it in future.  Note: A possible hack to use is
+   __LIBGCC_CTORS_SECTION_ASM_OP__. To do so we might need to link
+   with libgcc. But this is a big rework.
  */
 #define OP_DEFINE_ISA(KLASS)                                            \
   Class OP_CLASS_OBJ(KLASS) __attribute__((used))                       \
