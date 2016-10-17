@@ -90,21 +90,29 @@ OP_END_DECLS
 #define OP_DECLARE_ISA(KLASS)                   \
   extern Class OP_CLASS_OBJ(KLASS);
 
+/* OPIC-32 Sadly, even if we specify the constructor functions as used
+   and externally_visible, it still get striped out when link
+   statically. For now we'll just keep it as-is and work with compiler
+   team to fix it in future.
+ */
 #define OP_DEFINE_ISA(KLASS)                                            \
-  Class OP_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
-  __attribute__((constructor))                                          \
+  Class OP_CLASS_OBJ(KLASS) __attribute__((used))                       \
+    = {.classname = #KLASS, .size=sizeof(KLASS) };                      \
+  __attribute__((constructor,used,externally_visible))                  \
   void define_##KLASS##_ISA() {                                         \
     LPTypeMap_put(#KLASS, &OP_CLASS_OBJ(KLASS));                        \
     OP_CLASS_OBJ(KLASS).hash = op_murmur_hash(&OP_CLASS_OBJ(KLASS));    \
   }
 
 #define OP_DEFINE_ISA_WITH_TYPECLASSES(KLASS,...)                       \
-  Class OP_CLASS_OBJ(KLASS) = {.classname = #KLASS, .size=sizeof(KLASS) }; \
-  __attribute__((constructor))                                          \
+  Class OP_CLASS_OBJ(KLASS) __attribute__((used))                       \
+    = {.classname = #KLASS, .size=sizeof(KLASS) };                      \
+  __attribute__((constructor,used,externally_visible))                  \
   void define_##KLASS##_ISA() {                                         \
     LPTypeMap_put(#KLASS, &OP_CLASS_OBJ(KLASS));                        \
     OP_CLASS_OBJ(KLASS).hash = op_murmur_hash(&OP_CLASS_OBJ(KLASS));    \
-      OP_CLASS_OBJ(KLASS).traits = calloc(sizeof(void*), OP_LENGTH(__VA_ARGS__) + 1); \
+    OP_CLASS_OBJ(KLASS).traits =                                        \
+      calloc(sizeof(void*), OP_LENGTH(__VA_ARGS__) + 1);                \
     OP_MAP_SC_S1(OP_CLASS_ADD_TYPECLASS,KLASS,__VA_ARGS__);             \
   }
 
@@ -116,7 +124,8 @@ OP_END_DECLS
     OP_MAP_SC_S2_(_OP_METHOD_ASSIGN_IMPL,                               \
                   OP_TRAIT_TYPE, KLASS_TYPE,                            \
                   OP_TYPECLASS_METHODS(OP_TRAIT_TYPE));                 \
-    OP_CLASS_OBJ(KLASS_TYPE).traits[SLOT] = (TypeClass*) OP_TRAIT_TYPE##_var; \
+    OP_CLASS_OBJ(KLASS_TYPE).traits[SLOT] =                             \
+      (TypeClass*) OP_TRAIT_TYPE##_var;                                 \
   } while (0);
 
 #define _OP_METHOD_ASSIGN_IMPL(METHOD,I,OP_TRAIT_TYPE,KLASS_TYPE,...)   \
