@@ -56,9 +56,9 @@
 
 OP_BEGIN_DECLS
 
-typedef struct OPSingularPSpan OPSingularPSpan;
+typedef struct UnaryPSpan UnaryPSpan;
 
-struct OPSingularPSpan
+struct UnaryPSpan
 {
   const uint16_t ta_idx;
   const uint16_t obj_size;
@@ -67,16 +67,16 @@ struct OPSingularPSpan
   const uint8_t bitmap_padding;
   uint8_t bitmap_hint;
   // TODO: squeeze some bits for varying pspan
-  OPSingularPSpan* prev;
-  OPSingularPSpan* next;
+  UnaryPSpan* prev;
+  UnaryPSpan* next;
 };
 
-OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
+UnaryPSpan* UnaryPSpanInit(void* restrict addr, uint16_t ta_idx,
                                      uint16_t obj_size, size_t span_size);
 
-void* OPSingularPSpanMalloc(OPSingularPSpan* self);
+void* UnaryPSpanMalloc(UnaryPSpan* self);
 
-bool OPSingularPSpanFree(OPSingularPSpan* self, void* addr);
+bool UnaryPSpanFree(UnaryPSpan* self, void* addr);
 
 OP_END_DECLS
 

@@ -100,7 +100,7 @@ OP_END_DECLS
 #define OP_DEFINE_ISA(KLASS)                                            \
   Class OP_CLASS_OBJ(KLASS) __attribute__((used))                       \
     = {.classname = #KLASS, .size=sizeof(KLASS) };                      \
-  __attribute__((constructor,used,externally_visible))                  \
+  __attribute__((constructor,used))                                     \
   void define_##KLASS##_ISA() {                                         \
     LPTypeMap_put(#KLASS, &OP_CLASS_OBJ(KLASS));                        \
     OP_CLASS_OBJ(KLASS).hash = op_murmur_hash(&OP_CLASS_OBJ(KLASS));    \
@@ -109,7 +109,7 @@ OP_END_DECLS
 #define OP_DEFINE_ISA_WITH_TYPECLASSES(KLASS,...)                       \
   Class OP_CLASS_OBJ(KLASS) __attribute__((used))                       \
     = {.classname = #KLASS, .size=sizeof(KLASS) };                      \
-  __attribute__((constructor,used,externally_visible))                  \
+  __attribute__((constructor,used))                                     \
   void define_##KLASS##_ISA() {                                         \
     LPTypeMap_put(#KLASS, &OP_CLASS_OBJ(KLASS));                        \
     OP_CLASS_OBJ(KLASS).hash = op_murmur_hash(&OP_CLASS_OBJ(KLASS));    \

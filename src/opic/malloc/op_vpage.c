@@ -62,10 +62,10 @@ OPVPage* OPVPageInit(void* addr)
   return self;
 }
 
-OPSingularPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
-                                   uint16_t ta_idx,
-                                   uint16_t obj_size,
-                                   unsigned int span_cnt)
+UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
+                              uint16_t ta_idx,
+                              uint16_t obj_size,
+                              unsigned int span_cnt)
 {
   op_assert(self, "OPVPage cannot be NULL\n");
   op_assert(span_cnt <= 256, "span_cnt is limited to 256 pages, aka 1MB\n");
@@ -89,25 +89,23 @@ OPSingularPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
                memory_order_acquire,
                memory_order_relaxed))
             {
-              // Write to OPSingularPSpan should not be visible before
+              // Write to UnaryPSpan should not be visible before
               // occupy_bmap is set. This is enforced by
-              // memory_order_acquire on success. OPSingularPSpan is
+              // memory_order_acquire on success. UnaryPSpan is
               // visible after we set the header_bmap.
-              OPSingularPSpan* span;
+              UnaryPSpan* span;
 
               if (i == 0 && pos == 0)
                 {
-                  span = OPSingularPSpanInit
-                    (base + sizeof(OPVPage),
-                     ta_idx, obj_size,
-                     (span_cnt << 12) - sizeof(OPVPage));
+                  span = UnaryPSpanInit(base + sizeof(OPVPage),
+                                        ta_idx, obj_size,
+                                        (span_cnt << 12) - sizeof(OPVPage));
                 }
               else
                 {
-                  span = OPSingularPSpanInit
-                    (base + (((i << 6) + pos) << 12),
-                     ta_idx, obj_size,
-                     span_cnt << 12);
+                  span = UnaryPSpanInit(base + (((i << 6) + pos) << 12),
+                                        ta_idx, obj_size,
+                                        span_cnt << 12);
                 }
 
               // TODO setup linked list of TA
@@ -124,14 +122,14 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
 {
   void* base = (void*)self;
   ptrdiff_t diff = addr - base;
-  OPSingularPSpan* span;
+  UnaryPSpan* span;
   int page_idx = diff >> 12;
   int span_header_idx;
   uint64_t header_mask, occupy_mask;
   size_t span_size;
 
   // TODO: this implementation is assuming pspan can only be
-  // OPSingularPSpan, but we might have Varying PSpan (alloc multiple
+  // UnaryPSpan, but we might have Varying PSpan (alloc multiple
   // element at same time), and Array PSpan (array of objects cross
   // multiple pages) in near future.
   
@@ -151,7 +149,7 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
       header_mask = ~(clear_low & (~(clear_low) + 1));
     }
 
-  if (!OPSingularPSpanFree(span, addr))
+  if (!UnaryPSpanFree(span, addr))
     return false;
 
   // PSpan is freed.

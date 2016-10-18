@@ -52,7 +52,7 @@
 #include <stddef.h>
 
 
-OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
+UnaryPSpan* UnaryPSpanInit(void* restrict addr, uint16_t ta_idx,
                                      uint16_t obj_size, size_t span_size)
 {
   /* Unit test as of Oct 9, 2016 doesn't support op_assert
@@ -69,12 +69,12 @@ OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
   obj_cnt = span_size / obj_size;
   bitmap_cnt = (obj_cnt + 64 - 1) >> 6;
   padding = (bitmap_cnt << 6) - obj_cnt;
-  headroom = (sizeof(OPSingularPSpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
+  headroom = (sizeof(UnaryPSpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
 
   op_assert(headroom < 64,
             "headroom should be less equal to 64, but it is %d\n", headroom);
   
-  OPSingularPSpan span = 
+  UnaryPSpan span = 
     {
       .ta_idx = ta_idx,
       .obj_size = obj_size,
@@ -87,9 +87,9 @@ OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
     };
 
   memcpy(addr, &span, sizeof(span));
-  OPSingularPSpan* self = addr;
+  UnaryPSpan* self = addr;
 
-  addr += sizeof(OPSingularPSpan);
+  addr += sizeof(UnaryPSpan);
 
   memset(addr, 0, bitmap_cnt << 3);
   atomic_fetch_or((_Atomic uint64_t *) addr, (1UL << headroom)-1);
@@ -100,7 +100,7 @@ OPSingularPSpan* OPSingularPSpanInit(void* restrict addr, uint16_t ta_idx,
   return self;
 }
 
-void* OPSingularPSpanMalloc(OPSingularPSpan* restrict self)
+void* UnaryPSpanMalloc(UnaryPSpan* restrict self)
 {
   op_assert(self, "Address cannot be NULL");
   _Atomic uint64_t *bitmap_base, *bitmap;
@@ -145,7 +145,7 @@ void* OPSingularPSpanMalloc(OPSingularPSpan* restrict self)
   return NULL;
 }
 
-bool OPSingularPSpanFree(OPSingularPSpan* restrict self, void* restrict addr)
+bool UnaryPSpanFree(UnaryPSpan* restrict self, void* restrict addr)
 {
   op_assert(self, "Address cannot be NULL");
   void* const base = (void*)self;

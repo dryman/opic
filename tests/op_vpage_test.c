@@ -91,7 +91,7 @@ static void vpage_init_test(void **state)
 static void get_pspans_test(void **state)
 {
   OPVPage* vpage = OPVPageInit(mmap_align_2MB());
-  OPSingularPSpan* span = OPVPageAllocPSpan(vpage, 0, 8, 1);
+  UnaryPSpan* span = OPVPageAllocPSpan(vpage, 0, 8, 1);
   assert_int_equal(span->bitmap_cnt, 8);
   assert_int_equal(span->bitmap_headroom, 11);
   assert_int_equal(span->bitmap_padding, 16);
@@ -102,7 +102,7 @@ static void get_pspans_test(void **state)
     };
   assert_memory_equal(span+1, &bitmaps, sizeof(bitmaps));
 
-  OPSingularPSpan* span2 = OPVPageAllocPSpan(vpage, 0, 8, 1);
+  UnaryPSpan* span2 = OPVPageAllocPSpan(vpage, 0, 8, 1);
   assert_int_equal(span2->bitmap_cnt, 8);
   assert_int_equal(span2->bitmap_headroom, 11);
   assert_int_equal(span2->bitmap_padding, 0);
@@ -112,10 +112,10 @@ static void get_pspans_test(void **state)
 static void simple_free_test(void **state)
 {
   OPVPage* vpage = OPVPageInit(mmap_align_2MB());
-  OPSingularPSpan* span1 = OPVPageAllocPSpan(vpage, 0, 8, 1);
-  OPSingularPSpan* span2 = OPVPageAllocPSpan(vpage, 0, 8, 1);
-  void* addr1 = OPSingularPSpanMalloc(span1);
-  void* addr2 = OPSingularPSpanMalloc(span2);
+  UnaryPSpan* span1 = OPVPageAllocPSpan(vpage, 0, 8, 1);
+  UnaryPSpan* span2 = OPVPageAllocPSpan(vpage, 0, 8, 1);
+  void* addr1 = UnaryPSpanMalloc(span1);
+  void* addr2 = UnaryPSpanMalloc(span2);
   assert_non_null(addr1);
   assert_non_null(addr2);
   assert_false(OPVPageFree(vpage, addr1));

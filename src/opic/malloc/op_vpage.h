@@ -69,10 +69,10 @@ struct OPVPage
 OPVPage* OPVPageInit(void* addr)
   __attribute__((nonnull));
 
-OPSingularPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
-                                   uint16_t ta_idx,
-                                   uint16_t obj_size,
-                                   unsigned int span_cnt)
+UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
+                              uint16_t ta_idx,
+                              uint16_t obj_size,
+                              unsigned int span_cnt)
   __attribute__((nonnull));
 
 bool OPVPageFree(OPVPage* restrict self, void* addr)
