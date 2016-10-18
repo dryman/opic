@@ -47,6 +47,7 @@
 
 
 #include <string.h>
+#include <limits.h>
 #include "op_vpage.h"
 #include "opic/common/op_utils.h"
 
@@ -57,7 +58,8 @@ OPVPage* OPVPageInit(void* addr)
   op_assert(addr, "address should not be null\n");
   op_assert(((size_t)addr & (1UL<<21)-1) == 0,
             "OPVPage address should align 2MB, but were %p\n", addr);
-  memset(addr, 0, sizeof(OPVPage));
+  memset(addr, 0, 16*8);
+  memset(addr+16*8, CHAR_MIN, 512);
   OPVPage *self = addr;
   return self;
 }

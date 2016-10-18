@@ -64,6 +64,7 @@ struct OPVPage
 {
   _Atomic uint64_t occupy_bmap[8];
   _Atomic uint64_t header_bmap[8];
+  _Atomic int8_t refcnt[512];
 };
 
 OPVPage* OPVPageInit(void* addr)
