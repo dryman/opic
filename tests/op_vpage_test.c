@@ -50,6 +50,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <stdint.h>
+#include <limits.h>
 #include "opic/common/op_log.h"
 #include "opic/malloc/op_vpage.h"
 #include "opic/malloc/op_pspan.h"
@@ -102,10 +103,28 @@ static void get_pspans_test(void **state)
     };
   assert_memory_equal(span+1, &bitmaps, sizeof(bitmaps));
 
+  uint64_t occupy_bmap[8] = {1};
+  uint64_t header_bmap[8] = {1};
+  int8_t refcnt[512];
+  refcnt[0] = 0;
+  for (int i = 1; i < 512; i++)
+    refcnt[i] = CHAR_MIN;
+  assert_memory_equal(&vpage->occupy_bmap, occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(&vpage->header_bmap, header_bmap, sizeof(header_bmap));
+  assert_memory_equal(&vpage->refcnt, refcnt, sizeof(refcnt));
+
   UnaryPSpan* span2 = OPVPageAllocPSpan(vpage, 0, 8, 1);
   assert_int_equal(span2->bitmap_cnt, 8);
   assert_int_equal(span2->bitmap_headroom, 11);
   assert_int_equal(span2->bitmap_padding, 0);
+
+  occupy_bmap[0] = 3;
+  header_bmap[0] = 3;
+  refcnt[1] = 0;
+  assert_memory_equal(&vpage->occupy_bmap, occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(&vpage->header_bmap, header_bmap, sizeof(header_bmap));
+  assert_memory_equal(&vpage->refcnt, refcnt, sizeof(refcnt));
+
   munmap(vpage, 1UL<<21);
 }
 
@@ -118,8 +137,32 @@ static void simple_free_test(void **state)
   void* addr2 = UnaryPSpanMalloc(span2);
   assert_non_null(addr1);
   assert_non_null(addr2);
+
+  uint64_t occupy_bmap[8] = {0};
+  uint64_t header_bmap[8] = {0};
+  int8_t refcnt[512];
+
+  for (int i = 0; i < 512; i++)
+    refcnt[i] = CHAR_MIN;
+  
   assert_false(OPVPageFree(vpage, addr1));
+  occupy_bmap[0] = 2;
+  header_bmap[0] = 2;
+  refcnt[1] = 0;
+  assert_memory_equal(&vpage->occupy_bmap, occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(&vpage->header_bmap, header_bmap, sizeof(header_bmap));
+  assert_memory_equal(&vpage->refcnt, refcnt, sizeof(refcnt));
+  
   assert_true(OPVPageFree(vpage, addr2));
+
+  for (int i = 0; i < 8; i++)
+    occupy_bmap[i] = ~0UL;
+  header_bmap[0] = 0;
+  refcnt[1] = CHAR_MIN;
+
+  assert_memory_equal(&vpage->occupy_bmap, occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(&vpage->header_bmap, header_bmap, sizeof(header_bmap));
+  assert_memory_equal(&vpage->refcnt, refcnt, sizeof(refcnt));
   
   munmap(vpage, 1UL<<21);
 }

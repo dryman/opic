@@ -64,6 +64,7 @@ OPVPage* OPVPageInit(void* addr)
   return self;
 }
 
+
 UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
                               uint16_t ta_idx,
                               uint16_t obj_size,
@@ -112,7 +113,16 @@ UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
 
               // TODO setup linked list of TA
               atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << pos,
-                                       memory_order_release);
+                                       memory_order_relaxed);
+
+              // As long as concurrent access < 127, our state is well defined
+              int8_t expected_refcnt = CHAR_MIN;
+              while (!atomic_compare_exchange_weak_explicit
+                     (&self->refcnt[i*64+pos], &expected_refcnt, 0,
+                      memory_order_release,
+                      memory_order_relaxed))
+                expected_refcnt = CHAR_MIN;
+              
               return span;
             }
         }
@@ -154,7 +164,17 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
   if (!UnaryPSpanFree(span, addr))
     return false;
 
-  // PSpan is freed.
+  /*** PSpan is freed. Start critical section ***/
+
+  // First exclude access
+  int8_t expected_refcnt = 0;
+  while (!atomic_compare_exchange_weak_explicit
+         (&self->refcnt[span_header_idx],
+          &expected_refcnt, CHAR_MIN,
+          memory_order_acquire,
+          memory_order_relaxed))
+    expected_refcnt = 0;
+  
   atomic_fetch_and_explicit(&self->header_bmap[page_idx >> 6], header_mask,
                             memory_order_relaxed);
 
@@ -168,26 +188,21 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
   // Release semantic to ensure header unmark happens before occupy unmark
   atomic_fetch_and_explicit(&self->occupy_bmap[page_idx >> 6], occupy_mask,
                             memory_order_release);
-
-
   
   if (atomic_load_explicit(&self->occupy_bmap[page_idx >> 6],
                            memory_order_relaxed))
     return false;
 
-  atomic_thread_fence(memory_order_acquire);
 
   uint64_t expected_empty = 0UL;
   int iter = 0;
-
-  // BUG: first occupy bitmap is different
   
-  for (iter = 1; iter < 8; iter++)
+  for (iter = 0; iter < 8; iter++)
     {
       expected_empty = 0UL;
       if (!atomic_compare_exchange_strong_explicit
-          (&self->header_bmap[iter], &expected_empty, ~0UL,
-           memory_order_release,
+          (&self->occupy_bmap[iter], &expected_empty, ~0UL,
+           memory_order_acquire,
            memory_order_relaxed))
         goto catch_nonempty_exception;
     }
@@ -197,7 +212,7 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
  catch_nonempty_exception:
 
   for (int i = 0; i < iter; i++)
-    atomic_store_explicit(&self->header_bmap[i], 0UL,
+    atomic_store_explicit(&self->occupy_bmap[i], 0UL,
                           memory_order_release);
       
   return false;
