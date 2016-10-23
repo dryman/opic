@@ -24,7 +24,7 @@ int main (int argc, char** argv)
   OPObject* it = lst_listIterator(list);
   while(li_hasNext(it))
     {
-      printf("Node value: %llu\n", li_next(it).uint64);
+      printf("Node value: %lu\n", li_next(it).uint64);
     }
   OPRelease(it);
   FILE* out = fopen("list_serialized", "w");
