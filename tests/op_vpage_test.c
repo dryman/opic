@@ -95,11 +95,11 @@ static void get_pspans_test(void **state)
   UnaryPSpan* span = OPVPageAllocPSpan(vpage, 0, 8, 1);
   assert_int_equal(span->bitmap_cnt, 7);
   assert_int_equal(span->bitmap_headroom, 10);
-  assert_int_equal(span->bitmap_padding, 16);
+  assert_int_equal(span->bitmap_padding, 18);
   uint64_t bitmaps [7] =
     {
       [0] = (1UL << 10)-1,
-      [6] = ~((1UL << (64-16))-1)
+      [6] = ~((1UL << (64-18))-1)
     };
   assert_memory_equal(span+1, &bitmaps, sizeof(bitmaps));
 

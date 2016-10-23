@@ -52,8 +52,8 @@
 #include <stddef.h>
 
 
-UnaryPSpan* UnaryPSpanInit(void* restrict addr, uint16_t ta_idx,
-                                     uint16_t obj_size, size_t span_size)
+UnaryPSpan* UnaryPSpanInit(void* restrict addr, int16_t sc_idx,
+                           uint16_t obj_size, size_t span_size)
 {
   /* Unit test as of Oct 9, 2016 doesn't support op_assert
      Our workaround is return NULL instead. But this should be fixed.
@@ -76,7 +76,7 @@ UnaryPSpan* UnaryPSpanInit(void* restrict addr, uint16_t ta_idx,
   
   UnaryPSpan span = 
     {
-      .ta_idx = ta_idx,
+      .sc_idx = sc_idx,
       .obj_size = obj_size,
       .bitmap_cnt = (uint8_t)bitmap_cnt,
       .bitmap_headroom = (uint8_t)headroom,
@@ -132,9 +132,6 @@ void* UnaryPSpanMalloc(UnaryPSpan* restrict self)
 
       self->bitmap_hint = (uint8_t)(bitmap_offset % self->bitmap_cnt);
 
-      // ta_idx == 0 is for primitives
-      if (self->ta_idx)
-        *(uint16_t*)addr = self->ta_idx;
       return addr;
       
     next_bmap:

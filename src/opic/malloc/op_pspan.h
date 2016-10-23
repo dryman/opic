@@ -57,10 +57,11 @@
 OP_BEGIN_DECLS
 
 typedef struct UnaryPSpan UnaryPSpan;
+typedef struct PolyadicPSpan PolyadicPSpan;
 
 struct UnaryPSpan
 {
-  const uint16_t ta_idx;
+  const int16_t sc_idx;
   const uint16_t obj_size;
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
@@ -71,8 +72,25 @@ struct UnaryPSpan
   UnaryPSpan* next;
 };
 
-UnaryPSpan* UnaryPSpanInit(void* restrict addr, uint16_t ta_idx,
-                                     uint16_t obj_size, size_t span_size);
+struct PolyadicPSpan
+{
+  const int16_t sc_idx;
+  const uint16_t obj_size;
+  const uint8_t bitmap_cnt;
+  const uint8_t bitmap_headroom;
+  const uint8_t bitmap_padding;
+  uint8_t bitmap_hint;
+  // TODO: squeeze some bits for varying pspan
+  UnaryPSpan* prev;
+  UnaryPSpan* next;
+};
+
+static_assert(sizeof(UnaryPSpan) == 24, "UnaryPSpan size should be 24\n");
+static_assert(sizeof(PolyadicPSpan) == 24,
+              "PolyadicPSpan size should be 24\n");
+
+UnaryPSpan* UnaryPSpanInit(void* restrict addr, int16_t sc_idx,
+                           uint16_t obj_size, size_t span_size);
 
 void* UnaryPSpanMalloc(UnaryPSpan* self);
 

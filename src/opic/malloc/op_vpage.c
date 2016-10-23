@@ -58,15 +58,18 @@ OPVPage* OPVPageInit(void* addr)
   op_assert(addr, "address should not be null\n");
   op_assert(((size_t)addr & (1UL<<21)-1) == 0,
             "OPVPage address should align 2MB, but were %p\n", addr);
-  memset(addr, 0, 16*8);
-  memset(addr+16*8, CHAR_MIN, 512);
   OPVPage *self = addr;
+  self->next = NULL;
+  self->prev = NULL;
+  memset(&self->occupy_bmap, 0, sizeof(self->occupy_bmap));
+  memset(&self->header_bmap, 0, sizeof(self->header_bmap));
+  memset(&self->refcnt, CHAR_MIN, sizeof(self->refcnt));
   return self;
 }
 
 
 UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
-                              uint16_t ta_idx,
+                              int16_t ta_idx,
                               uint16_t obj_size,
                               unsigned int span_cnt)
 {

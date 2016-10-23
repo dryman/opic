@@ -9,6 +9,7 @@ libopic_la_SOURCES = \
   opic/common/op_log.c \
   opic/malloc/op_pspan.c \
   opic/malloc/op_vpage.c \
+  opic/malloc/op_heap.c \
   opic/object/op_serializable.c \
   opic/object/op_trait.c \
   opic/object/op_object.c \
@@ -33,6 +34,7 @@ nobase_include_HEADERS = \
   opic/common/op_assert.h \
   opic/common/op_log.h \
   opic/common/op_macros.h \
+  opic/malloc/op_heap.h \
   opic/malloc/op_vpage.h \
   opic/malloc/op_pspan.h \
   opic/object/op_serializable.h \
