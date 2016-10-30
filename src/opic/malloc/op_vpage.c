@@ -55,7 +55,7 @@ OP_LOGGER_FACTORY(logger, "opic.malloc.op_vpage");
 OPVPage* OPVPageInit(void* addr)
 {
   op_assert(addr, "address should not be null\n");
-  op_assert(((size_t)addr & (1UL<<21)-1) == 0,
+  op_assert(((size_t)addr & ((1UL<<21)-1)) == 0,
             "OPVPage address should align 2MB, but were %p\n", addr);
   memset(addr, 0, sizeof(OPVPage));
   OPVPage *self = addr;
@@ -161,7 +161,7 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
   span_size = span->obj_size*(64*span->bitmap_cnt - span->bitmap_padding);
   // first occupy bitmap is different
   if (page_idx == 0) span_size += sizeof(OPVPage);
-  op_assert((span_size & (1UL<<12)-1)==0,
+  op_assert((span_size & ((1UL<<12)-1))==0,
             "span size should align page, but were %zu", span_size);
   occupy_mask = ~(((1UL << (span_size >> 12))-1) << span_header_idx);
 
