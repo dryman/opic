@@ -45,7 +45,7 @@
 
 /* Code: */
 
-
+#include "op_lock_utils.h"
 #include "op_heap.h"
 #include "op_pspan.h"
 #include "op_vpage.h"
