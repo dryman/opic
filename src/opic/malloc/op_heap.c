@@ -75,11 +75,11 @@ struct RawType
   // Thread local physical spans. In total of 16 size classes to serve
   // objects of size from 16 bytes to 256 bytes. Each size class has
   // 16 thread local UnaryPSpan pointers.
-  UnaryPSpan* tlspan[16][16];
+  UnaryPSpan* uspan[16][16];
   // Thread local read write lock
-  atomic_int_fast8_t tlrwlock[16][16];
+  atomic_int_fast8_t uspan_rwlock[16][16];
   // 16 favor wirte flags, each bit coresponds to a thread local lock.
-  atomic_uint_fast16_t tlfavor_w[16];
+  atomic_uint_fast16_t uspan_favor[16];
   PolyadicPSpan* sc_512;
   PolyadicPSpan* sc_1024;
   PolyadicPSpan* sc_2048;
@@ -88,9 +88,8 @@ struct RawType
   atomic_int_fast16_t rwlock_1024;
   atomic_int_fast16_t rwlock_2048;
   atomic_int_fast16_t rwlock_vpage;
-  // favor write flag for sc_512, sc_1024, sc_2048
-  atomic_uint_fast8_t favor_w;
-  char reserved;
+  // favor flag for sc_512, sc_1024, sc_2048, and vpage
+  atomic_uint_fast8_t remain_favor;
 };
 
 struct TypeAlias
@@ -98,13 +97,14 @@ struct TypeAlias
   // TODO: change to Class* when we merge with object
   void *klass;
   char *type_name;
-  UnaryPSpan* tlspan[16];
-  atomic_int_fast8_t tlrwlock[16];
-  atomic_uint_fast32_t favor_w;
-  PolyadicPSpan* ppspan;
-  atomic_int_fast16_t ppspan_rwlock;
+  UnaryPSpan* uspan[16];
+  atomic_int_fast8_t uspan_rwlock[16];
+  atomic_uint_fast16_t uspan_favor;
+  PolyadicPSpan* polyspan;
+  atomic_int_fast16_t polyspan_rwlock;
   OPVPage* vpage;
   atomic_int_fast16_t vpage_rwlock;
+  atomic_uint_fast8_t remain_favor;
 };
 
 struct OPHeap

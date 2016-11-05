@@ -49,60 +49,177 @@
 #define OP_LOCK_UTILS_H 1
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdatomic.h>
 #include "opic/common/op_macros.h"
 
 OP_BEGIN_DECLS
 
-#define ACQ_R_LOCK(RWLOCK, FW, FW_OFFSET)                       \
-  do {                                                          \
-  __auto_type rwlock_ptr = (RWLOCK);                            \
-  __auto_type fw_ptr = (FW);                                    \
-  __typeof__ (*fw_ptr) flag = 1 << (FW_OFFSET);                 \
-  __typeof__ (*rwlock_ptr) oldlock = atomic_load_explicit       \
-    (rwlock_ptr, memory_order_relaxed);                         \
-  while (1)                                                     \
-    {                                                           \
-      if (!(atomic_load_explicit                                \
-            ((favor_w),                                         \
-             memory_order_relaxed) & flag))                     \
-        break;                                                  \
-      if (oldlock < 0)                                          \
-        {                                                       \
-          oldlock = atomic_load_explicit                        \
-            (rwlock_ptr, memory_order_relaxed);                 \
-        }                                                       \
-      if (atomic_compare_exchange_weak_explicit                 \
-          (rwlock_ptr, &oldlock, oldlock + 1,                   \
-           memory_order_acquire,                                \
-           memory_order_relaxed))                               \
-        break;                                                  \
-    }                                                           \
-  } while(0)
+#define acq_rlock(RWLOCK, FAVOR, OFFSET)                \
+  _Generic((RWLOCK),                                    \
+           atomic_int_fast8_t: acq_rlock_int8,          \
+           atomic_int_fast16_t: acq_rlock_int16)        \
+  (RWLOCK, FAVOR, OFFSET)
 
-#define REL_R_LOCK(RWLOCK)                                      \
-  do {                                                          \
-  __auto_type rwlock_ptr = (RWLOCK);                            \
-  __typeof__ (*rwlock_ptr) oldlock = atomic_load_explicit       \
-    (rwlock_ptr, memory_order_relaxed);                         \
-  while (!atomic_compare_exchange_weak_explicit                 \
-    (rwlock_ptr, &oldlock, oldlock - 1,                         \
-     memory_order_release,                                      \
-     memory_order_relaxed)) ;                                   \
-  } while(0)
+#define rel_rlock(RWLOCK)                               \
+  _Generic((RWLOCK),                                    \
+           atomic_int_fast8_t: rel_rlock_int8,          \
+           atomic_int_fast16_t: rel_rlock_int16)        \
+  (RWLOCK)
 
-#define ACQ_W_LOCK(RWLOCK, FW, FW_OFFSET)                       \
-  do {                                                          \
-  __auto_type rwlock_ptr = (RWLOCK);                            \
-  __typeof__ (*rwlock_ptr) expected_lock = 0;                   \
-  while (!atomic_compare_exchange_weak_explicit                 \
-    (rwlock_ptr, &expected_lock, -1,                            \
-     memory_order_acquire,                                      \
-     memory_order_relaxed))                                     \
-    expected_lock = 0;                                          \
-  atomic_store_explicit(fw_ptr, ~(1 << (FW_OFFSET)),            \
-                        memory_order_relaxed);                  \
-  } while(0)
+#define favor_write(FAVOR, OFFSET)                      \
+  _Generic((FAVOR),                                     \
+           atomic_int_fast8_t: favor_write_int8,        \
+           atomic_int_fast16_t: favor_write_int16)      \
+  (FAVOR, OFFSET)
+
+#define acq_wlock(RWLOCK, FAVOR, OFFSET)                \
+  _Generic((RWLOCK),                                    \
+           atomic_int_fast8_t: acq_wlock_int8,          \
+           atomic_int_fast16_t: acq_wlock_int16)        \
+  (RWLOCK, FAVOR, OFFSET)
+
+#define rel_wlock(RWLOCK)                               \
+  _Generic((RWLOCK),                                    \
+           atomic_int_fast8_t: rel_wlock_int8,          \
+           atomic_int_fast16_t: rel_wlock_int16)        \
+  (RWLOCK)
+
+static inline bool
+acq_rlock_int8(atomic_int_fast8_t* rwlock,
+               atomic_uint_fast16_t* favor,
+               int favor_offset)
+{
+  uint16_t mask = 1u << favor_offset;
+  if (atomic_load_explicit(favor, memory_order_relaxed) & mask)
+    return false;
+
+  int8_t oldlock = atomic_load_explicit(rwlock, memory_order_relaxed);
+  if (oldlock < 0)
+    return false;
+
+  while (!atomic_compare_exchange_weak_explicit
+         (rwlock, &oldlock, oldlock + 1,
+          memory_order_acquire,
+          memory_order_relaxed))
+    {
+      if (oldlock < 0)
+        return false;
+      if (atomic_load_explicit(favor, memory_order_relaxed) & mask)
+        return false;
+    }
+  return true;
+}
+
+static inline bool
+acq_rlock_int16(atomic_int_fast16_t* rwlock,
+                atomic_uint_fast8_t* favor,
+                int favor_offset)
+{
+  uint8_t mask = 1u << favor_offset;
+  
+  if (atomic_load_explicit(favor, memory_order_relaxed) & mask)
+    return false;
+
+  int16_t oldlock = atomic_load_explicit(rwlock, memory_order_relaxed);
+  if (oldlock < 0)
+    return false;
+  
+  while (!atomic_compare_exchange_weak_explicit
+         (rwlock, &oldlock, oldlock + 1,
+          memory_order_acquire,
+          memory_order_relaxed))
+    {
+      if (oldlock < 0)
+        return false;
+      if (atomic_load_explicit(favor, memory_order_relaxed) & mask)
+        return false;
+    }
+  return true;
+}
+
+static inline void
+rel_rlock_int8(atomic_int_fast8_t* rwlock)
+{
+  atomic_fetch_sub_explicit(rwlock, 1,
+                            memory_order_release);
+}
+
+static inline void
+rel_rlock_int16(atomic_int_fast16_t* rwlock)
+{
+  atomic_fetch_sub_explicit(rwlock, 1,
+                            memory_order_release);
+}
+
+static inline void
+favor_write_int8(atomic_int_fast8_t* favor, int offset)
+{
+  atomic_fetch_or_explicit(favor, 1 << offset,
+                           memory_order_relaxed);
+}
+
+static inline void
+favor_write_int16(atomic_int_fast16_t* favor, int offset)
+{
+  atomic_fetch_or_explicit(favor, 1 << offset,
+                           memory_order_relaxed);
+}
+
+static inline bool
+acq_wlock_int8(atomic_int_fast8_t* rwlock,
+               atomic_uint_fast16_t* favor,
+               int favor_offset)
+{
+  int8_t expected_lock = 0;
+  while (!atomic_compare_exchange_strong_explicit
+         (rwlock, &expected_lock, -1,
+          memory_order_acquire,
+          memory_order_relaxed))
+    {
+      if (expected_lock < 0)
+        return false;
+      else
+        expected_lock = 0;
+    }
+  uint16_t mask = ~(1 << favor_offset);
+  atomic_fetch_and_explicit(favor, mask, memory_order_relaxed);
+  return true;
+}
+
+static inline bool
+acq_wlock_int16(atomic_int_fast16_t* rwlock,
+                atomic_uint_fast8_t* favor,
+                int favor_offset)
+{
+  int16_t expected_lock = 0;
+  while (!atomic_compare_exchange_strong_explicit
+         (rwlock, &expected_lock, -1,
+          memory_order_acquire,
+          memory_order_relaxed))
+    {
+      if (expected_lock < 0)
+        return false;
+      else
+        expected_lock = 0;
+    }
+  uint8_t mask = ~(1 << favor_offset);
+  atomic_fetch_and_explicit(favor, mask, memory_order_relaxed);
+  return true;
+}
+
+static inline void
+rel_wlock_int8(atomic_int_fast8_t* rwlock)
+{
+  atomic_store_explicit(rwlock, 0, memory_order_release);
+}
+
+static inline void
+rel_wlock_int16(atomic_int_fast16_t* rwlock)
+{
+  atomic_store_explicit(rwlock, 0, memory_order_release);
+}
+
 
 OP_END_DECLS
 
