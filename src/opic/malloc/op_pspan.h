@@ -56,45 +56,45 @@
 
 OP_BEGIN_DECLS
 
-typedef struct UnaryPSpan UnaryPSpan;
-typedef struct PolyadicPSpan PolyadicPSpan;
+typedef struct UnarySpan UnarySpan;
+typedef struct PolyadicSpan PolyadicSpan;
 
-struct UnaryPSpan
+// we probably need to define a magic header
+
+struct UnarySpan
 {
-  const int16_t sc_idx;
+  const uint16_t magic;
   const uint16_t obj_size;
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
   uint8_t bitmap_hint;
-  // TODO: squeeze some bits for varying pspan
-  UnaryPSpan* prev;
-  UnaryPSpan* next;
+  UnarySpan* prev;
+  UnarySpan* next;
 };
 
-struct PolyadicPSpan
+struct PolyadicSpan
 {
-  const int16_t sc_idx;
+  const uint16_t magic;
   const uint16_t obj_size;
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
   uint8_t bitmap_hint;
-  // TODO: squeeze some bits for varying pspan
-  UnaryPSpan* prev;
-  UnaryPSpan* next;
+  PolyadicSpan* prev;
+  PolyadicSpan* next;
 };
 
-static_assert(sizeof(UnaryPSpan) == 24, "UnaryPSpan size should be 24\n");
-static_assert(sizeof(PolyadicPSpan) == 24,
+static_assert(sizeof(UnarySpan) == 24, "UnaryPSpan size should be 24\n");
+static_assert(sizeof(PolyadicSpan) == 24,
               "PolyadicPSpan size should be 24\n");
 
-UnaryPSpan* UnaryPSpanInit(void* restrict addr, int16_t sc_idx,
-                           uint16_t obj_size, size_t span_size);
+UnarySpan* USpanInit(void* addr, uint16_t magic,
+                      uint16_t obj_size, size_t span_size);
 
-void* UnaryPSpanMalloc(UnaryPSpan* self);
+void* USpanMalloc(UnarySpan* self);
 
-bool UnaryPSpanFree(UnaryPSpan* self, void* addr);
+bool USpanFree(UnarySpan* self, void* addr);
 
 OP_END_DECLS
 

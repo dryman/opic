@@ -61,10 +61,8 @@
 
 typedef struct RawType RawType;
 typedef struct TypeAlias TypeAlias;
-typedef struct UnarySizeClass UnarySizeClass;
-typedef struct PolyadicSizeClass PolyadicSizeClass;
 
-static __thread int tid = -1;
+static __thread int thread_id = -1;
 static atomic_uint round_robin = 0;
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.op_heap");
@@ -75,15 +73,15 @@ struct RawType
   // Thread local physical spans. In total of 16 size classes to serve
   // objects of size from 16 bytes to 256 bytes. Each size class has
   // 16 thread local UnaryPSpan pointers.
-  UnaryPSpan* uspan[16][16];
+  UnarySpan* uspan[16][16];
   // Thread local read write lock
   atomic_int_fast8_t uspan_rwlock[16][16];
   // 16 favor wirte flags, each bit coresponds to a thread local lock.
   atomic_uint_fast16_t uspan_favor[16];
-  PolyadicPSpan* sc_512;
-  PolyadicPSpan* sc_1024;
-  PolyadicPSpan* sc_2048;
-  OPVPage* vpage;
+  PolyadicSpan* sc_512;
+  PolyadicSpan* sc_1024;
+  PolyadicSpan* sc_2048;
+  HugePage* vpage;
   atomic_int_fast16_t rwlock_512;
   atomic_int_fast16_t rwlock_1024;
   atomic_int_fast16_t rwlock_2048;
@@ -97,12 +95,12 @@ struct TypeAlias
   // TODO: change to Class* when we merge with object
   void *klass;
   char *type_name;
-  UnaryPSpan* uspan[16];
+  UnarySpan* uspan[16];
   atomic_int_fast8_t uspan_rwlock[16];
   atomic_uint_fast16_t uspan_favor;
-  PolyadicPSpan* polyspan;
+  PolyadicSpan* polyspan;
   atomic_int_fast16_t polyspan_rwlock;
-  OPVPage* vpage;
+  HugePage* vpage;
   atomic_int_fast16_t vpage_rwlock;
   atomic_uint_fast8_t remain_favor;
 };
@@ -157,9 +155,12 @@ int OPHeapCreate(OPHeap** heap_ref)
 
 void* OPAllocRaw(OPHeap* self, size_t size)
 {
-  if (tid == -1)
-    tid = atomic_fetch_add_explicit(&round_robin, 1, memory_order_acquire) % 16;
+  if (thread_id == -1)
+    thread_id = atomic_fetch_add_explicit
+      (&round_robin, 1, memory_order_acquire) % 16;
 
+  int tid = thread_id;
+  
   
   return NULL;
 }

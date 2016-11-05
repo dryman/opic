@@ -53,12 +53,12 @@
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.op_vpage");
 
-OPVPage* OPVPageInit(void* addr)
+HugePage* HugePageInit(void* addr)
 {
   op_assert(addr, "address should not be null\n");
   op_assert(((size_t)addr & ((1UL<<21)-1)) == 0,
-            "OPVPage address should align 2MB, but were %p\n", addr);
-  OPVPage *self = addr;
+            "HugePage address should align 2MB, but were %p\n", addr);
+  HugePage *self = addr;
   self->next = NULL;
   self->prev = NULL;
   memset(&self->occupy_bmap, 0, sizeof(self->occupy_bmap));
@@ -68,12 +68,12 @@ OPVPage* OPVPageInit(void* addr)
 }
 
 
-UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
-                              int16_t ta_idx,
+UnarySpan* HugePageAllocUSpan(HugePage* restrict self,
+                              uint16_t magic,
                               uint16_t obj_size,
                               unsigned int span_cnt)
 {
-  op_assert(self, "OPVPage cannot be NULL\n");
+  op_assert(self, "HugePage cannot be NULL\n");
   op_assert(span_cnt <= 256, "span_cnt is limited to 256 pages, aka 1MB\n");
 
   uint64_t old_bmap, new_bmap;
@@ -99,19 +99,19 @@ UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
               // occupy_bmap is set. This is enforced by
               // memory_order_acquire on success. UnaryPSpan is
               // visible after we set the header_bmap.
-              UnaryPSpan* span;
+              UnarySpan* span;
 
               if (i == 0 && pos == 0)
                 {
-                  span = UnaryPSpanInit(base + sizeof(OPVPage),
-                                        ta_idx, obj_size,
-                                        (span_cnt << 12) - sizeof(OPVPage));
+                  span = USpanInit(base + sizeof(HugePage),
+                                   magic, obj_size,
+                                   (span_cnt << 12) - sizeof(HugePage));
                 }
               else
                 {
-                  span = UnaryPSpanInit(base + (((i << 6) + pos) << 12),
-                                        ta_idx, obj_size,
-                                        span_cnt << 12);
+                  span = USpanInit(base + (((i << 6) + pos) << 12),
+                                   magic, obj_size,
+                                   span_cnt << 12);
                 }
 
               // TODO setup linked list of TA
@@ -133,11 +133,11 @@ UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
   return NULL;
 }
 
-bool OPVPageFree(OPVPage* restrict self, void* addr)
+bool HugePageFree(HugePage* restrict self, void* addr)
 {
   void* base = (void*)self;
   ptrdiff_t diff = addr - base;
-  UnaryPSpan* span;
+  UnarySpan* span;
   int page_idx = diff >> 12;
   int span_header_idx;
   uint64_t header_mask, occupy_mask;
@@ -150,7 +150,7 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
   
   if (page_idx == 0)
     {
-      span = base + sizeof(OPVPage);
+      span = base + sizeof(HugePage);
       header_mask = ~1UL;
       span_header_idx = 0;
     }
@@ -164,7 +164,7 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
       header_mask = ~(clear_low & (~(clear_low) + 1));
     }
 
-  if (!UnaryPSpanFree(span, addr))
+  if (!USpanFree(span, addr))
     return false;
 
   /*** PSpan is freed. Start critical section ***/
@@ -183,7 +183,7 @@ bool OPVPageFree(OPVPage* restrict self, void* addr)
 
   span_size = span->obj_size*(64*span->bitmap_cnt - span->bitmap_padding);
   // first occupy bitmap is different
-  if (page_idx == 0) span_size += sizeof(OPVPage);
+  if (page_idx == 0) span_size += sizeof(HugePage);
   op_assert((span_size & ((1UL<<12)-1))==0,
             "span size should align page, but were %zu", span_size);
   occupy_mask = ~(((1UL << (span_size >> 12))-1) << span_header_idx);

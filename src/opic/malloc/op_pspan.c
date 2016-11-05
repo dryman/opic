@@ -52,8 +52,8 @@
 #include <stddef.h>
 
 
-UnaryPSpan* UnaryPSpanInit(void* restrict addr, int16_t sc_idx,
-                           uint16_t obj_size, size_t span_size)
+UnarySpan* USpanInit(void* addr, uint16_t magic,
+                         uint16_t obj_size, size_t span_size)
 {
   /* Unit test as of Oct 9, 2016 doesn't support op_assert
      Our workaround is return NULL instead. But this should be fixed.
@@ -69,14 +69,14 @@ UnaryPSpan* UnaryPSpanInit(void* restrict addr, int16_t sc_idx,
   obj_cnt = span_size / obj_size;
   bitmap_cnt = (obj_cnt + 64 - 1) >> 6;
   padding = (bitmap_cnt << 6) - obj_cnt;
-  headroom = (sizeof(UnaryPSpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
+  headroom = (sizeof(UnarySpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
 
   op_assert(headroom < 64,
             "headroom should be less equal to 64, but it is %d\n", headroom);
   
-  UnaryPSpan span = 
+  UnarySpan span = 
     {
-      .sc_idx = sc_idx,
+      .magic = magic,
       .obj_size = obj_size,
       .bitmap_cnt = (uint8_t)bitmap_cnt,
       .bitmap_headroom = (uint8_t)headroom,
@@ -87,9 +87,9 @@ UnaryPSpan* UnaryPSpanInit(void* restrict addr, int16_t sc_idx,
     };
 
   memcpy(addr, &span, sizeof(span));
-  UnaryPSpan* self = addr;
+  UnarySpan* self = addr;
 
-  addr += sizeof(UnaryPSpan);
+  addr += sizeof(UnarySpan);
 
   memset(addr, 0, bitmap_cnt << 3);
   atomic_fetch_or((_Atomic uint64_t *) addr, (1UL << headroom)-1);
@@ -100,7 +100,7 @@ UnaryPSpan* UnaryPSpanInit(void* restrict addr, int16_t sc_idx,
   return self;
 }
 
-void* UnaryPSpanMalloc(UnaryPSpan* restrict self)
+void* USpanMalloc(UnarySpan* self)
 {
   op_assert(self, "Address cannot be NULL");
   _Atomic uint64_t *bitmap_base, *bitmap;
@@ -142,7 +142,7 @@ void* UnaryPSpanMalloc(UnaryPSpan* restrict self)
   return NULL;
 }
 
-bool UnaryPSpanFree(UnaryPSpan* restrict self, void* restrict addr)
+bool USpanFree(UnarySpan* restrict self, void* restrict addr)
 {
   op_assert(self, "Address cannot be NULL");
   void* const base = (void*)self;

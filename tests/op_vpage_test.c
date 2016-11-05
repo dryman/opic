@@ -85,14 +85,14 @@ static void vpage_init_test(void **state)
 {
   void* addr = mmap_align_2MB();
   assert_non_null(addr);
-  assert_non_null(OPVPageInit(addr));
+  assert_non_null(HugePageInit(addr));
   munmap(addr, 1UL<<21);
 }
 
 static void get_pspans_test(void **state)
 {
-  OPVPage* vpage = OPVPageInit(mmap_align_2MB());
-  UnaryPSpan* span = OPVPageAllocPSpan(vpage, 0, 8, 1);
+  HugePage* vpage = HugePageInit(mmap_align_2MB());
+  UnarySpan* span = HugePageAllocUSpan(vpage, 0, 8, 1);
   assert_int_equal(span->bitmap_cnt, 7);
   assert_int_equal(span->bitmap_headroom, 10);
   assert_int_equal(span->bitmap_padding, 18);
@@ -113,7 +113,7 @@ static void get_pspans_test(void **state)
   assert_memory_equal(&vpage->header_bmap, header_bmap, sizeof(header_bmap));
   assert_memory_equal(&vpage->refcnt, refcnt, sizeof(refcnt));
 
-  UnaryPSpan* span2 = OPVPageAllocPSpan(vpage, 0, 8, 1);
+  UnarySpan* span2 = HugePageAllocUSpan(vpage, 0, 8, 1);
   assert_int_equal(span2->bitmap_cnt, 8);
   assert_int_equal(span2->bitmap_headroom, 11);
   assert_int_equal(span2->bitmap_padding, 0);
@@ -130,11 +130,11 @@ static void get_pspans_test(void **state)
 
 static void simple_free_test(void **state)
 {
-  OPVPage* vpage = OPVPageInit(mmap_align_2MB());
-  UnaryPSpan* span1 = OPVPageAllocPSpan(vpage, 0, 8, 1);
-  UnaryPSpan* span2 = OPVPageAllocPSpan(vpage, 0, 8, 1);
-  void* addr1 = UnaryPSpanMalloc(span1);
-  void* addr2 = UnaryPSpanMalloc(span2);
+  HugePage* vpage = HugePageInit(mmap_align_2MB());
+  UnarySpan* span1 = HugePageAllocUSpan(vpage, 0, 8, 1);
+  UnarySpan* span2 = HugePageAllocUSpan(vpage, 0, 8, 1);
+  void* addr1 = USpanMalloc(span1);
+  void* addr2 = USpanMalloc(span2);
   assert_non_null(addr1);
   assert_non_null(addr2);
 
@@ -145,7 +145,7 @@ static void simple_free_test(void **state)
   for (int i = 0; i < 512; i++)
     refcnt[i] = CHAR_MIN;
   
-  assert_false(OPVPageFree(vpage, addr1));
+  assert_false(HugePageFree(vpage, addr1));
   occupy_bmap[0] = 2;
   header_bmap[0] = 2;
   refcnt[1] = 0;
@@ -153,7 +153,7 @@ static void simple_free_test(void **state)
   assert_memory_equal(&vpage->header_bmap, header_bmap, sizeof(header_bmap));
   assert_memory_equal(&vpage->refcnt, refcnt, sizeof(refcnt));
   
-  assert_true(OPVPageFree(vpage, addr2));
+  assert_true(HugePageFree(vpage, addr2));
 
   for (int i = 0; i < 8; i++)
     occupy_bmap[i] = ~0UL;

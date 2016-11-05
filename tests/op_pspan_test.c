@@ -57,28 +57,28 @@
 
 static void invalid_address_test(void **state)
 {
-  assert_null(UnaryPSpanInit(NULL, 0, 1, 2));
+  assert_null(USpanInit(NULL, 0, 1, 2));
 }
 
 static void invalid_object_size(void **state)
 {
   void* addr = malloc(1<<12);
-  assert_null(UnaryPSpanInit(addr, 0, 0, 1));
+  assert_null(USpanInit(addr, 0, 0, 1));
   free(addr);
 }
 
 static void invalid_page_cnt(void **state)
 {
   void* addr = malloc(1<<12);
-  assert_null(UnaryPSpanInit(addr, 0, 1, 0));
+  assert_null(USpanInit(addr, 0, 1, 0));
   free(addr);
 }
 
 static void obj_size_4byte(void **state)
 {
   void* addr = malloc(1<<12);
-  UnaryPSpan* span;
-  span = UnaryPSpanInit(addr, 0, 4, 1<<12);
+  UnarySpan* span;
+  span = USpanInit(addr, 0, 4, 1<<12);
   assert_int_equal(span->bitmap_cnt, 16);
   assert_int_equal(span->bitmap_headroom, 38);
   assert_int_equal(span->bitmap_padding, 0);
@@ -92,8 +92,8 @@ static void obj_size_4byte(void **state)
 static void obj_size_8byte(void **state)
 {
   void* addr = malloc(1<<12);
-  UnaryPSpan* span;
-  span = UnaryPSpanInit(addr, 0, 8, 1<<12);
+  UnarySpan* span;
+  span = USpanInit(addr, 0, 8, 1<<12);
   assert_int_equal(span->bitmap_cnt, 8);
   assert_int_equal(span->bitmap_headroom, 11);
   assert_int_equal(span->bitmap_padding, 0);
@@ -102,7 +102,7 @@ static void obj_size_8byte(void **state)
   free(addr);
   
   addr = malloc(2<<12);
-  span = UnaryPSpanInit(addr, 0, 8, 2<<12);
+  span = USpanInit(addr, 0, 8, 2<<12);
   assert_int_equal(span->bitmap_cnt, 16);
   assert_int_equal(span->bitmap_headroom, 19);
   assert_int_equal(span->bitmap_padding, 0);
@@ -111,7 +111,7 @@ static void obj_size_8byte(void **state)
   free(addr);
 
   addr = malloc(3<<12);
-  span = UnaryPSpanInit(addr, 0, 8, 3<<12);
+  span = USpanInit(addr, 0, 8, 3<<12);
   assert_int_equal(span->bitmap_cnt, 24);
   assert_int_equal(span->bitmap_headroom, 27);
   assert_int_equal(span->bitmap_padding, 0);
@@ -120,7 +120,7 @@ static void obj_size_8byte(void **state)
   free(addr);
 
   addr = malloc(4<<12);
-  span = UnaryPSpanInit(addr, 0, 8, 4<<12);
+  span = USpanInit(addr, 0, 8, 4<<12);
   assert_int_equal(span->bitmap_cnt, 32);
   assert_int_equal(span->bitmap_headroom, 35);
   assert_int_equal(span->bitmap_padding, 0);
@@ -134,26 +134,26 @@ static void obj_size_8byte(void **state)
 static void malloc_4byte(void **state)
 {
   void* const addr = malloc(1<<12);
-  UnaryPSpan* span;
-  span = UnaryPSpanInit(addr, 0, 4, 1<<12);
+  UnarySpan* span;
+  span = USpanInit(addr, 0, 4, 1<<12);
   uint64_t bitmaps [16] = { (1UL << 38)-1 };
   assert_memory_equal(span+1, bitmaps, sizeof(bitmaps));
 
   for (int i = 0; i<1024-38; i++)
     {
-      assert_non_null(UnaryPSpanMalloc(span));
+      assert_non_null(USpanMalloc(span));
     }
-  assert_null(UnaryPSpanMalloc(span));
+  assert_null(USpanMalloc(span));
 
   void* item = addr + 38*4;
   
   for (int i = 0; i<1024-38-1; i++)
     {
-      assert_false(UnaryPSpanFree(span, item));
+      assert_false(USpanFree(span, item));
       item+=4;
     }
   assert_ptr_equal(addr+(1<<12)-4, item);
-  assert_true(UnaryPSpanFree(span, item));
+  assert_true(USpanFree(span, item));
 
   for (int i = 0; i<16; i++)
     bitmaps[i]=~0UL;

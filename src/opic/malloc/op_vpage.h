@@ -107,29 +107,29 @@
 
 OP_BEGIN_DECLS
 
-typedef struct OPVPage OPVPage;
+typedef struct HugePage HugePage;
 
-struct OPVPage 
+struct HugePage 
 {
-  OPVPage* prev;
-  OPVPage* next;
+  HugePage* prev;
+  HugePage* next;
   atomic_uint_fast64_t occupy_bmap[8];
   atomic_uint_fast64_t header_bmap[8];
   atomic_int_fast8_t refcnt[512];
 };
 
-static_assert(sizeof(OPVPage) == 656, "OPVPage size should be 656\n");
+static_assert(sizeof(HugePage) == 656, "OPVPage size should be 656\n");
 
-OPVPage* OPVPageInit(void* addr)
+HugePage* HugePageInit(void* addr)
   __attribute__((nonnull));
 
-UnaryPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
-                              int16_t sc_idx,
+UnarySpan* HugePageAllocUSpan(HugePage* self,
+                              uint16_t magic,
                               uint16_t obj_size,
                               unsigned int span_cnt)
   __attribute__((nonnull));
 
-bool OPVPageFree(OPVPage* restrict self, void* addr)
+bool HugePageFree(HugePage* self, void* addr)
   __attribute__((nonnull));
 
 

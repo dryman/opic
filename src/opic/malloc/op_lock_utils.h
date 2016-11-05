@@ -220,6 +220,26 @@ rel_wlock_int16(atomic_int_fast16_t* rwlock)
   atomic_store_explicit(rwlock, 0, memory_order_release);
 }
 
+/* static inline void */
+/* insert_uspan(UnaryPSpan** uspan_ref, */
+/*              atomic_int_fast8_t* u_rwlock, */
+/*              atomic_uint_fast16_t* u_favor, */
+/*              int tid, */
+/*              VPage** vpage_ref, */
+/*              atomic_int_fast16_t* v_rwlock, */
+/*              atomic_int_fast8_t* v_favor, */
+/*              int v_favor_idx, */
+/*              OPHeap* heap) */
+/* { */
+/*   acq_wlock(u_rwlock, u_favor, tid); */
+/*   UnaryPSpan** it = uspan_ref; */
+/*   while (1) */
+/*     { */
+/*       if (*it == NULL) */
+/*         { */
+          
+/* } */
+
 
 OP_END_DECLS
 
