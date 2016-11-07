@@ -60,18 +60,16 @@ HugePage* HugePageInit(void* addr)
             "HugePage address should align 2MB, but were %p\n", addr);
   HugePage *self = addr;
   self->next = NULL;
-  self->prev = NULL;
   memset(&self->occupy_bmap, 0, sizeof(self->occupy_bmap));
   memset(&self->header_bmap, 0, sizeof(self->header_bmap));
-  memset(&self->refcnt, CHAR_MIN, sizeof(self->refcnt));
   return self;
 }
 
 
-UnarySpan* HugePageAllocUSpan(HugePage* restrict self,
-                              uint16_t magic,
-                              uint16_t obj_size,
-                              unsigned int span_cnt)
+UnarySpan* ObtainUSpan(HugePage* self,
+                       uint16_t magic,
+                       uint16_t obj_size,
+                       unsigned int span_cnt)
 {
   op_assert(self, "HugePage cannot be NULL\n");
   op_assert(span_cnt <= 256, "span_cnt is limited to 256 pages, aka 1MB\n");
@@ -95,12 +93,7 @@ UnarySpan* HugePageAllocUSpan(HugePage* restrict self,
                memory_order_acquire,
                memory_order_relaxed))
             {
-              // Write to UnaryPSpan should not be visible before
-              // occupy_bmap is set. This is enforced by
-              // memory_order_acquire on success. UnaryPSpan is
-              // visible after we set the header_bmap.
               UnarySpan* span;
-
               if (i == 0 && pos == 0)
                 {
                   span = USpanInit(base + sizeof(HugePage),
@@ -113,19 +106,8 @@ UnarySpan* HugePageAllocUSpan(HugePage* restrict self,
                                    magic, obj_size,
                                    span_cnt << 12);
                 }
-
-              // TODO setup linked list of TA
               atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << pos,
-                                       memory_order_relaxed);
-
-              // As long as concurrent access < 127, our state is well defined
-              int8_t expected_refcnt = CHAR_MIN;
-              while (!atomic_compare_exchange_weak_explicit
-                     (&self->refcnt[i*64+pos], &expected_refcnt, 0,
-                      memory_order_release,
-                      memory_order_relaxed))
-                expected_refcnt = CHAR_MIN;
-              
+                                       memory_order_release);              
               return span;
             }
         }
@@ -170,13 +152,13 @@ bool HugePageFree(HugePage* restrict self, void* addr)
   /*** PSpan is freed. Start critical section ***/
 
   // First exclude access
-  int8_t expected_refcnt = 0;
-  while (!atomic_compare_exchange_weak_explicit
-         (&self->refcnt[span_header_idx],
-          &expected_refcnt, CHAR_MIN,
-          memory_order_acquire,
-          memory_order_relaxed))
-    expected_refcnt = 0;
+  /* int8_t expected_refcnt = 0; */
+  /* while (!atomic_compare_exchange_weak_explicit */
+  /*        (&self->refcnt[span_header_idx], */
+  /*         &expected_refcnt, CHAR_MIN, */
+  /*         memory_order_acquire, */
+  /*         memory_order_relaxed)) */
+  /*   expected_refcnt = 0; */
   
   atomic_fetch_and_explicit(&self->header_bmap[page_idx >> 6], header_mask,
                             memory_order_relaxed);

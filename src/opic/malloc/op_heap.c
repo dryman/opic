@@ -49,9 +49,9 @@
 #include "op_heap.h"
 #include "op_pspan.h"
 #include "op_vpage.h"
-#include <stddef.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <stdlib.h>
 
 #define OPHEAP_SIZE (1L << 36)
 #define VPAGE_MASK (~((1L << 21) - 1))
@@ -82,10 +82,10 @@ struct RawType
   PolyadicSpan* sc_1024;
   PolyadicSpan* sc_2048;
   HugePage* vpage;
-  atomic_int_fast16_t rwlock_512;
-  atomic_int_fast16_t rwlock_1024;
-  atomic_int_fast16_t rwlock_2048;
-  atomic_int_fast16_t rwlock_vpage;
+  atomic_int_fast16_t sc_512_rwlock;  
+  atomic_int_fast16_t sc_1024_rwlock;
+  atomic_int_fast16_t sc_2048_rwlock;
+  atomic_int_fast16_t vpage_rwlock;
   // favor flag for sc_512, sc_1024, sc_2048, and vpage
   atomic_uint_fast8_t remain_favor;
 };
@@ -148,6 +148,7 @@ int OPHeapCreate(OPHeap** heap_ref)
 
  init_opheap:
   memset(self, 0, sizeof(OPHeap));
+  // TODO assign first hugepage to raw
   atomic_store_explicit(&self->occupy_bmap[0], 1, memory_order_relaxed);
   atomic_store_explicit(&self->header_bmap[0], 1, memory_order_relaxed);
   return 0;
@@ -160,10 +161,102 @@ void* OPAllocRaw(OPHeap* self, size_t size)
       (&round_robin, 1, memory_order_acquire) % 16;
 
   int tid = thread_id;
+  void* addr;
   
+  if (size <= 256)
+    {
+      int size_class = (int)(size >> 4);
+      size_class += (int)size - (size_class << 4) == 0 ? 0 : 1;
+
+      UnarySpan* uspan;
+
+      while (1)
+        {
+          acq_rlock(&self->raw_type.uspan_rwlock[size_class][tid],
+                    &self->raw_type.uspan_favor[size_class],
+                    tid);
+          uspan = self->raw_type.uspan[size_class][tid];
+          if (uspan == NULL)
+            {
+              favor_write(&self->raw_type.uspan_favor[size_class],
+                          tid);
+              rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
+              insert_new_uspan(0, // span magic, we need a magic processor...
+                               size_class,
+                               &self->raw_type.uspan[size_class][tid],
+                               &self->raw_type.uspan_rwlock[size_class][tid],
+                               &self->raw_type.uspan_favor[size_class],
+                               tid,
+                               &self->raw_type.vpage,
+                               &self->raw_type.vpage_rwlock,
+                               &self->raw_type.remain_favor,
+                               3, // TODO use enum?
+                               self);
+            }
+          else 
+            {
+              addr = USpanMalloc(uspan);
+              if (addr)
+                goto small_addr_obtained;
+
+              // TODO mark span as full
+              favor_write(&self->raw_type.uspan_favor[size_class],
+                          tid);
+              rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
+              remove_uspan(&self->raw_type.uspan[size_class][tid],
+                           &self->raw_type.uspan_rwlock[size_class][tid],
+                           &self->raw_type.uspan_favor[size_class],
+                           tid,
+                           uspan);
+            }
+        }
+    small_addr_obtained:
+      rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
+      return addr;      
+    }
+  else if (size < 4096)
+    {
+      op_assert(0, "not implemented yet\n");
+
+    }
+  else
+    {
+      op_assert(0, "not implemented yet\n");
+    }
   
   return NULL;
 }
 
+HugePage* ObtainHPage(OPHeap* self)
+{
+  uint64_t old_bmap, new_bmap;
+  ptrdiff_t item_offset;
+
+  for (int i = 0; i < VSPAN_BMAP_NUM;)
+    {
+      old_bmap = atomic_load_explicit(&self->occupy_bmap[i],
+                                      memory_order_relaxed);
+      do
+        {
+          if (old_bmap == ~0UL) goto next_bmap;
+          new_bmap = (old_bmap + 1);
+          item_offset = __builtin_ctzl(new_bmap);
+          new_bmap |= old_bmap;
+        } while (!atomic_compare_exchange_weak_explicit
+                 (&self->occupy_bmap[i], &old_bmap, new_bmap,
+                  memory_order_acquire,
+                  memory_order_relaxed));
       
+      HugePage* hpage = HugePageInit((void*)self + ((i << 6) + item_offset));
+      atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << item_offset,
+                               memory_order_release);
+      return hpage;
+
+    next_bmap:
+      i++;
+    }
+  op_assert(0, "Running out of hpage\n");
+}
+      
+          
 /* op_heap.c ends here */
