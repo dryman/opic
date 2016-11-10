@@ -318,8 +318,7 @@ insert_uspan_internal(UnarySpan** uspan_ref, UnarySpan* uspan)
 }
 
 static inline void
-insert_new_uspan(uint16_t span_magic,
-                 uint16_t object_size,                 
+insert_new_uspan(Magic magic,
                  UnarySpan** uspan_ref,
                  atomic_int_fast8_t* u_rwlock,
                  atomic_uint_fast16_t* u_favor,
@@ -346,7 +345,7 @@ insert_new_uspan(uint16_t span_magic,
         {
           // TODO: how do we determine span_cnt?
           // TODO: for now stick with 1 page.
-          uspan = ObtainUSpan(hpage, span_magic, object_size, 1);
+          uspan = ObtainUSpan(hpage, magic, 1);
 
           if (uspan) goto uspan_created;
           // TODO: bug, how do we dicomission hpage?

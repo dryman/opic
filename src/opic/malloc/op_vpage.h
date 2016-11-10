@@ -102,7 +102,8 @@
 #include "opic/common/op_macros.h"
 #include "opic/common/op_assert.h"
 #include "opic/common/op_log.h"
-#include "opic/malloc/op_pspan.h"
+#include "magic.h"
+#include "op_pspan.h"
 #include <assert.h>
 
 OP_BEGIN_DECLS
@@ -111,20 +112,20 @@ typedef struct HugePage HugePage;
 
 struct HugePage 
 {
-  const uint16_t magic;
+  const Magic magic;
+  int32_t padding;
   HugePage* next;
   atomic_uint_fast64_t occupy_bmap[8];
   atomic_uint_fast64_t header_bmap[8];
 };
 
-/* static_assert(sizeof(HugePage) == 138, "HugePage size should be 138\n"); */
+static_assert(sizeof(HugePage) == 144, "HugePage size should be 144\n");
 
 HugePage* HugePageInit(void* addr)
   __attribute__((nonnull));
 
 UnarySpan* ObtainUSpan(HugePage* self,
-                       uint16_t magic,
-                       uint16_t obj_size,
+                       Magic magic,
                        unsigned int span_cnt)
   __attribute__((nonnull));
 

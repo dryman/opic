@@ -67,8 +67,7 @@ HugePage* HugePageInit(void* addr)
 
 
 UnarySpan* ObtainUSpan(HugePage* self,
-                       uint16_t magic,
-                       uint16_t obj_size,
+                       Magic magic,
                        unsigned int span_cnt)
 {
   op_assert(self, "HugePage cannot be NULL\n");
@@ -97,13 +96,13 @@ UnarySpan* ObtainUSpan(HugePage* self,
               if (i == 0 && pos == 0)
                 {
                   span = USpanInit(base + sizeof(HugePage),
-                                   magic, obj_size,
+                                   magic,
                                    (span_cnt << 12) - sizeof(HugePage));
                 }
               else
                 {
                   span = USpanInit(base + (((i << 6) + pos) << 12),
-                                   magic, obj_size,
+                                   magic,
                                    span_cnt << 12);
                 }
               atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << pos,
@@ -163,7 +162,9 @@ bool HugePageFree(HugePage* restrict self, void* addr)
   atomic_fetch_and_explicit(&self->header_bmap[page_idx >> 6], header_mask,
                             memory_order_relaxed);
 
-  span_size = span->obj_size*(64*span->bitmap_cnt - span->bitmap_padding);
+  // need to determine span type..
+  span_size = span->magic.typed_uspan.obj_size*
+    (64*span->bitmap_cnt - span->bitmap_padding);
   // first occupy bitmap is different
   if (page_idx == 0) span_size += sizeof(HugePage);
   op_assert((span_size & ((1UL<<12)-1))==0,

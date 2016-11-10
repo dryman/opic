@@ -181,8 +181,15 @@ void* OPAllocRaw(OPHeap* self, size_t size)
               favor_write(&self->raw_type.uspan_favor[size_class],
                           tid);
               rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
-              insert_new_uspan(0, // span magic, we need a magic processor...
-                               size_class,
+              insert_new_uspan(
+                               (Magic){
+                                 .raw_uspan = 
+                                   {
+                                     .pattern = 1,
+                                     .obj_size = size_class,
+                                     .thread_id = tid
+                                   }
+                               },
                                &self->raw_type.uspan[size_class][tid],
                                &self->raw_type.uspan_rwlock[size_class][tid],
                                &self->raw_type.uspan_favor[size_class],

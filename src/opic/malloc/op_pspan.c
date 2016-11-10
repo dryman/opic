@@ -52,8 +52,7 @@
 #include <stddef.h>
 
 
-UnarySpan* USpanInit(void* addr, uint16_t magic,
-                         uint16_t obj_size, size_t span_size)
+UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
 {
   /* Unit test as of Oct 9, 2016 doesn't support op_assert
      Our workaround is return NULL instead. But this should be fixed.
@@ -62,10 +61,11 @@ UnarySpan* USpanInit(void* addr, uint16_t magic,
   op_assert(page_size, "allocated physical pages should be greater than 0\n");
   */
   if (op_unlikely(!addr)) return NULL;
-  if (op_unlikely(!obj_size)) return NULL;
+  if (op_unlikely(!magic.typed_uspan.obj_size)) return NULL;
   if (op_unlikely(!span_size)) return NULL;
   
-  unsigned int obj_cnt, bitmap_cnt, padding, headroom;
+  unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
+  obj_size = magic.typed_uspan.obj_size;
   obj_cnt = span_size / obj_size;
   bitmap_cnt = (obj_cnt + 64 - 1) >> 6;
   padding = (bitmap_cnt << 6) - obj_cnt;
@@ -77,7 +77,6 @@ UnarySpan* USpanInit(void* addr, uint16_t magic,
   UnarySpan span = 
     {
       .magic = magic,
-      .obj_size = obj_size,
       .bitmap_cnt = (uint8_t)bitmap_cnt,
       .bitmap_headroom = (uint8_t)headroom,
       .bitmap_padding = (uint8_t)padding,
@@ -106,6 +105,7 @@ void* USpanMalloc(UnarySpan* self)
   _Atomic uint64_t *bitmap_base, *bitmap;
   ptrdiff_t bitmap_offset, item_offset;
   uint64_t old_bmap, new_bmap;
+  uint16_t obj_size = self->magic.typed_uspan.obj_size;
   
   bitmap_base = (_Atomic uint64_t *)(self+1);
   bitmap_offset = (ptrdiff_t)self->bitmap_hint;
@@ -127,8 +127,7 @@ void* USpanMalloc(UnarySpan* self)
                  memory_order_relaxed));
       
       addr = (void*)self +
-        (((bitmap_offset % self->bitmap_cnt) << 6) + item_offset)
-        * self->obj_size;
+        (((bitmap_offset % self->bitmap_cnt) << 6) + item_offset) * obj_size;
 
       self->bitmap_hint = (uint8_t)(bitmap_offset % self->bitmap_cnt);
 
@@ -142,25 +141,26 @@ void* USpanMalloc(UnarySpan* self)
   return NULL;
 }
 
-bool USpanFree(UnarySpan* restrict self, void* restrict addr)
+bool USpanFree(UnarySpan* self, void* addr)
 {
   op_assert(self, "Address cannot be NULL");
+  int obj_size = self->magic.typed_uspan.obj_size;
   void* const base = (void*)self;
-  void* const bound = base+
-    self->obj_size*(64*self->bitmap_cnt - self->bitmap_padding);
+  void* const bound = base +
+    obj_size*(64*self->bitmap_cnt - self->bitmap_padding);
 
   op_assert(addr > base && addr < bound,
             "Free address %p should within span from %p and %p",
             addr, base, bound);
   
-  ptrdiff_t diff = (addr - base) / self->obj_size;
+  ptrdiff_t diff = (addr - base) / obj_size;
   _Atomic uint64_t *bitmap = (_Atomic uint64_t *)(self+1);
   const int bmap_idx = diff >> 6;
   const int remainder = diff - (bmap_idx << 6);
 
-  op_assert(diff*self->obj_size + base == addr,
+  op_assert(diff * obj_size + base == addr,
             "Free address %p should align with obj_size %d\n",
-            addr, self->obj_size);
+            addr, obj_size);
   if (bmap_idx == 0)
     op_assert(remainder >= self->bitmap_headroom,
               "Free address %p cannot overlap span %p headroom\n",

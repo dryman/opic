@@ -53,6 +53,7 @@
 #include "opic/common/op_macros.h"
 #include "opic/common/op_assert.h"
 #include "opic/common/op_log.h"
+#include "magic.h"
 
 OP_BEGIN_DECLS
 
@@ -63,8 +64,7 @@ typedef struct PolyadicSpan PolyadicSpan;
 
 struct UnarySpan
 {
-  const uint16_t magic;
-  const uint16_t obj_size;
+  const Magic magic;
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
@@ -75,8 +75,7 @@ struct UnarySpan
 
 struct PolyadicSpan
 {
-  const uint16_t magic;
-  const uint16_t obj_size;
+  const Magic magic;
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
@@ -89,8 +88,7 @@ static_assert(sizeof(UnarySpan) == 24, "UnaryPSpan size should be 24\n");
 static_assert(sizeof(PolyadicSpan) == 24,
               "PolyadicPSpan size should be 24\n");
 
-UnarySpan* USpanInit(void* addr, uint16_t magic,
-                      uint16_t obj_size, size_t span_size);
+UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size);
 
 void* USpanMalloc(UnarySpan* self);
 
