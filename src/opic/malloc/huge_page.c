@@ -48,17 +48,18 @@
 
 #include <string.h>
 #include <limits.h>
-#include "op_vpage.h"
+#include "huge_page.h"
 #include "opic/common/op_utils.h"
 
-OP_LOGGER_FACTORY(logger, "opic.malloc.op_vpage");
+OP_LOGGER_FACTORY(logger, "opic.malloc.huge_page");
 
-HugePage* HugePageInit(void* addr)
+HugePage* HugePageInit(void* addr, Magic magic)
 {
   op_assert(addr, "address should not be null\n");
   op_assert(((size_t)addr & ((1UL<<21)-1)) == 0,
             "HugePage address should align 2MB, but were %p\n", addr);
   HugePage *self = addr;
+  memcpy(addr, &magic, sizeof(magic));
   self->next = NULL;
   memset(&self->occupy_bmap, 0, sizeof(self->occupy_bmap));
   memset(&self->header_bmap, 0, sizeof(self->header_bmap));

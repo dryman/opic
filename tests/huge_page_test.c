@@ -52,11 +52,11 @@
 #include <stdint.h>
 #include <limits.h>
 #include "opic/common/op_log.h"
-#include "opic/malloc/op_vpage.h"
-#include "opic/malloc/op_pspan.h"
+#include "opic/malloc/huge_page.h"
+#include "opic/malloc/span.h"
 #include <sys/mman.h>
 
-OP_LOGGER_FACTORY(logger, "opic.test.op_vpage_test");
+OP_LOGGER_FACTORY(logger, "opic.test.huge_page");
 
 static void* mmap_align_2MB()
 {
@@ -85,7 +85,15 @@ static void hpage_init_test(void **state)
 {
   void* addr = mmap_align_2MB();
   assert_non_null(addr);
-  assert_non_null(HugePageInit(addr));
+  Magic magic = 
+    {
+      .typed_hpage =
+        {
+          .pattern = 5,
+          .type_alias = 0,
+        }
+    };
+  assert_non_null(HugePageInit(addr, magic));
   munmap(addr, 1UL<<21);
 }
 

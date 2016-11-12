@@ -45,10 +45,10 @@
 
 /* Code: */
 
-#include "op_lock_utils.h"
 #include "op_heap.h"
-#include "op_pspan.h"
-#include "op_vpage.h"
+#include "op_heap_internal.h"
+#include "span.h"
+#include "huge_page.h"
 #include <string.h>
 #include <sys/mman.h>
 #include <stdlib.h>
@@ -67,43 +67,6 @@ static atomic_uint round_robin = 0;
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.op_heap");
 
-
-struct RawType
-{
-  // Thread local physical spans. In total of 16 size classes to serve
-  // objects of size from 16 bytes to 256 bytes. Each size class has
-  // 16 thread local UnaryPSpan pointers.
-  UnarySpan* uspan[16][16];
-  // Thread local read write lock
-  atomic_int_fast8_t uspan_rwlock[16][16];
-  // 16 favor wirte flags, each bit coresponds to a thread local lock.
-  atomic_uint_fast16_t uspan_favor[16];
-  PolyadicSpan* sc_512;
-  PolyadicSpan* sc_1024;
-  PolyadicSpan* sc_2048;
-  HugePage* vpage;
-  atomic_int_fast16_t sc_512_rwlock;  
-  atomic_int_fast16_t sc_1024_rwlock;
-  atomic_int_fast16_t sc_2048_rwlock;
-  atomic_int_fast16_t vpage_rwlock;
-  // favor flag for sc_512, sc_1024, sc_2048, and vpage
-  atomic_uint_fast8_t remain_favor;
-};
-
-struct TypeAlias
-{
-  // TODO: change to Class* when we merge with object
-  void *klass;
-  char *type_name;
-  UnarySpan* uspan[16];
-  atomic_int_fast8_t uspan_rwlock[16];
-  atomic_uint_fast16_t uspan_favor;
-  PolyadicSpan* polyspan;
-  atomic_int_fast16_t polyspan_rwlock;
-  HugePage* vpage;
-  atomic_int_fast16_t vpage_rwlock;
-  atomic_uint_fast8_t remain_favor;
-};
 
 struct OPHeap
 {
@@ -161,14 +124,14 @@ void* OPAllocRaw(OPHeap* self, size_t size)
       (&round_robin, 1, memory_order_acquire) % 16;
 
   int tid = thread_id;
-  void* addr;
+  void* addr = NULL;
   
   if (size <= 256)
     {
       int size_class = (int)(size >> 4);
       size_class += (int)size - (size_class << 4) == 0 ? 0 : 1;
 
-      UnarySpan* uspan;
+      UnarySpan* uspan = NULL;
 
       while (1)
         {
@@ -181,32 +144,15 @@ void* OPAllocRaw(OPHeap* self, size_t size)
               favor_write(&self->raw_type.uspan_favor[size_class],
                           tid);
               rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
-              insert_new_uspan(
-                               (Magic){
-                                 .raw_uspan = 
-                                   {
-                                     .pattern = 1,
-                                     .obj_size = size_class,
-                                     .thread_id = tid
-                                   }
-                               },
-                               &self->raw_type.uspan[size_class][tid],
-                               &self->raw_type.uspan_rwlock[size_class][tid],
-                               &self->raw_type.uspan_favor[size_class],
-                               tid,
-                               &self->raw_type.vpage,
-                               &self->raw_type.vpage_rwlock,
-                               &self->raw_type.remain_favor,
-                               3, // TODO use enum?
-                               self);
+              insert_new_raw_uspan(&self->raw_type,
+                                   size_class,
+                                   tid,
+                                   self);
+              continue;
             }
-          else 
+          addr = USpanMalloc(uspan);
+          if (addr == NULL)
             {
-              addr = USpanMalloc(uspan);
-              if (addr)
-                goto small_addr_obtained;
-
-              // TODO mark span as full
               favor_write(&self->raw_type.uspan_favor[size_class],
                           tid);
               rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
@@ -215,16 +161,75 @@ void* OPAllocRaw(OPHeap* self, size_t size)
                            &self->raw_type.uspan_favor[size_class],
                            tid,
                            uspan);
+              continue;
             }
+          break;
         }
-    small_addr_obtained:
       rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
-      return addr;      
+      return addr;   
     }
-  else if (size < 4096)
+  else if (size <= 2048)
     {
-      op_assert(0, "not implemented yet\n");
+      int size_class;
+      int favor;
+      int large_uspan_id;
+      if (size <= 512)
+        {
+          large_uspan_id = 0;
+          size_class = 512;
+          favor = FAVOR_512;
+        }
+      else if (size <= 1024)
+        {
+          large_uspan_id = 1;
+          size_class = 1024;
+          favor = FAVOR_1024;
+        }
+      else
+        {
+          large_uspan_id = 2;
+          size_class = 2048;
+          favor = FAVOR_2048;
+        }
 
+      UnarySpan* uspan = NULL;
+
+      while (1)
+        {
+          acq_rlock(&self->raw_type.large_uspan_rwlock[large_uspan_id],
+                    &self->raw_type.remain_favor,
+                    favor);
+          uspan = self->raw_type.large_uspan[large_uspan_id];
+          if (uspan == NULL)
+            {
+              favor_write(&self->raw_type.remain_favor,
+                          favor);
+              rel_rlock(&self->raw_type.large_uspan_rwlock[large_uspan_id]);
+              insert_new_large_uspan(&self->raw_type,
+                                     large_uspan_id,
+                                     size_class,
+                                     favor,
+                                     self);
+              continue;
+            }
+          addr = USpanMalloc(uspan);
+          if (addr == NULL)
+            {
+              favor_write(&self->raw_type.remain_favor,
+                          favor);
+              rel_rlock(&self->raw_type.large_uspan_rwlock[large_uspan_id]);
+              remove_large_uspan
+                (&self->raw_type.large_uspan[large_uspan_id],
+                 &self->raw_type.large_uspan_rwlock[large_uspan_id],
+                 &self->raw_type.remain_favor,
+                 favor,
+                 uspan);
+              continue;
+            }
+          break;
+        }
+      rel_rlock(&self->raw_type.large_uspan_rwlock[large_uspan_id]);
+      return addr;
     }
   else
     {
@@ -234,7 +239,7 @@ void* OPAllocRaw(OPHeap* self, size_t size)
   return NULL;
 }
 
-HugePage* ObtainHPage(OPHeap* self)
+HugePage* ObtainHPage(OPHeap* self, Magic magic)
 {
   uint64_t old_bmap, new_bmap;
   ptrdiff_t item_offset;
@@ -254,7 +259,7 @@ HugePage* ObtainHPage(OPHeap* self)
                   memory_order_acquire,
                   memory_order_relaxed));
       
-      HugePage* hpage = HugePageInit((void*)self + ((i << 6) + item_offset));
+      HugePage* hpage = HugePageInit((void*)self + ((i << 6) + item_offset), magic);
       atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << item_offset,
                                memory_order_release);
       return hpage;

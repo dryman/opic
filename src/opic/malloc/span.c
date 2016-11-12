@@ -45,7 +45,7 @@
 
 /* Code: */
 
-#include "op_pspan.h"
+#include "span.h"
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
@@ -141,6 +141,7 @@ void* USpanMalloc(UnarySpan* self)
   return NULL;
 }
 
+// TODO use enum instead of bool
 bool USpanFree(UnarySpan* self, void* addr)
 {
   op_assert(self, "Address cannot be NULL");

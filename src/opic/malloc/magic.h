@@ -51,6 +51,16 @@
 #include <assert.h>
 #include <stdint.h>
 
+#define TYPED_USPAN_PATTERN 0
+#define RAW_USPAN_PATTERN 1
+#define LARGE_USPAN_PATTERN 2
+#define BLOBSPAN_PATTERN 3
+#define TYPED_HPAGE_PATTERN 4
+#define RAW_HPAGE_PATTERN 5
+#define BLOB_HPAGE_PATTERN 6
+
+// TODO the first hpage might need its own pattern?
+
 typedef union Magic
 {
   // generic struct only for querying pattern
@@ -59,7 +69,12 @@ typedef union Magic
     uint8_t pattern : 4;
     uint32_t padding : 28;
   } generic;
-  // pattern = 0
+  struct
+  {
+    uint8_t pattern : 4;
+    uint16_t obj_size : 12;
+    uint16_t padding;
+  } uspan_generic;
   struct
   {
     uint8_t pattern : 4;
@@ -67,51 +82,36 @@ typedef union Magic
     uint8_t thread_id : 4;
     uint16_t type_alias : 12;
   } typed_uspan;
-  // pattern = 1
   struct
   {
     uint8_t pattern : 4;
     uint16_t obj_size : 12; // obj_size is size_class
     uint8_t thread_id : 4;
-    uint16_t padding : 12;      
+    uint16_t padding : 12;
   } raw_uspan;
-  // pattern = 2
   struct
   {
     uint8_t pattern : 4;
-    uint16_t obj_size : 12;
-    uint8_t thread_id : 4;
-    uint16_t type_alias : 12;
-  } typed_polyspan;
-  // pattern = 3
-  struct
-  {
-    uint8_t pattern : 4;
-    uint16_t obj_size : 12;
-    uint8_t thread_id : 4;
-    uint16_t size_class : 12;      
-  } raw_polyspan;
-  // pattern = 4
+    uint16_t obj_size : 12; // obj_size is size_class
+    uint16_t padding;
+  } large_uspan;
   struct
   {
     uint8_t pattern : 4;
     uint16_t pages : 12;
     uint16_t reserved;
   } blobspan;
-  // pattern = 5
   struct
   {
     uint8_t pattern : 4;
     uint16_t type_alias : 12;
     uint16_t reserved;
   } typed_hpage;
-  // pattern = 6
   struct
   {
     uint8_t pattern : 4;
     uint32_t reserved : 28;
   } raw_hpage;
-  // pattern = 7
   struct
   {
     uint8_t pattern : 4;

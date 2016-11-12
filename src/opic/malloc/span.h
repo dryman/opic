@@ -1,6 +1,6 @@
-/* op_pspan.h --- 
+/* span.h --- 
  * 
- * Filename: op_pspan.h
+ * Filename: span.h
  * Description: 
  * Author: Felix Chern
  * Maintainer: 
@@ -45,8 +45,8 @@
 
 /* Code: */
 
-#ifndef OP_PSPAN_H
-#define OP_PSPAN_H 1
+#ifndef SPAN_H
+#define SPAN_H 1
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -58,7 +58,7 @@
 OP_BEGIN_DECLS
 
 typedef struct UnarySpan UnarySpan;
-typedef struct PolyadicSpan PolyadicSpan;
+typedef struct BolbSpan BlobSpan;
 
 // we probably need to define a magic header
 
@@ -73,20 +73,12 @@ struct UnarySpan
   UnarySpan* next;
 };
 
-struct PolyadicSpan
+struct BlobSpan
 {
   const Magic magic;
-  const uint8_t bitmap_cnt;
-  const uint8_t bitmap_headroom;
-  const uint8_t bitmap_padding;
-  uint8_t bitmap_hint;
-  PolyadicSpan* prev;
-  PolyadicSpan* next;
 };
 
 static_assert(sizeof(UnarySpan) == 24, "UnaryPSpan size should be 24\n");
-static_assert(sizeof(PolyadicSpan) == 24,
-              "PolyadicPSpan size should be 24\n");
 
 UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size);
 
@@ -97,4 +89,4 @@ bool USpanFree(UnarySpan* self, void* addr);
 OP_END_DECLS
 
 #endif
-/* op_pspan.h ends here */
+/* span.h ends here */

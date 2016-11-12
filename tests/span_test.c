@@ -1,6 +1,6 @@
-/* op_pspan_test.c --- 
+/* span_test.c --- 
  * 
- * Filename: op_pspan_test.c
+ * Filename: span_test.c
  * Description: 
  * Author: Felix Chern
  * Maintainer: 
@@ -52,7 +52,7 @@
 #include <cmocka.h>
 #include <stdint.h>
 #include "opic/malloc/magic.h"
-#include "opic/malloc/op_pspan.h"
+#include "opic/malloc/span.h"
 #include <sys/mman.h>
 
 
@@ -231,4 +231,4 @@ int main(void)
 }
 
 
-/* op_pspan_test.c ends here */
+/* span_test.c ends here */
