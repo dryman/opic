@@ -53,32 +53,10 @@
 #include "opic/common/op_macros.h"
 #include "opic/common/op_assert.h"
 #include "opic/common/op_log.h"
-#include "magic.h"
+#include "malloc_internal.h"
 
 OP_BEGIN_DECLS
 
-typedef struct UnarySpan UnarySpan;
-typedef struct BolbSpan BlobSpan;
-
-// we probably need to define a magic header
-
-struct UnarySpan
-{
-  const Magic magic;
-  const uint8_t bitmap_cnt;
-  const uint8_t bitmap_headroom;
-  const uint8_t bitmap_padding;
-  uint8_t bitmap_hint;
-  UnarySpan* prev;
-  UnarySpan* next;
-};
-
-struct BlobSpan
-{
-  const Magic magic;
-};
-
-static_assert(sizeof(UnarySpan) == 24, "UnaryPSpan size should be 24\n");
 
 UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size);
 

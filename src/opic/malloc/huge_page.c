@@ -49,6 +49,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <limits.h>
+#include "span.h"
 #include "huge_page.h"
 #include "opic/common/op_utils.h"
 

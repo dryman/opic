@@ -54,24 +54,11 @@
 #include "opic/common/op_macros.h"
 #include "opic/common/op_assert.h"
 #include "opic/common/op_log.h"
-#include "magic.h"
-#include "span.h"
+#include "malloc_internal.h"
 #include <assert.h>
 
 OP_BEGIN_DECLS
 
-typedef struct HugePage HugePage;
-
-struct HugePage 
-{
-  const Magic magic;
-  int32_t padding;
-  HugePage* next;
-  atomic_uint_fast64_t occupy_bmap[8];
-  atomic_uint_fast64_t header_bmap[8];
-};
-
-static_assert(sizeof(HugePage) == 144, "HugePage size should be 144\n");
 
 HugePage* HugePageInit(void* addr, Magic magic)
   __attribute__((nonnull));
