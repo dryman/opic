@@ -5,7 +5,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_CONFIG_HEADER([src/config.h])
 
-AM_INIT_AUTOMAKE([-Wall -Wextra -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR
 LT_INIT
 
@@ -42,6 +42,8 @@ AS_IF([test "x$GCC" = "xyes"],
    [atomic_LIBS="-latomic"])],
   [atomic_LIBS=""])
 AC_SUBST([atomic_LIBS])
+
+CFLAGS="$CFLAGS -Wextra -Wnonnull"
 
 PKG_CHECK_MODULES([cmocka], [cmocka >= 1.0.1])
 

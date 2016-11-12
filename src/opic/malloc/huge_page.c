@@ -46,6 +46,7 @@
 /* Code: */
 
 
+#include <stddef.h>
 #include <string.h>
 #include <limits.h>
 #include "huge_page.h"
@@ -55,7 +56,6 @@ OP_LOGGER_FACTORY(logger, "opic.malloc.huge_page");
 
 HugePage* HugePageInit(void* addr, Magic magic)
 {
-  op_assert(addr, "address should not be null\n");
   op_assert(((size_t)addr & ((1UL<<21)-1)) == 0,
             "HugePage address should align 2MB, but were %p\n", addr);
   HugePage *self = addr;
@@ -71,7 +71,6 @@ UnarySpan* ObtainUSpan(HugePage* self,
                        Magic magic,
                        unsigned int span_cnt)
 {
-  op_assert(self, "HugePage cannot be NULL\n");
   op_assert(span_cnt <= 256, "span_cnt is limited to 256 pages, aka 1MB\n");
 
   uint64_t old_bmap, new_bmap;

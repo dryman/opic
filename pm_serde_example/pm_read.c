@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include "config.h"
 #include "opic.h"
 #include "op_collection.h"
@@ -15,7 +16,7 @@ int main (int argc, char** argv)
   OPObject* it = lst_listIterator(list);
   while(li_hasNext(it))
     {
-      printf("Node value: %lu\n", li_next(it).uint64);
+      printf("Node value: %" PRIu64 "\n", li_next(it).uint64);
     }
   OPRelease(it);
   OPMallocManagerDestroy(ctx);
