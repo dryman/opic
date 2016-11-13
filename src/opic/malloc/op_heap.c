@@ -72,10 +72,14 @@ struct OPHeap
 {
   // TODO: add a magic in the very front so UNIX
   // can recognize us?
+  // TODO: references to root objects
+  // TODO: first hpage
+  // TODO: rwlock for access (user can only set rlock)
   atomic_uint_fast64_t occupy_bmap[VSPAN_BMAP_NUM];
   atomic_uint_fast64_t header_bmap[VSPAN_BMAP_NUM];
   struct RawType raw_type;
   struct TypeAlias type_alias[2048];
+  HugePage first_hpage;
 };
 
 int OPHeapCreate(OPHeap** heap_ref)
@@ -238,6 +242,29 @@ void* OPAllocRaw(OPHeap* self, size_t size)
   
   return NULL;
 }
+
+void OPFree2(void* addr)
+{
+  OPHeap* self = (OPHeap*)(((uintptr_t)addr) & OPHEAP_SIZE);
+  ptrdiff_t diff = (uintptr_t)addr - (uintptr_t)self;
+
+  int hpage_idx = diff >> 21;
+
+  if (hpage_idx == 0)
+    {
+      // TODO: special logic to handle first hpage
+      return;
+    }
+
+  // TODO the logic here is terrible, need to rewrite.
+  /* uint64_t bmap = atomic_load_explicit(&self->header_bmap[hpage_idx >> 6], */
+  /*                                      memory_order_relaxed); */
+  /* uint64_t clear_low = bitmap & ~((1UL << hpage_idx % 64)-1); */
+  /* int hpage_header_idx = ((hpage_idx >> 6) << 6) + __builtin_ctzl(clear_low); */
+  /* span = base + (span_header_idx << 12); */
+  /* header_mask = ~(clear_low & (~(clear_low) + 1)); */
+}
+      
 
 HugePage* ObtainHPage(OPHeap* self, Magic magic)
 {

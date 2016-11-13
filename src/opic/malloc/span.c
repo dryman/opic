@@ -60,7 +60,6 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   op_assert(obj_size, "object size in bytes should be greater than 0\n");
   op_assert(page_size, "allocated physical pages should be greater than 0\n");
   */
-  if (op_unlikely(!addr)) return NULL;
   if (op_unlikely(!magic.typed_uspan.obj_size)) return NULL;
   if (op_unlikely(!span_size)) return NULL;
   
@@ -101,7 +100,6 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
 
 void* USpanMalloc(UnarySpan* self)
 {
-  op_assert(self, "Address cannot be NULL");
   _Atomic uint64_t *bitmap_base, *bitmap;
   ptrdiff_t bitmap_offset, item_offset;
   uint64_t old_bmap, new_bmap;
@@ -141,10 +139,9 @@ void* USpanMalloc(UnarySpan* self)
   return NULL;
 }
 
-// TODO use enum instead of bool
-bool USpanFree(UnarySpan* self, void* addr)
+
+FreeStatus USpanFree(UnarySpan* self, void* addr)
 {
-  op_assert(self, "Address cannot be NULL");
   int obj_size = self->magic.typed_uspan.obj_size;
   void* const base = (void*)self;
   void* const bound = base +
@@ -183,7 +180,9 @@ bool USpanFree(UnarySpan* self, void* addr)
   // double-free, we might just ignore it so we can squeez out a bit
   // more performance.
   
-  atomic_fetch_and(&bitmap[bmap_idx], ~(1UL<<remainder));
+  uint64_t old_bmap = atomic_fetch_and_explicit(&bitmap[bmap_idx],
+                                                ~(1UL<<remainder),
+                                                memory_order_relaxed);
 
   if (self->bitmap_cnt == 1)
     {
@@ -194,7 +193,11 @@ bool USpanFree(UnarySpan* self, void* addr)
           (bitmap, &expected_empty_bmap, ~0UL,
            memory_order_release,
            memory_order_relaxed))
-      return true;
+      return FREE_REACHED_EMPTY;
+    }
+  else if (old_bmap == ~0UL)
+    {
+      return FREE_FROM_FULL;
     }
   else if (bmap_idx == 0 &&
            atomic_load_explicit(bitmap, memory_order_relaxed)==
@@ -215,7 +218,7 @@ bool USpanFree(UnarySpan* self, void* addr)
       goto try_fullfree;
     }
   else
-    return false;
+    return FREE_NORMAL;
 
   int iter;
   uint64_t expected_headroom, expected_body, expected_padding;
@@ -233,7 +236,7 @@ bool USpanFree(UnarySpan* self, void* addr)
       (&bitmap[0], &expected_headroom, ~0UL,
        memory_order_release,
        memory_order_relaxed))
-    return false;
+    return FREE_NORMAL;
 
   // body
   for (iter = 1; iter < self->bitmap_cnt - 1; iter++)
@@ -251,7 +254,7 @@ bool USpanFree(UnarySpan* self, void* addr)
       (&bitmap[iter], &expected_padding, ~0UL,
        memory_order_release,
        memory_order_relaxed))
-    return true;
+    return FREE_REACHED_EMPTY;
 
  catch_nonempty_exception:
 
@@ -265,7 +268,7 @@ bool USpanFree(UnarySpan* self, void* addr)
       atomic_store_explicit(&bitmap[i], 0UL, memory_order_release);
     }
   
-  return false;
+  return FREE_NORMAL;
 }
 
 

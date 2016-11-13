@@ -68,7 +68,7 @@ UnarySpan* ObtainUSpan(HugePage* self,
                        unsigned int span_cnt)
   __attribute__((nonnull));
 
-bool HugePageFree(HugePage* self, void* addr)
+FreeStatus HugePageFree(HugePage* self, void* addr)
   __attribute__((nonnull));
 
 

@@ -58,11 +58,14 @@
 OP_BEGIN_DECLS
 
 
-UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size);
+UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
+  __attribute__((nonnull));
 
-void* USpanMalloc(UnarySpan* self);
+void* USpanMalloc(UnarySpan* self)
+  __attribute__((nonnull));
 
-bool USpanFree(UnarySpan* self, void* addr);
+FreeStatus USpanFree(UnarySpan* self, void* addr)
+  __attribute__((nonnull));
 
 OP_END_DECLS
 

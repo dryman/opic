@@ -56,19 +56,6 @@
 #include <sys/mman.h>
 
 
-static void invalid_address_test(void **state)
-{
-  Magic magic = {
-    .raw_uspan =
-    {
-      .pattern = 1,
-      .obj_size = 1,
-      .thread_id = 0,
-    }
-  };
-  assert_null(USpanInit(NULL, magic, 2));
-}
-
 static void invalid_object_size(void **state)
 {
   Magic magic = {
@@ -198,11 +185,13 @@ static void malloc_4byte(void **state)
   
   for (int i = 0; i<1024-38-1; i++)
     {
-      assert_false(USpanFree(span, item));
+      assert_int_not_equal(FREE_REACHED_EMPTY,
+                           USpanFree(span, item));
       item+=4;
     }
   assert_ptr_equal(addr+(1<<12)-4, item);
-  assert_true(USpanFree(span, item));
+  assert_int_equal(FREE_REACHED_EMPTY,
+                   USpanFree(span, item));
 
   for (int i = 0; i<16; i++)
     bitmaps[i]=~0UL;
@@ -219,7 +208,6 @@ int main(void)
 {
   const struct CMUnitTest init_tests[] =
     {
-      cmocka_unit_test(invalid_address_test),
       cmocka_unit_test(invalid_object_size),
       cmocka_unit_test(invalid_page_cnt),
       cmocka_unit_test(obj_size_4byte),

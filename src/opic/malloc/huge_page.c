@@ -115,11 +115,12 @@ UnarySpan* ObtainUSpan(HugePage* self,
   return NULL;
 }
 
-bool HugePageFree(HugePage* restrict self, void* addr)
+FreeStatus HugePageFree(HugePage* self, void* addr)
 {
   void* base = (void*)self;
   ptrdiff_t diff = addr - base;
   UnarySpan* span;
+  // thid doesn't work for the first hpage
   int page_idx = diff >> 12;
   int span_header_idx;
   uint64_t header_mask, occupy_mask;
