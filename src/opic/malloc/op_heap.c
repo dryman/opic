@@ -296,6 +296,142 @@ HugePage* ObtainHPage(OPHeap* self, Magic magic)
     }
   op_assert(0, "Running out of hpage\n");
 }
-      
+
+void enqueue_uspan(UnarySpan* uspan)
+{
+  OPHeap* heap = (OPHeap*)(((uintptr_t)uspan) & OPHEAP_SIZE);
+  Magic magic = uspan->magic;
+    
+  switch (magic.generic.pattern)
+    {
+    case TYPED_USPAN_PATTERN:
+      {
+        TypeAlias* ta = &heap->type_alias[magic.typed_uspan.type_alias];
+        int tid = magic.typed_uspan.thread_id;
+        do 
+          {
+            favor_write(&ta->uspan_favor, tid);
+          } while (!acq_wlock(&ta->uspan_rwlock[tid],
+                              &ta->uspan_favor,
+                              tid));
+        insert_uspan_internal(&ta->uspan[tid],
+                              uspan);
+        rel_wlock(&ta->uspan_rwlock[tid]);
+      }
+      break;
+    case RAW_USPAN_PATTERN:
+      {
+        uint16_t size_class = magic.raw_uspan.obj_size >> 4;
+        int tid = magic.raw_uspan.thread_id;
+        do
+          {
+            favor_write(&heap->raw_type.uspan_favor[tid],
+                        tid);
+          } while (!acq_wlock(&heap->raw_type.uspan_rwlock[size_class][tid],
+                              &heap->raw_type.uspan_favor[size_class],
+                              tid));
+        insert_uspan_internal(&heap->raw_type.uspan[size_class][tid],
+                              uspan);
+        rel_wlock(&heap->raw_type.uspan_rwlock[size_class][tid]);
+      }
+      break;
+    case LARGE_USPAN_PATTERN:
+      {
+        uint16_t obj_size = magic.large_uspan.obj_size;
+        int large_uspan_id =
+          obj_size == 512 ? 0 :
+          obj_size == 1024 ? 1 : 2;
+        int favor =
+          obj_size == 512 ? FAVOR_512 :
+          obj_size == 1024 ? FAVOR_1024 : FAVOR_2048;
+        do
+          {
+            favor_write(&heap->raw_type.remain_favor,
+                        favor);
+          } while (!acq_wlock
+                   (&heap->raw_type.large_uspan_rwlock[large_uspan_id],
+                    &heap->raw_type.remain_favor,
+                    favor));
+        insert_uspan_internal(&heap->raw_type.large_uspan[large_uspan_id],
+                              uspan);
+        rel_wlock(&heap->raw_type.large_uspan_rwlock[large_uspan_id]);
+      }
+      break;
+    default:
+      op_assert(0, "Unexpected uspan\n");
+    }
+}
+
+void dequeue_uspan(UnarySpan* uspan)
+{
+  OPHeap* heap = (OPHeap*)(((uintptr_t)uspan) & OPHEAP_SIZE);
+  Magic magic = uspan->magic;
+    
+  switch (magic.generic.pattern)
+    {
+    case TYPED_USPAN_PATTERN:
+      {
+        // TODO decrement refcnt of spans in typed uspan
+        TypeAlias* ta = &heap->type_alias[magic.typed_uspan.type_alias];
+        int tid = magic.typed_uspan.thread_id;
+        do 
+          {
+            favor_write(&ta->uspan_favor, tid);
+          } while (!acq_wlock(&ta->uspan_rwlock[tid],
+                              &ta->uspan_favor,
+                              tid));
+        UnarySpan** it = &ta->uspan[tid];
+        while (*it != uspan)
+          it = &(*it)->next;
+        *it = (*it)->next;
+        rel_wlock(&ta->uspan_rwlock[tid]);
+      }
+      break;
+    case RAW_USPAN_PATTERN:
+      {
+        uint16_t size_class = magic.raw_uspan.obj_size >> 4;
+        int tid = magic.raw_uspan.thread_id;
+        do
+          {
+            favor_write(&heap->raw_type.uspan_favor[tid],
+                        tid);
+          } while (!acq_wlock(&heap->raw_type.uspan_rwlock[size_class][tid],
+                              &heap->raw_type.uspan_favor[size_class],
+                              tid));
+        UnarySpan** it = &heap->raw_type.uspan[size_class][tid];
+        while (*it != uspan)
+          it = &(*it)->next;
+        *it = (*it)->next;
+        rel_wlock(&heap->raw_type.uspan_rwlock[size_class][tid]);
+      }
+      break;
+    case LARGE_USPAN_PATTERN:
+      {
+        uint16_t obj_size = magic.large_uspan.obj_size;
+        int large_uspan_id =
+          obj_size == 512 ? 0 :
+          obj_size == 1024 ? 1 : 2;
+        int favor =
+          obj_size == 512 ? FAVOR_512 :
+          obj_size == 1024 ? FAVOR_1024 : FAVOR_2048;
+        do
+          {
+            favor_write(&heap->raw_type.remain_favor,
+                        favor);
+          } while (!acq_wlock
+                   (&heap->raw_type.large_uspan_rwlock[large_uspan_id],
+                    &heap->raw_type.remain_favor,
+                    favor));
+        UnarySpan** it = &heap->raw_type.large_uspan[large_uspan_id];
+        while (*it != uspan)
+          it = &(*it)->next;
+        *it = (*it)->next;
+        rel_wlock(&heap->raw_type.large_uspan_rwlock[large_uspan_id]);
+      }
+      break;
+    default:
+      op_assert(0, "Unexpected uspan\n");
+    }
+}
           
 /* op_heap.c ends here */

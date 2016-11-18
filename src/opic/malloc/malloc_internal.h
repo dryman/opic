@@ -60,7 +60,16 @@ OP_BEGIN_DECLS
 typedef struct UnarySpan UnarySpan;
 typedef struct BolbSpan BlobSpan;
 typedef struct HugePage HugePage;
-typedef enum FreeStatus FreeStatus;
+
+typedef enum __attribute__((packed)) BitMapState
+  {
+    BM_NORMAL = 0,
+    BM_FULL = 1,
+    BM_TOMBSTONE = 2,
+  }
+BitMapState;
+
+static_assert(sizeof(BitMapState) == 1, "BitMapState should be 1 byte\n");
 
 struct UnarySpan
 {
@@ -69,11 +78,15 @@ struct UnarySpan
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
   uint8_t bitmap_hint;
-  UnarySpan* prev;
+  atomic_uint_fast16_t rwlock;
+  atomic_uint_fast16_t obj_cnt;
+  atomic_uint_fast16_t del_attempt;
+  BitMapState state;
+  const uint8_t padding;
   UnarySpan* next;
 };
 
-static_assert(sizeof(UnarySpan) == 24, "UnaryPSpan size should be 24\n");
+static_assert(sizeof(UnarySpan) == 24, "UnaryPSpan size should be 24 bytes\n");
 
 struct BlobSpan
 {
@@ -83,7 +96,11 @@ struct BlobSpan
 struct HugePage 
 {
   const Magic magic;
-  int32_t padding;
+  atomic_uint_fast16_t rwlock;
+  atomic_uint_fast16_t del_attempt;
+  atomic_uint_fast8_t span_cnt;
+  BitMapState state;
+  const uint64_t padding : 48;
   HugePage* next;
   atomic_uint_fast64_t occupy_bmap[8];
   atomic_uint_fast64_t header_bmap[8];
@@ -91,12 +108,6 @@ struct HugePage
 
 static_assert(sizeof(HugePage) == 144, "HugePage size should be 144\n");
 
-enum FreeStatus
-  {
-    FREE_NORMAL,
-    FREE_FROM_FULL,
-    FREE_REACHED_EMPTY
-  };
 
 OP_END_DECLS
 

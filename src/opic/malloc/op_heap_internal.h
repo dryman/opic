@@ -580,19 +580,6 @@ insert_new_large_uspan(RawType* raw_type,
 
 
 static inline void
-insert_uspan(UnarySpan** uspan_ref,
-             atomic_int_fast8_t* u_rwlock,
-             atomic_uint_fast16_t* u_favor,
-             int tid,
-             UnarySpan* uspan)
-{
-  if (!acq_wlock(u_rwlock, u_favor, tid))
-    return;
-  insert_uspan_internal(uspan_ref, uspan);
-  rel_wlock(u_rwlock);
-}
-
-static inline void
 remove_uspan(UnarySpan** uspan_ref,
              atomic_int_fast8_t* u_rwlock,
              atomic_uint_fast16_t* u_favor,
@@ -610,18 +597,6 @@ remove_uspan(UnarySpan** uspan_ref,
   rel_wlock(u_rwlock);
 }
 
-static inline void
-insert_large_uspan(UnarySpan** uspan_ref,
-                   atomic_int_fast16_t* u_rwlock,
-                   atomic_uint_fast8_t* u_favor,
-                   int favor,
-                   UnarySpan* uspan)
-{
-  if (!acq_wlock(u_rwlock, u_favor, favor))
-    return;
-  insert_uspan_internal(uspan_ref, uspan);
-  rel_wlock(u_rwlock);
-}
 
 static inline void
 remove_large_uspan(UnarySpan** uspan_ref,

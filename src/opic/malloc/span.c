@@ -139,8 +139,182 @@ void* USpanMalloc(UnarySpan* self)
   return NULL;
 }
 
+BitMapState USpanFree(UnarySpan* self, void* addr)
+{
+  void* base, bound;
+  ptrdiff_t diff;
+  _Atomic uint64_t* bitmap;
+  uint64_t expected_empty_bmap;
+  int obj_size, bmap_idx, remainder;
+  int16_t old_rwlock;
+  
+  obj_size = self->magic.uspan_generic->obj_size;
+  base = (void*)self;
+  bound = base + obj_size*(64*self->bitmap_cnt - self->bitmap_padding);
+  op_assert(addr > base && addr < bound,
+            "Free address %p should within span from %p and %p",
+            addr, base, bound);
 
-FreeStatus USpanFree(UnarySpan* self, void* addr)
+  while (1)
+    {
+      // are we guaranteed that reading state
+      // is before lock?
+      switch(self->state)
+        {
+        case BM_NORMAL:
+          old_rwlock = atomic_fetch_add_explicit(&self->rwlock,
+                                                 1,
+                                                 memory_order_acquire);
+          if (old_rwlock > 0)
+            goto normal_bmap_free;
+          atomic_fetch_sub_explicit(&self->rwlock,
+                                    1,
+                                    memory_order_relaxed);
+          continue;
+        case BM_FULL:
+          old_rwlock = 0;
+          if (atomic_compare_exchange_weak_explicit(&self->rwlock,
+                                                    &old_rwlock,
+                                                    INT16_MIN,
+                                                    memory_order_acquire,
+                                                    memory_order_relaxed))
+            goto full_bmap_free;
+          continue;
+        default:
+          op_assert("Invalid free: free on tombstone uspan %p", self);
+        }
+    }
+ normal_bmap_free:
+  diff = (addr - base) / obj_size;
+  bitmap = (_Atomic uint64_t *)(self+1);
+  int bmap_idx = diff >> 6;
+  int remainder = diff - (bmap_idx << 6);
+
+  op_assert(diff * obj_size + base == addr,
+            "Free address %p should align with obj_size %d\n",
+            addr, obj_size);
+  if (bmap_idx == 0)
+    op_assert(remainder >= self->bitmap_headroom,
+              "Free address %p cannot overlap span %p headroom\n",
+              addr, self);
+
+  // this is where we free the element
+  atomic_fetch_and_explicit(&bitmap[bmap_idx],
+                            ~(1UL<<remainder),
+                            memory_order_relaxed);
+  
+  if (self->bitmap_cnt == 1 &&
+      atomic_load_explicit(bitmap, memory_order_relaxed) ==
+      ((1UL << self->bitmap_headroom)-1) |
+      ~((1UL << (64-self->bitmap_padding))-1))
+    {
+      goto try_bury;
+    }
+  else if (bmap_idx == 0 &&
+           atomic_load_explicit(bitmap, memory_order_relaxed)==
+           (1UL << self->bitmap_headroom)-1)
+    {
+      goto try_bury;
+    }
+  else if (bmap_idx == self->bitmap_cnt - 1)
+    {
+      if (atomic_load_explicit(&bitmap[bmap_idx], memory_order_relaxed) ==
+          (self->bitmap_padding ?
+           ~((1UL << (64 - self->bitmap_padding))-1) :
+           0UL))
+        goto try_bury;
+    }
+  else if (!atomic_load_explicit(&bitmap[bmap_idx], memory_order_relaxed))
+    {
+      goto try_bury;
+    }
+  else
+    {
+      rel_rlock(&self->rwlock);
+      return BM_NORMAL;
+    }
+
+ try_bury:
+  rel_rlock(&self->rwlock);
+  atomic_fetch_add_explicit(&self->del_attempt, 1, memory_order_acquire);
+  do 
+    {
+      if (atomic_load_explicit(&self->state, memory_order_relaxed))
+        {
+          atomic_fetch_sub_explicit(&self->del_attempt,
+                                    1,
+                                    memory_order_release);
+          return BM_NORMAL;
+        }
+    }
+  while (!try_acq_wlock(&self->state));
+
+  if (self->bitmap_cnt == 1 &&
+      atomic_load_explicit(bitmap, memory_order_relaxed) ==
+      ((1UL << self->bitmap_headroom)-1) |
+      ~((1UL << (64-self->bitmap_padding))-1))
+    {
+      // actually state is guard by locks... why not use normal
+      // enum (packed)?
+      atomic_store_explicit(&self->state, BM_TOMBSTONE,
+                            memory_order_relaxed);
+      while (atomic_load_explicit(&self->del_attempt,
+                                  memory_order_release) > 1)
+        ;
+      dequeue_uspan(self);
+      rel_wlock(&self->state);
+      return BM_TOMESTONE;
+    }
+
+  // headroom
+  if (!atomic_load_explicit(&bitmap[0], memory_order_relaxed))
+    {
+      atomic_fetch_sub_explicit(&self->del_attempt,
+                                1,
+                                memory_order_release); 
+      return BM_NORMAL;
+    }
+
+  // body
+  for (int i = 1; i < self->bitmap_cnt-1; i++)
+    {
+      if (!atomic_load_explicit(&bitmap[iter],
+                                0UL,
+                                memory_order_relaxed))
+        {
+          atomic_fetch_sub_explicit(&self->del_attempt,
+                                    1,
+                                    memory_order_release); 
+          return BM_NORMAL;
+        }
+    }
+
+  // padding
+  if (atomic_load_explicit(&bitmap[self->bitmap_cnt-1],
+                           memory_order_relaxed) ==
+      (self->bitmap_padding ?
+       ~((1UL << (64 - self->bitmap_padding))-1) :
+       0UL))
+    {
+      atomic_fetch_sub_explicit(&self->del_attempt,
+                                1,
+                                memory_order_release);
+      return BM_NORMAL;
+    }
+  atomic_store_explicit(&self->state, BM_TOMBSTONE,
+                        memory_order_relaxed);
+  while (atomic_load_explicit(&self->del_attempt,
+                              memory_order_release) > 1)
+    ;
+  dequeue_uspan(self);
+  rel_wlock(&self->state);
+  return BM_TOMESTONE;
+
+ full_bmap_free:
+}
+
+
+FreeStatus USpanFreeOld(UnarySpan* self, void* addr)
 {
   int obj_size = self->magic.typed_uspan.obj_size;
   void* const base = (void*)self;
