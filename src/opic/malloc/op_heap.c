@@ -323,6 +323,7 @@ void enqueue_uspan(UnarySpan* uspan)
       {
         uint16_t size_class = magic.raw_uspan.obj_size >> 4;
         int tid = magic.raw_uspan.thread_id;
+        // this doesn't work, the callee is holding rlock
         do
           {
             favor_write(&heap->raw_type.uspan_favor[tid],

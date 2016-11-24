@@ -81,7 +81,7 @@ struct UnarySpan
   atomic_uint_fast16_t rwlock;
   atomic_uint_fast16_t obj_cnt;
   atomic_uint_fast16_t del_attempt;
-  BitMapState state;
+  _Atomic BitMapState state;
   const uint8_t padding;
   UnarySpan* next;
 };
@@ -99,7 +99,7 @@ struct HugePage
   atomic_uint_fast16_t rwlock;
   atomic_uint_fast16_t del_attempt;
   atomic_uint_fast8_t span_cnt;
-  BitMapState state;
+  _Atomic BitMapState state;
   const uint64_t padding : 48;
   HugePage* next;
   atomic_uint_fast64_t occupy_bmap[8];
