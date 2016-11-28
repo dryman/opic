@@ -51,8 +51,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdatomic.h>
 #include "magic.h"
+#include "opic/common/op_atomic.h"
 #include "opic/common/op_macros.h"
 
 OP_BEGIN_DECLS
@@ -64,8 +64,9 @@ typedef struct HugePage HugePage;
 typedef enum __attribute__((packed)) BitMapState
   {
     BM_NORMAL = 0,
-    BM_FULL = 1,
-    BM_TOMBSTONE = 2,
+    BM_NEW = 1,
+    BM_FULL = 2,
+    BM_TOMBSTONE = 3,
   }
 BitMapState;
 
@@ -78,9 +79,8 @@ struct UnarySpan
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
   uint8_t bitmap_hint;
-  atomic_uint_fast16_t rwlock;
-  atomic_uint_fast16_t obj_cnt;
-  atomic_uint_fast16_t del_attempt;
+  a_in16_t pcard;
+  a_uint16_t obj_cnt;
   _Atomic BitMapState state;
   const uint8_t padding;
   UnarySpan* next;

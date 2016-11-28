@@ -209,36 +209,68 @@ atomic_check_out_64(a_int64_t* punch_card)
                             memory_order_relaxed);
 }
 
-static inline void
+static inline bool
 atomic_book_critical_8(a_int8_t* punch_card)
 {
-  atomic_fetch_or_explicit(punch_card
-                           1 << 7,
-                           memory_order_relaxed);
+  int8_t val = atomic_load_explicit(punch_card, memory_order_relaxed);
+  do
+    {
+      if (val < 0)
+        return false;
+    }
+  while (!atomic_compare_exchange_strong_explicit
+         (punch_card, &val, val | (1<<7),
+          memory_order_acq_rel,
+          memory_order_relaxed));
+  return true;
 }
 
-static inline void
+static inline bool
 atomic_book_critical_16(a_int16_t* punch_card)
 {
-  atomic_fetch_or_explicit(punch_card
-                           1 << 15,
-                           memory_order_relaxed);
+  int16_t val = atomic_load_explicit(punch_card, memory_order_relaxed);
+  do
+    {
+      if (val < 0)
+        return false;
+    }
+  while (!atomic_compare_exchange_strong_explicit
+         (punch_card, &val, val | (1<<15),
+          memory_order_acq_rel,
+          memory_order_relaxed));
+  return true;
 }
 
-static inline void
+static inline bool
 atomic_book_critical_32(a_int32_t* punch_card)
 {
-  atomic_fetch_or_explicit(punch_card
-                           1 << 31,
-                           memory_order_relaxed);
+  int32_t val = atomic_load_explicit(punch_card, memory_order_relaxed);
+  do
+    {
+      if (val < 0)
+        return false;
+    }
+  while (!atomic_compare_exchange_strong_explicit
+         (punch_card, &val, val | (1<<31),
+          memory_order_acq_rel,
+          memory_order_relaxed));
+  return true;
 }
 
-static inline void
+static inline bool
 atomic_book_critical_64(a_int64_t* punch_card)
 {
-  atomic_fetch_or_explicit(punch_card
-                           1L << 63,
-                           memory_order_relaxed);
+  int64_t val = atomic_load_explicit(punch_card, memory_order_relaxed);
+  do
+    {
+      if (val < 0)
+        return false;
+    }
+  while (!atomic_compare_exchange_strong_explicit
+         (punch_card, &val, val | (1L<<63),
+          memory_order_acq_rel,
+          memory_order_relaxed));
+  return true;
 }
 
 static inline bool

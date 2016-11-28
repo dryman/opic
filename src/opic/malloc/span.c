@@ -45,11 +45,11 @@
 
 /* Code: */
 
-#include "span.h"
-#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include "span.h"
+#include "opic/common/op_atomic.h"
 
 extern void enqueue_uspan(UnarySpan* uspan);
 extern void dequeue_uspan(UnarySpan* uspan);
@@ -68,6 +68,7 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
   obj_size = magic.typed_uspan.obj_size;
   obj_cnt = span_size / obj_size;
+  // TODO document the formula
   bitmap_cnt = (obj_cnt + 64 - 1) >> 6;
   padding = (bitmap_cnt << 6) - obj_cnt;
   headroom = (sizeof(UnarySpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
@@ -100,9 +101,40 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   return self;
 }
 
-BitMapState USpanMalloc(UnarySpan* self, void** addr)
+bool USpanMalloc(UnarySpan* self, void** addr)
 {
-  _Atomic uint64_t *bitmap_base, *bitmap;
+  if (!atomic_check_in(&self->pcard))
+    return false;
+
+  BitMapState state = atomic_load_explicit(&self->state,
+                                           memory_order_relaxed);
+
+  // TODO: document the state machine.
+  // When state == BM_NEW, obj_cnt can change from 0 to 1;
+  // but when state is BM_NORMAL, obj_cnt == 0 is same as BM_TOMBSTONE
+  if (state == BM_NORMAL &&
+      atomic_load_explicit(&self->obj_cnt,
+                           memory_order_relaxed) == 0)
+    {
+      return false;
+    }
+  else if (state == BM_FULL || state == BM_TOMBSTONE)
+    {
+      return false;
+    }
+
+  // TODO: is this memory order correct?
+  uint16_t obj_cnt = atomic_fetch_add_explicit(&self->obj_cnt, 1,
+                                               memory_order_acquire);
+  const uint16_t obj_capacity = ((uint16_t)self->bitmap_cnt)*64 -
+    self->bitmap_headroom - self->bitmap_padding;
+
+  if (obj_cnt > obj_capacity)
+    {
+      goto uspan_full;
+    }
+  
+  a_uint64_t *bitmap_base, *bitmap;
   ptrdiff_t bitmap_offset, item_offset;
   uint64_t old_bmap, new_bmap;
   uint16_t obj_size = self->magic.typed_uspan.obj_size;
@@ -111,8 +143,7 @@ BitMapState USpanMalloc(UnarySpan* self, void** addr)
   bitmap_offset = (ptrdiff_t)self->bitmap_hint;
   bitmap = bitmap_base + bitmap_offset;
 
-  void* addr;
-  for (int i = 0; i < self->bitmap_cnt; i++)
+  while (1)
     {
       old_bmap = atomic_load_explicit(bitmap, memory_order_relaxed);
       do
@@ -121,35 +152,69 @@ BitMapState USpanMalloc(UnarySpan* self, void** addr)
           new_bmap = (old_bmap + 1);
           item_offset = __builtin_ctzl(new_bmap);
           new_bmap |= old_bmap;
-        } while(!atomic_compare_exchange_weak_explicit
-                (bitmap, &old_bmap, new_bmap,
-                 memory_order_relaxed,
-                 memory_order_relaxed));
-      
-      addr = (void*)self +
+        }
+      while(!atomic_compare_exchange_weak_explicit
+            (bitmap, &old_bmap, new_bmap,
+             memory_order_relaxed,
+             memory_order_relaxed));
+      // TODO: document formula
+      // TODO: use uintptr_t for pointer arithmetic instaed of void*
+      *addr = (void*)self +
         (((bitmap_offset % self->bitmap_cnt) << 6) + item_offset) * obj_size;
 
       self->bitmap_hint = (uint8_t)(bitmap_offset % self->bitmap_cnt);
 
-      return addr;
+      atomic_check_out(&self->pcard);
+      return true;
       
     next_bmap:
       bitmap_offset++;
       bitmap = bitmap_base + (bitmap_offset % self->bitmap_cnt);
       continue;
     }
-  return NULL;
+  
+ uspan_full:
+  /* If we couldn't book, there were some other thread booked the critical
+     section.  Retry and start over again. */
+  if (!atomic_book_critical(&self->pcard))
+    {
+      atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
+      atomic_check_out(&self->pcard);
+      return false;
+    }
+  while (!atomic_enter_critical(&self->pcard))
+    ;
+  atomic_store_explicit(&self->state, BM_FULL, memory_order_relaxed);
+  atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
+
+  // Find the queue
+  /*
+    atomic_check_out(queue);
+    do {
+      atomic_check_in(queue);
+      if (!atomic_book_critical(queue)) {
+        atomic_check_out(queue);
+        continue;
+      }
+    while (!dequeue(queue, self))
+      ;
+    
+   */
+  atomic_check_out(&self->pcard);
+  return false;
 }
 
 BitMapState USpanFree(UnarySpan* self, void* addr)
 {
+  
   void* base, bound;
   ptrdiff_t diff;
   _Atomic uint64_t* bitmap;
   uint64_t expected_empty_bmap;
   int obj_size, bmap_idx, remainder;
   int16_t old_rwlock, expected_rwlock;
-  
+
+  // TODO use uintptr_t for pointer arithmetic
   obj_size = self->magic.uspan_generic->obj_size;
   base = (void*)self;
   bound = base + obj_size*(64*self->bitmap_cnt - self->bitmap_padding);
@@ -169,6 +234,50 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
     op_assert(remainder >= self->bitmap_headroom,
               "Free address %p cannot overlap span %p headroom\n",
               addr, self);
+
+ retry:
+  if (!atomic_check_in(&self->pcard))
+    goto retry;
+
+  // TODO switch on state
+
+ free_bm_full:
+  if (!atomic_book_critical(&self->pcard))
+    {
+      atomic_check_out(&self->pcard);
+      goto retry;
+    }
+  op_assert(atomic_enter_critical(&self->pcard),
+            "Not possible to have other thread entering critical here.");
+  atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
+  atomic_store_explicit(&self->state, BM_NORMAL, memory_order_relaxed);
+  atomic_fetch_and_explicit(&bitmap[bmap_idx],
+                            ~(1UL<<remainder),
+                            memory_order_relaxed);
+  /* TODO:
+     find queue
+     enqueue
+  */
+  atomic_exit_critical(&self->pcard);
+  atomic_check_out(&self->pcard);
+  return BM_NORMAL;
+
+ free_bm_normal:
+
+    // TODO think about this order again..
+  uint16_t obj_cnt = atomic_fetch_sub_explicit(&self->obj_cnt, 1,
+                                               memory_order_acq_rel);
+
+  if (obj_cnt > 1)
+    {
+      atomic_fetch_and_explicit(&bitmap[bmap_idx],
+                                ~(1UL<<remainder),
+                                memory_order_relaxed);
+      atomic_check_out(&self->pcard);
+      return BM_NORMAL;
+    }
+
+  // At this stage it is still possible to have alloc
 
   while (1)
     {
@@ -216,6 +325,8 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
   atomic_fetch_and_explicit(&bitmap[bmap_idx],
                             ~(1UL<<remainder),
                             memory_order_relaxed);
+
+
   
   if (self->bitmap_cnt == 1 &&
       atomic_load_explicit(bitmap, memory_order_relaxed) ==

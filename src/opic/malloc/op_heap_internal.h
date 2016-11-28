@@ -229,14 +229,15 @@ enqueue_new_raw_uspan(RawType* raw_type,
       hpage = raw_type->hpage;
       if (hpage == NULL)
         {
-          atomic_book_critical(&raw_type->hpage_pcard);
-          if (!enqueue_new_raw_hpage(&raw_type->hpage,
-                                     &raw_type->hpage_pcard,
-                                     heap))
+          if (!atomic_book_critical(&raw_type->hpage_pcard))
             {
               atomic_check_out(&raw_type->hpage_pcard);
               continue;
             }
+          while (!enqueue_new_raw_hpage(&raw_type->hpage,
+                                        &raw_type->hpage_pcard,
+                                        heap))
+            ;
         }
 
       // TODO: should optimize for different size classes
@@ -283,15 +284,16 @@ enqueue_new_typed_uspan(TypeAlias* type_alias,
       hpage = type_alias->hpage;
       if (hpage == NULL)
         {
-          atomic_book_critical(&type_alias->hpage_pcard);
-          if (!enqueue_new_typed_hpage(type_alias_id,
-                                       &type_alias->hpage,
-                                       &type_alias->hpage_pcard,
-                                       heap))
+          if (!atomic_book_critical(&type_alias->hpage_pcard))
             {
               atomic_check_out(&type_alias->hpage_pcard);
               continue;
             }
+          while (!enqueue_new_typed_hpage(type_alias_id,
+                                          &type_alias->hpage,
+                                          &type_alias->hpage_pcard,
+                                          heap))
+            ;
         }
 
       // TODO: should optimize for different object size
@@ -335,14 +337,15 @@ enqueue_new_large_uspan(RawType* raw_type,
       hpage = raw_type->hpage;
       if (hpage == NULL)
         {
-          atomic_book_critical(&raw_type->hpage_pcard);
-          if (!enqueue_new_raw_hpage(&raw_type->hpage,
-                                     &raw_type->hpage_pcard,
-                                     heap))
+          if (!atomic_book_critical(&raw_type->hpage_pcard))
             {
               atomic_check_out(&raw_type->hpage_pcard);
               continue;
             }
+          while (!enqueue_new_raw_hpage(&raw_type->hpage,
+                                        &raw_type->hpage_pcard,
+                                        heap))
+            ;
         }
 
       // TODO: should optimize for different object size
