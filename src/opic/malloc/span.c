@@ -51,6 +51,8 @@
 #include "span.h"
 #include "opic/common/op_atomic.h"
 
+#define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)
+
 extern void enqueue_uspan(UnarySpan* uspan);
 extern void dequeue_uspan(UnarySpan* uspan);
 
@@ -66,15 +68,22 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   if (op_unlikely(!span_size)) return NULL;
   
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
+  uintptr_t iptr; // naming convention from CERT INT36-C
+  uint64_t* bmap;
+  
   obj_size = magic.typed_uspan.obj_size;
+  /* Number of objects fits into the span, regardless of header.  Note
+   * this is different to the capcity of object that can stored in this
+   * span.  The capacity should be calculated as
+   * bitmap_cnt * 64 - headroom - padding.
+   */
   obj_cnt = span_size / obj_size;
-  // TODO document the formula
-  bitmap_cnt = (obj_cnt + 64 - 1) >> 6;
+  bitmap_cnt = round_up_div(obj_cnt, 64);
   padding = (bitmap_cnt << 6) - obj_cnt;
   headroom = (sizeof(UnarySpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
 
   op_assert(headroom < 64,
-            "headroom should be less equal to 64, but it is %d\n", headroom);
+            "headroom should be less equal to 64, but were %d\n", headroom);
   
   UnarySpan span = 
     {
@@ -83,22 +92,31 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
       .bitmap_headroom = (uint8_t)headroom,
       .bitmap_padding = (uint8_t)padding,
       .bitmap_hint = 0,
-      .prev = NULL,
+      .pcard = 0,
+      .obj_cnt = 0,
+      .state = BM_NEW,
       .next = NULL
     };
 
   memcpy(addr, &span, sizeof(span));
-  UnarySpan* self = addr;
 
-  addr += sizeof(UnarySpan);
-
-  memset(addr, 0, bitmap_cnt << 3);
-  atomic_fetch_or((_Atomic uint64_t *) addr, (1UL << headroom)-1);
+  // Point to the first bitmap
+  iptr = (uintptr_t)addr + sizeof(UnarySpan);
+  // Set all bitmap to 0
+  memset((void*)iptr, 0, bitmap_cnt << 3);
+  // Mark the headroom bits
+  bmap = (uint64_t*)iptr;
+  *bmap |= (1UL << headroom) - 1;
+  
+  // Mark the padding bits
   if (padding)
-    atomic_fetch_or((_Atomic uint64_t *) (addr + ((bitmap_cnt-1) << 3)),
-                    ~((1UL << (64-padding))-1));
-
-  return self;
+    {
+      bmap = (uint64_t*)(iptr + (bitmap_cnt - 1) * 8);
+      *bmap |=  ~((1UL << (64-padding))-1);
+    }
+  
+  atomic_thread_fence(memory_order_release);
+  return (UnarySpan*) addr;
 }
 
 bool USpanMalloc(UnarySpan* self, void** addr)
@@ -106,8 +124,15 @@ bool USpanMalloc(UnarySpan* self, void** addr)
   if (!atomic_check_in(&self->pcard))
     return false;
 
-  BitMapState state = atomic_load_explicit(&self->state,
-                                           memory_order_relaxed);
+  BitMapState state;
+  a_uint64_t *bitmap_base, *bitmap;
+  uintptr_t iptr;
+  ptrdiff_t bitmap_offset, item_offset;
+  uint64_t old_bmap, new_bmap;
+  uint16_t obj_size, obj_cnt, obj_capacity;
+  
+  state = atomic_load_explicit(&self->state,
+                               memory_order_relaxed);
 
   // TODO: document the state machine.
   // When state == BM_NEW, obj_cnt can change from 0 to 1;
@@ -116,30 +141,23 @@ bool USpanMalloc(UnarySpan* self, void** addr)
       atomic_load_explicit(&self->obj_cnt,
                            memory_order_relaxed) == 0)
     {
-      return false;
-    }
-  else if (state == BM_FULL || state == BM_TOMBSTONE)
-    {
+      atomic_check_out(&self->pcard);
       return false;
     }
 
-  // TODO: is this memory order correct?
-  uint16_t obj_cnt = atomic_fetch_add_explicit(&self->obj_cnt, 1,
-                                               memory_order_acquire);
-  const uint16_t obj_capacity = ((uint16_t)self->bitmap_cnt)*64 -
+  obj_cnt = atomic_fetch_add_explicit(&self->obj_cnt, 1,
+                                      memory_order_acquire);
+  obj_capacity = ((uint16_t)self->bitmap_cnt)*64 -
     self->bitmap_headroom - self->bitmap_padding;
 
   if (obj_cnt > obj_capacity)
     {
       goto uspan_full;
     }
-  
-  a_uint64_t *bitmap_base, *bitmap;
-  ptrdiff_t bitmap_offset, item_offset;
-  uint64_t old_bmap, new_bmap;
-  uint16_t obj_size = self->magic.typed_uspan.obj_size;
-  
-  bitmap_base = (_Atomic uint64_t *)(self+1);
+
+  iptr = (uintptr_t)self;
+  obj_size = self->magic.typed_uspan.obj_size;
+  bitmap_base = (a_uint64_t *)(iptr + sizeof(UnarySpan));
   bitmap_offset = (ptrdiff_t)self->bitmap_hint;
   bitmap = bitmap_base + bitmap_offset;
 
@@ -153,24 +171,19 @@ bool USpanMalloc(UnarySpan* self, void** addr)
           item_offset = __builtin_ctzl(new_bmap);
           new_bmap |= old_bmap;
         }
-      while(!atomic_compare_exchange_weak_explicit
+      while(!atomic_compare_exchange_strong_explicit
             (bitmap, &old_bmap, new_bmap,
              memory_order_relaxed,
              memory_order_relaxed));
-      // TODO: document formula
-      // TODO: use uintptr_t for pointer arithmetic instaed of void*
-      *addr = (void*)self +
-        (((bitmap_offset % self->bitmap_cnt) << 6) + item_offset) * obj_size;
-
-      self->bitmap_hint = (uint8_t)(bitmap_offset % self->bitmap_cnt);
-
+      *addr = (void*)(iptr + (bitmap_offset * 64 + item_offset) * obj_size);
+      self->bitmap_hint = (uint8_t)bitmap_offset;
       atomic_check_out(&self->pcard);
       return true;
       
     next_bmap:
       bitmap_offset++;
-      bitmap = bitmap_base + (bitmap_offset % self->bitmap_cnt);
-      continue;
+      bitmap_offset %= self->bitmap_cnt;
+      bitmap = bitmap_base + bitmap_offset;
     }
   
  uspan_full:
@@ -209,7 +222,7 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
   
   void* base, bound;
   ptrdiff_t diff;
-  _Atomic uint64_t* bitmap;
+  a_uint64_t* bitmap;
   uint64_t expected_empty_bmap;
   int obj_size, bmap_idx, remainder;
   int16_t old_rwlock, expected_rwlock;
