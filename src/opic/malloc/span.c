@@ -130,6 +130,7 @@ bool USpanMalloc(UnarySpan* self, void** addr)
   ptrdiff_t bitmap_offset, item_offset;
   uint64_t old_bmap, new_bmap;
   uint16_t obj_size, obj_cnt, obj_capacity;
+  OPHeap* heap;
   
   state = atomic_load_explicit(&self->state,
                                memory_order_relaxed);
@@ -200,19 +201,76 @@ bool USpanMalloc(UnarySpan* self, void** addr)
   atomic_store_explicit(&self->state, BM_FULL, memory_order_relaxed);
   atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
 
-  // Find the queue
-  /*
-    atomic_check_out(queue);
-    do {
-      atomic_check_in(queue);
-      if (!atomic_book_critical(queue)) {
-        atomic_check_out(queue);
-        continue;
+  heap = get_opheap(self);
+
+  // TODO: document why we check-out then do the check-in, book loops.
+  // This is how we avoid data races.
+  switch (self->magic.uspan_generic.pattern)
+    {
+    case TYPED_USPAN_PATTERN:
+      {
+        TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
+        int tid = self->magic.typed_uspan.thread_id;
+        atomic_check_out(&ta->uspan_pcard[tid]);
+        while (1) 
+          {
+            if (!atomic_check_in(&ta->uspan_pcard[tid]))
+              continue;            
+            if (atomic_book_critical(&ta->uspan_pcard[tid]))
+              break;
+            atomic_check_out(&ta->uspan_pcard[tid]);
+          }
+        while (!dequeue_uspan(&ta->uspan[tid],
+                              &ta->uspan_pcard[tid],
+                              self))
+          ;
+        break;
       }
-    while (!dequeue(queue, self))
-      ;
-    
-   */
+    case RAW_USPAN_PATTERN:
+      {
+        uint16_t size_class = self->magic.raw_uspan.obj_size / 16;
+        int tid = self->magic.raw_uspan.thread_id;
+        atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
+        while (1)
+          {
+            if (!atomic_check_in(&heap->raw_type.uspan_pcard[size_class][tid]))
+              continue;
+            if (atomic_book_critical
+                (&heap->raw_type.uspan_pcard[size_class][tid]))
+              break;
+            atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
+          }
+        while (!dequeue_uspan
+               (&heap->raw_type.uspan[size_class][tid],
+                &heap->raw_type.uspan_pcard[size_class][tid],
+                self))
+          ;
+        break;
+      }
+    case LARGE_USPAN_PATTERN:
+      {
+        uint16_t obj_size = self->magic.large_uspan.obj_size;
+        int uid =
+          obj_size == 512 ? 0 :
+          obj_size == 1024 ? 1 : 2;
+        atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
+        while (1)
+          {
+            if (!atomic_check_in(&heap->raw_type.large_uspan_pcard[uid]))
+              continue;
+            if (atomic_book_critical
+                (&heap->raw_type.large_uspan_pcard[uid]))
+              break;
+            atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
+          }
+        while (!dequeue_uspan
+               (&heap->raw_type.large_uspan[uid],
+                &heap->raw_type.large_uspan_pcard[uid],
+                self))
+          ;
+        break;
+      }
+    } // end of switch
   atomic_check_out(&self->pcard);
   return false;
 }

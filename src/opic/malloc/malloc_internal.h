@@ -74,7 +74,7 @@ static_assert(sizeof(BitMapState) == 1, "BitMapState should be 1 byte\n");
 
 struct UnarySpan
 {
-  const Magic magic;
+  const Magic magic;             // 32 bits
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
@@ -82,7 +82,7 @@ struct UnarySpan
   a_in16_t pcard;
   a_uint16_t obj_cnt;
   _Atomic BitMapState state;
-  const uint8_t padding;
+  const uint32_t struct_padding: 24;
   UnarySpan* next;
 };
 

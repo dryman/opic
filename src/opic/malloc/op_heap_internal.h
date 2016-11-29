@@ -91,6 +91,11 @@ struct TypeAlias
 
 HugePage* ObtainHPage(OPHeap* self, Magic magic);
 
+static inline OPHeap* get_opheap(void* addr)
+{
+  return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE-1));
+}
+
 static inline void
 insert_hpage_internal(HugePage** hpage_ref, HugePage* hpage)
 {

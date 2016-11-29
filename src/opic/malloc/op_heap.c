@@ -53,11 +53,6 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 
-#define OPHEAP_SIZE (1L << 36)
-#define VPAGE_MASK (~((1L << 21) - 1))
-#define PPAGE_MASK (~((1L << 12) - 1))
-#define VSPAN_NUM (1 << 15)
-#define VSPAN_BMAP_NUM (1 << 9)
 
 typedef struct RawType RawType;
 typedef struct TypeAlias TypeAlias;

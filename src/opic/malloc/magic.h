@@ -51,6 +51,12 @@
 #include <assert.h>
 #include <stdint.h>
 
+#define OPHEAP_SIZE (1L << 36)
+#define VPAGE_MASK (~((1L << 21) - 1))
+#define PPAGE_MASK (~((1L << 12) - 1))
+#define VSPAN_NUM (1 << 15)
+#define VSPAN_BMAP_NUM (1 << 9)
+
 #define TYPED_USPAN_PATTERN 0
 #define RAW_USPAN_PATTERN 1
 #define LARGE_USPAN_PATTERN 2
