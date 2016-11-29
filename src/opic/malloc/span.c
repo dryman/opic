@@ -68,7 +68,7 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   if (op_unlikely(!span_size)) return NULL;
   
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
-  uintptr_t iptr; // naming convention from CERT INT36-C
+  uintptr_t iaddr;
   uint64_t* bmap;
   
   obj_size = magic.typed_uspan.obj_size;
@@ -101,17 +101,17 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   memcpy(addr, &span, sizeof(span));
 
   // Point to the first bitmap
-  iptr = (uintptr_t)addr + sizeof(UnarySpan);
+  iaddr = (uintptr_t)addr + sizeof(UnarySpan);
   // Set all bitmap to 0
-  memset((void*)iptr, 0, bitmap_cnt << 3);
+  memset((void*)iaddr, 0, bitmap_cnt << 3);
   // Mark the headroom bits
-  bmap = (uint64_t*)iptr;
+  bmap = (uint64_t*)iaddr;
   *bmap |= (1UL << headroom) - 1;
   
   // Mark the padding bits
   if (padding)
     {
-      bmap = (uint64_t*)(iptr + (bitmap_cnt - 1) * 8);
+      bmap = (uint64_t*)(iaddr + (bitmap_cnt - 1) * 8);
       *bmap |=  ~((1UL << (64-padding))-1);
     }
   
@@ -126,7 +126,7 @@ bool USpanMalloc(UnarySpan* self, void** addr)
 
   BitMapState state;
   a_uint64_t *bitmap_base, *bitmap;
-  uintptr_t iptr;
+  uintptr_t base;
   ptrdiff_t bitmap_offset, item_offset;
   uint64_t old_bmap, new_bmap;
   uint16_t obj_size, obj_cnt, obj_capacity;
@@ -156,9 +156,9 @@ bool USpanMalloc(UnarySpan* self, void** addr)
       goto uspan_full;
     }
 
-  iptr = (uintptr_t)self;
+  base = (uintptr_t)self;
   obj_size = self->magic.typed_uspan.obj_size;
-  bitmap_base = (a_uint64_t *)(iptr + sizeof(UnarySpan));
+  bitmap_base = (a_uint64_t *)(base + sizeof(UnarySpan));
   bitmap_offset = (ptrdiff_t)self->bitmap_hint;
   bitmap = bitmap_base + bitmap_offset;
 
@@ -176,7 +176,7 @@ bool USpanMalloc(UnarySpan* self, void** addr)
             (bitmap, &old_bmap, new_bmap,
              memory_order_relaxed,
              memory_order_relaxed));
-      *addr = (void*)(iptr + (bitmap_offset * 64 + item_offset) * obj_size);
+      *addr = (void*)(base + (bitmap_offset * 64 + item_offset) * obj_size);
       self->bitmap_hint = (uint8_t)bitmap_offset;
       atomic_check_out(&self->pcard);
       return true;
@@ -277,34 +277,39 @@ bool USpanMalloc(UnarySpan* self, void** addr)
 
 BitMapState USpanFree(UnarySpan* self, void* addr)
 {
-  
-  void* base, bound;
-  ptrdiff_t diff;
+  uintptr_t base, iaddr, bound;
+  int obj_size, addr_idx, bmap_idx, item_idx;
   a_uint64_t* bitmap;
+  OPHeap* heap;
+  uint16_t obj_cnt;
   uint64_t expected_empty_bmap;
-  int obj_size, bmap_idx, remainder;
-  int16_t old_rwlock, expected_rwlock;
 
-  // TODO use uintptr_t for pointer arithmetic
+
+  // Locate the bitmap and item index, and validate its correctness
+  base = (uintptr_t)self;
+  iaddr = (uintptr_t)addr;
   obj_size = self->magic.uspan_generic->obj_size;
-  base = (void*)self;
-  bound = base + obj_size*(64*self->bitmap_cnt - self->bitmap_padding);
-  op_assert(addr > base && addr < bound,
+  bound = base + obj_size * (64 * self->bitmap_cnt - self->bitmap_padding);
+  bitmap = (a_uint64_t *)(base + sizeof(UnarySpan));
+  addr_idx = (iaddr - base) / obj_size;
+  bmap_idx = addr_idx / 64;
+  item_idx = addr_idx - bmap_idx * 64;
+  heap = get_opheap(self);
+
+  op_assert(iaddr > base && iaddr < bound,
             "Free address %p should within span from %p and %p",
-            addr, base, bound);
-
-  diff = (addr - base) / obj_size;
-  bitmap = (_Atomic uint64_t *)(self+1);
-  int bmap_idx = diff >> 6;
-  int remainder = diff - (bmap_idx << 6);
-
-  op_assert(diff * obj_size + base == addr,
+            addr, (void*)base, (void*)bound);
+  
+  op_assert(addr_idx * obj_size + base == iaddr,
             "Free address %p should align with obj_size %d\n",
             addr, obj_size);
+  
   if (bmap_idx == 0)
-    op_assert(remainder >= self->bitmap_headroom,
-              "Free address %p cannot overlap span %p headroom\n",
-              addr, self);
+    {
+      op_assert(item_idx >= self->bitmap_headroom,
+                "Free address %p cannot overlap span %p headroom\n",
+                addr, self);
+    }
 
  retry:
   if (!atomic_check_in(&self->pcard))
@@ -318,17 +323,83 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
       atomic_check_out(&self->pcard);
       goto retry;
     }
-  op_assert(atomic_enter_critical(&self->pcard),
-            "Not possible to have other thread entering critical here.");
+  while (!atomic_enter_critical(&self->pcard))
+    ;
+
   atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
   atomic_store_explicit(&self->state, BM_NORMAL, memory_order_relaxed);
   atomic_fetch_and_explicit(&bitmap[bmap_idx],
                             ~(1UL<<remainder),
                             memory_order_relaxed);
-  /* TODO:
-     find queue
-     enqueue
-  */
+
+  // enqueue_uspan
+  switch (self->magic.uspan_generic.pattern)
+    {
+    case TYPED_USPAN_PATTERN:
+      {
+        TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
+        int tid = self->magic.typed_uspan.thread_id;
+        while (1) 
+          {
+            if (!atomic_check_in(&ta->uspan_pcard[tid]))
+              continue;            
+            if (atomic_book_critical(&ta->uspan_pcard[tid]))
+              break;
+            atomic_check_out(&ta->uspan_pcard[tid]);
+          }
+        while (!enqueue_uspan(&ta->uspan[tid],
+                              &ta->uspan_pcard[tid],
+                              self))
+          ;
+        atomic_check_out(&ta->uspan_pcard[tid]);
+        break;
+      }
+    case RAW_USPAN_PATTERN:
+      {
+        uint16_t size_class = self->magic.raw_uspan.obj_size / 16;
+        int tid = self->magic.raw_uspan.thread_id;
+        while (1)
+          {
+            if (!atomic_check_in(&heap->raw_type.uspan_pcard[size_class][tid]))
+              continue;
+            if (atomic_book_critical
+                (&heap->raw_type.uspan_pcard[size_class][tid]))
+              break;
+            atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
+          }
+        while (!enqueue_uspan
+               (&heap->raw_type.uspan[size_class][tid],
+                &heap->raw_type.uspan_pcard[size_class][tid],
+                self))
+          ;
+        atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
+        break;
+      }
+    case LARGE_USPAN_PATTERN:
+      {
+        uint16_t obj_size = self->magic.large_uspan.obj_size;
+        int uid =
+          obj_size == 512 ? 0 :
+          obj_size == 1024 ? 1 : 2;
+        while (1)
+          {
+            if (!atomic_check_in(&heap->raw_type.large_uspan_pcard[uid]))
+              continue;
+            if (atomic_book_critical
+                (&heap->raw_type.large_uspan_pcard[uid]))
+              break;
+            atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
+          }
+        while (!enqueue_uspan
+               (&heap->raw_type.large_uspan[uid],
+                &heap->raw_type.large_uspan_pcard[uid],
+                self))
+          ;
+        atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
+        break;
+      }
+    } // end of switch
+  
   atomic_exit_critical(&self->pcard);
   atomic_check_out(&self->pcard);
   return BM_NORMAL;
@@ -336,8 +407,81 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
  free_bm_normal:
 
     // TODO think about this order again..
-  uint16_t obj_cnt = atomic_fetch_sub_explicit(&self->obj_cnt, 1,
-                                               memory_order_acq_rel);
+  obj_cnt = atomic_fetch_sub_explicit(&self->obj_cnt, 1,
+                                      memory_order_acq_rel);
+
+
+  // TODO: document why we check-out then do the check-in, book loops.
+  // This is how we avoid data races.
+  switch (self->magic.uspan_generic.pattern)
+    {
+    case TYPED_USPAN_PATTERN:
+      {
+        TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
+        int tid = self->magic.typed_uspan.thread_id;
+        atomic_check_out(&ta->uspan_pcard[tid]);
+        while (1) 
+          {
+            if (!atomic_check_in(&ta->uspan_pcard[tid]))
+              continue;            
+            if (atomic_book_critical(&ta->uspan_pcard[tid]))
+              break;
+            atomic_check_out(&ta->uspan_pcard[tid]);
+          }
+        while (!dequeue_uspan(&ta->uspan[tid],
+                              &ta->uspan_pcard[tid],
+                              self))
+          ;
+        break;
+      }
+    case RAW_USPAN_PATTERN:
+      {
+        uint16_t size_class = self->magic.raw_uspan.obj_size / 16;
+        int tid = self->magic.raw_uspan.thread_id;
+        atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
+        while (1)
+          {
+            if (!atomic_check_in(&heap->raw_type.uspan_pcard[size_class][tid]))
+              continue;
+            if (atomic_book_critical
+                (&heap->raw_type.uspan_pcard[size_class][tid]))
+              break;
+            atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
+          }
+        while (!dequeue_uspan
+               (&heap->raw_type.uspan[size_class][tid],
+                &heap->raw_type.uspan_pcard[size_class][tid],
+                self))
+          ;
+        break;
+      }
+    case LARGE_USPAN_PATTERN:
+      {
+        uint16_t obj_size = self->magic.large_uspan.obj_size;
+        int uid =
+          obj_size == 512 ? 0 :
+          obj_size == 1024 ? 1 : 2;
+        atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
+        while (1)
+          {
+            if (!atomic_check_in(&heap->raw_type.large_uspan_pcard[uid]))
+              continue;
+            if (atomic_book_critical
+                (&heap->raw_type.large_uspan_pcard[uid]))
+              break;
+            atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
+          }
+        while (!dequeue_uspan
+               (&heap->raw_type.large_uspan[uid],
+                &heap->raw_type.large_uspan_pcard[uid],
+                self))
+          ;
+        break;
+      }
+    } // end of switch
+
+
+  
 
   if (obj_cnt > 1)
     {
