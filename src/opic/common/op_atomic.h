@@ -108,11 +108,10 @@ typedef _Atomic uint64_t a_uint64_t;
 static inline bool
 atomic_check_in_8(a_int8_t* punch_card)
 {
-  int8_t val;
+  int8_t val = atomic_load_explicit(punch_card,
+                                    memory_order_relaxed);
   do
     {
-      val = atomic_load_explicit(punch_card,
-                                 memory_order_relaxed);
       if (val < 0)
         return false;
     }
@@ -126,11 +125,10 @@ atomic_check_in_8(a_int8_t* punch_card)
 static inline bool
 atomic_check_in_16(a_int16_t* punch_card)
 {
-  int16_t val;
+  int16_t val = atomic_load_explicit(punch_card,
+                                     memory_order_relaxed);
   do
     {
-      val = atomic_load_explicit(punch_card,
-                                 memory_order_relaxed);
       if (val < 0)
         return false;
     }
@@ -144,11 +142,10 @@ atomic_check_in_16(a_int16_t* punch_card)
 static inline bool
 atomic_check_in_32(a_int32_t* punch_card)
 {
-  int32_t val;
+  int32_t val = atomic_load_explicit(punch_card,
+                                     memory_order_relaxed);
   do
     {
-      val = atomic_load_explicit(punch_card,
-                                 memory_order_relaxed);
       if (val < 0)
         return false;
     }
@@ -162,11 +159,10 @@ atomic_check_in_32(a_int32_t* punch_card)
 static inline bool
 atomic_check_in_64(a_int64_t* punch_card)
 {
-  int64_t val;
+  int64_t val = atomic_load_explicit(punch_card,
+                                     memory_order_relaxed);
   do
     {
-      val = atomic_load_explicit(punch_card,
-                                 memory_order_relaxed);
       if (val < 0)
         return false;
     }
@@ -182,7 +178,7 @@ atomic_check_out_8(a_int8_t* punch_card)
 {
   atomic_fetch_sub_explicit(punch_card,
                             1,
-                            memory_order_relaxed);
+                            memory_order_release);
 }
 
 static inline void
@@ -190,7 +186,7 @@ atomic_check_out_16(a_int16_t* punch_card)
 {
   atomic_fetch_sub_explicit(punch_card,
                             1,
-                            memory_order_relaxed);
+                            memory_order_release);
 }
 
 static inline void
@@ -198,7 +194,7 @@ atomic_check_out_32(a_int32_t* punch_card)
 {
   atomic_fetch_sub_explicit(punch_card,
                             1,
-                            memory_order_relaxed);
+                            memory_order_release);
 }
 
 static inline void
@@ -206,7 +202,7 @@ atomic_check_out_64(a_int64_t* punch_card)
 {
   atomic_fetch_sub_explicit(punch_card,
                             1,
-                            memory_order_relaxed);
+                            memory_order_release);
 }
 
 static inline bool
@@ -324,25 +320,25 @@ atomic_enter_critical_64(a_int64_t* punch_card)
 static inline void
 atomic_exit_critical_8(a_int8_t* punch_card)
 {
-  atomic_store_explicit(punch_card, 1, memory_order_relaxed);
+  atomic_store_explicit(punch_card, 1, memory_order_release);
 }
 
 static inline void
 atomic_exit_critical_16(a_int16_t* punch_card)
 {
-  atomic_store_explicit(punch_card, 1, memory_order_relaxed);
+  atomic_store_explicit(punch_card, 1, memory_order_release);
 }
 
 static inline void
 atomic_exit_critical_32(a_int32_t* punch_card)
 {
-  atomic_store_explicit(punch_card, 1, memory_order_relaxed);
+  atomic_store_explicit(punch_card, 1, memory_order_release);
 }
 
 static inline void
 atomic_exit_critical_64(a_int64_t* punch_card)
 {
-  atomic_store_explicit(punch_card, 1, memory_order_relaxed);
+  atomic_store_explicit(punch_card, 1, memory_order_release);
 }
 
 
