@@ -9,17 +9,17 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR
 LT_INIT
 
-AC_PROG_CC
-AC_PROG_CC_C99
+AC_PROG_CC_C11
 AC_PROG_LIBTOOL
 AC_C_INLINE
-
+AC_HEADER_STDBOOL
+AC_CHECK_HEADERS([limits.h inttypes.h])
+AC_FUNC_MALLOC
+AC_FUNC_MEMCMP
+AC_FUNC_MMAP
 
 AX_CFLAGS_WARN_ALL
 AX_PTHREAD
-
-AC_HEADER_STDBOOL
-AC_CHECK_HEADERS([limits.h inttypes.h])
 
 # TODO(fchern):
 # check cmocka
@@ -43,14 +43,7 @@ AS_IF([test "x$GCC" = "xyes"],
   [atomic_LIBS=""])
 AC_SUBST([atomic_LIBS])
 
-CFLAGS="$CFLAGS -Wextra -Wnonnull"
-
 PKG_CHECK_MODULES([cmocka], [cmocka >= 1.0.1])
-
-AC_FUNC_MALLOC
-AC_FUNC_MEMCMP
-AC_FUNC_MMAP
-
 
 AC_CONFIG_FILES([Makefile src/Makefile pm_serde_example/Makefile
 tests/Makefile])
