@@ -66,11 +66,11 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   */
   if (op_unlikely(!magic.typed_uspan.obj_size)) return NULL;
   if (op_unlikely(!span_size)) return NULL;
-  
+
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
   uintptr_t iaddr;
   uint64_t* bmap;
-  
+
   obj_size = magic.typed_uspan.obj_size;
   /* Number of objects fits into the span, regardless of header.  Note
    * this is different to the capcity of object that can stored in this
@@ -84,8 +84,8 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
 
   op_assert(headroom < 64,
             "headroom should be less equal to 64, but were %d\n", headroom);
-  
-  UnarySpan span = 
+
+  UnarySpan span =
     {
       .magic = magic,
       .bitmap_cnt = (uint8_t)bitmap_cnt,
@@ -107,14 +107,14 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   // Mark the headroom bits
   bmap = (uint64_t*)iaddr;
   *bmap |= (1UL << headroom) - 1;
-  
+
   // Mark the padding bits
   if (padding)
     {
       bmap = (uint64_t*)(iaddr + (bitmap_cnt - 1) * 8);
       *bmap |=  ~((1UL << (64-padding))-1);
     }
-  
+
   atomic_thread_fence(memory_order_release);
   return (UnarySpan*) addr;
 }
@@ -131,7 +131,7 @@ bool USpanMalloc(UnarySpan* self, void** addr)
   uint64_t old_bmap, new_bmap;
   uint16_t obj_size, obj_cnt, obj_capacity;
   OPHeap* heap;
-  
+
   state = atomic_load_explicit(&self->state,
                                memory_order_relaxed);
 
@@ -183,13 +183,13 @@ bool USpanMalloc(UnarySpan* self, void** addr)
       self->bitmap_hint = (uint8_t)bitmap_offset;
       atomic_check_out(&self->pcard);
       return true;
-      
+
     next_bmap:
       bitmap_offset++;
       bitmap_offset %= self->bitmap_cnt;
       bitmap = bitmap_base + bitmap_offset;
     }
-  
+
  uspan_full:
   /* If we couldn't book, there were some other thread booked the critical
      section.  Retry and start over again. */
@@ -215,10 +215,10 @@ bool USpanMalloc(UnarySpan* self, void** addr)
         TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
         int tid = self->magic.typed_uspan.thread_id;
         atomic_check_out(&ta->uspan_pcard[tid]);
-        while (1) 
+        while (1)
           {
             if (!atomic_check_in(&ta->uspan_pcard[tid]))
-              continue;            
+              continue;
             if (atomic_book_critical(&ta->uspan_pcard[tid]))
               break;
             atomic_check_out(&ta->uspan_pcard[tid]);
@@ -301,11 +301,11 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
   op_assert(iaddr > base && iaddr < bound,
             "Free address %p should within span from %p and %p",
             addr, (void*)base, (void*)bound);
-  
+
   op_assert(addr_idx * obj_size + base == iaddr,
             "Free address %p should align with obj_size %d\n",
             addr, obj_size);
-  
+
   if (bmap_idx == 0)
     {
       op_assert(item_idx >= self->bitmap_headroom,
@@ -345,10 +345,10 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
       {
         TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
         int tid = self->magic.typed_uspan.thread_id;
-        while (1) 
+        while (1)
           {
             if (!atomic_check_in(&ta->uspan_pcard[tid]))
-              continue;            
+              continue;
             if (atomic_book_critical(&ta->uspan_pcard[tid]))
               break;
             atomic_check_out(&ta->uspan_pcard[tid]);
@@ -405,7 +405,7 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
         break;
       }
     } // end of switch
-  
+
   atomic_exit_critical(&self->pcard);
   atomic_check_out(&self->pcard);
   return BM_NORMAL;
@@ -431,17 +431,17 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
     ;
 
   atomic_store_explicit(&self->state, BM_TOMBSTONE, memory_order_relaxed);
-  
+
   switch (self->magic.uspan_generic.pattern)
     {
     case TYPED_USPAN_PATTERN:
       {
         TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
         int tid = self->magic.typed_uspan.thread_id;
-        while (1) 
+        while (1)
           {
             if (!atomic_check_in(&ta->uspan_pcard[tid]))
-              continue;            
+              continue;
             if (atomic_book_critical(&ta->uspan_pcard[tid]))
               break;
             atomic_check_out(&ta->uspan_pcard[tid]);

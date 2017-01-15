@@ -209,80 +209,64 @@ static inline bool
 atomic_book_critical_8(a_int8_t* punch_card)
 {
   return atomic_fetch_or_explicit
-    (punch_card, 1<<7, memory_order_acq_rel) < 0 ?
-    false : true;
+    (punch_card, 1<<7, memory_order_acq_rel) > 0;
 }
 
 static inline bool
 atomic_book_critical_16(a_int16_t* punch_card)
 {
   return atomic_fetch_or_explicit
-    (punch_card, 1<<15, memory_order_acq_rel) < 0 ?
-    false : true;
+    (punch_card, 1<<15, memory_order_acq_rel) > 0;
 }
 
 static inline bool
 atomic_book_critical_32(a_int32_t* punch_card)
 {
   return atomic_fetch_or_explicit
-    (punch_card, 1<<31, memory_order_acq_rel) < 0 ?
-    false : true;
+    (punch_card, 1<<31, memory_order_acq_rel) > 0;
 }
 
 static inline bool
 atomic_book_critical_64(a_int64_t* punch_card)
 {
   return atomic_fetch_or_explicit
-    (punch_card, 1L<<63, memory_order_acq_rel) < 0 ?
-    false : true;
+    (punch_card, 1L<<63, memory_order_acq_rel) > 0;
 }
 
-static inline bool
+static inline void
 atomic_enter_critical_8(a_int8_t* punch_card)
 {
-  int8_t val = INT8_MIN + 1;
-  if (atomic_compare_exchange_strong_explicit
-      (punch_card, &val, val - 1,
-       memory_order_acquire,
-       memory_order_relaxed))
-    return true;
-  return false;
+  while (atomic_load_explicit(punch_card, memory_order_relaxed)
+         > INT8_MIN + 1)
+    ;
+  atomic_sub_explicit(punch_card, 1, memory_order_acq_rel);
 }
 
-static inline bool
+static inline void
 atomic_enter_critical_16(a_int16_t* punch_card)
 {
-  int16_t val = INT16_MIN + 1;
-  if (atomic_compare_exchange_strong_explicit
-      (punch_card, &val, val - 1,
-       memory_order_acquire,
-       memory_order_relaxed))
-    return true;
-  return false;
+  while (atomic_load_explicit(punch_card, memory_order_relaxed)
+         > INT16_MIN + 1)
+    ;
+  atomic_sub_explicit(punch_card, 1, memory_order_acq_rel);
 }
 
-static inline bool
+static inline void
 atomic_enter_critical_32(a_int32_t* punch_card)
 {
-  int32_t val = INT32_MIN + 1;
-  if (atomic_compare_exchange_strong_explicit
-      (punch_card, &val, val - 1,
-       memory_order_acquire,
-       memory_order_relaxed))
-    return true;
-  return false;
+  while (atomic_load_explicit(punch_card, memory_order_relaxed)
+         > INT32_MIN + 1)
+    ;
+  atomic_sub_explicit(punch_card, 1, memory_order_acq_rel);
 }
 
-static inline bool
+static inline void
 atomic_enter_critical_64(a_int64_t* punch_card)
 {
-  int64_t val = INT64_MIN + 1;
-  if (atomic_compare_exchange_strong_explicit
-      (punch_card, &val, val - 1,
-       memory_order_acquire,
-       memory_order_relaxed))
-    return true;
-  return false;
+  while (atomic_load_explicit(punch_card, memory_order_relaxed)
+         > INT64_MIN + 1)
+    ;
+  atomic_sub_explicit(punch_card, 1, memory_order_acq_rel);
 }
 
 static inline void

@@ -124,7 +124,7 @@ void* OPAllocRaw(OPHeap* self, size_t size)
 
   int tid = thread_id;
   void* addr = NULL;
-  
+
   if (size <= 256)
     {
       int size_class = (int)(size >> 4);
@@ -165,7 +165,7 @@ void* OPAllocRaw(OPHeap* self, size_t size)
           break;
         }
       rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
-      return addr;   
+      return addr;
     }
   else if (size <= 2048)
     {
@@ -234,7 +234,7 @@ void* OPAllocRaw(OPHeap* self, size_t size)
     {
       op_assert(0, "not implemented yet\n");
     }
-  
+
   return NULL;
 }
 
@@ -259,7 +259,7 @@ void OPFree2(void* addr)
   /* span = base + (span_header_idx << 12); */
   /* header_mask = ~(clear_low & (~(clear_low) + 1)); */
 }
-      
+
 
 HugePage* ObtainHPage(OPHeap* self, Magic magic)
 {
@@ -280,7 +280,7 @@ HugePage* ObtainHPage(OPHeap* self, Magic magic)
                  (&self->occupy_bmap[i], &old_bmap, new_bmap,
                   memory_order_acquire,
                   memory_order_relaxed));
-      
+
       HugePage* hpage = HugePageInit((void*)self + ((i << 6) + item_offset), magic);
       atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << item_offset,
                                memory_order_release);
@@ -296,14 +296,14 @@ void enqueue_uspan(UnarySpan* uspan)
 {
   OPHeap* heap = (OPHeap*)(((uintptr_t)uspan) & OPHEAP_SIZE);
   Magic magic = uspan->magic;
-    
+
   switch (magic.generic.pattern)
     {
     case TYPED_USPAN_PATTERN:
       {
         TypeAlias* ta = &heap->type_alias[magic.typed_uspan.type_alias];
         int tid = magic.typed_uspan.thread_id;
-        do 
+        do
           {
             favor_write(&ta->uspan_favor, tid);
           } while (!acq_wlock(&ta->uspan_rwlock[tid],
@@ -362,7 +362,7 @@ void dequeue_uspan(UnarySpan* uspan)
 {
   OPHeap* heap = (OPHeap*)(((uintptr_t)uspan) & OPHEAP_SIZE);
   Magic magic = uspan->magic;
-    
+
   switch (magic.generic.pattern)
     {
     case TYPED_USPAN_PATTERN:
@@ -370,7 +370,7 @@ void dequeue_uspan(UnarySpan* uspan)
         // TODO decrement refcnt of spans in typed uspan
         TypeAlias* ta = &heap->type_alias[magic.typed_uspan.type_alias];
         int tid = magic.typed_uspan.thread_id;
-        do 
+        do
           {
             favor_write(&ta->uspan_favor, tid);
           } while (!acq_wlock(&ta->uspan_rwlock[tid],
@@ -429,5 +429,5 @@ void dequeue_uspan(UnarySpan* uspan)
       op_assert(0, "Unexpected uspan\n");
     }
 }
-          
+
 /* op_heap.c ends here */
