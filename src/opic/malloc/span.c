@@ -146,15 +146,27 @@ bool USpanMalloc(UnarySpan* self, void** addr)
       return false;
     }
 
-  obj_cnt = atomic_fetch_add_explicit(&self->obj_cnt, 1,
-                                      memory_order_acquire);
   if (state == BM_NEW)
     atomic_store_explicit(&self->state, BM_NORMAL);
 
+  obj_cnt = atomic_fetch_add_explicit(&self->obj_cnt, 1,
+                                      memory_order_acquire);
   obj_capacity = ((uint16_t)self->bitmap_cnt)*64 -
     self->bitmap_headroom - self->bitmap_padding;
 
-  if (obj_cnt > obj_capacity)
+  /*
+   * Say the capacity is N, and the object count is n.  When n = N, we
+   * still insert the object into uspan, and since the insertion
+   * succeeded, we return true.  When n > N (n > N+1 when accessed by
+   * more than one thread), this uspan need to be removed from the
+   * queue and allocates a new uspan to hold the object. This uspan
+   * wasn't able to hold a new object, thus return false.
+   *
+   * Note that obj_cnt is (self->obj_cnt - 1). The logic below is
+   * equivalent to
+   * if (self->obj_cnt > obj_capacity) {...}
+   */
+  if (obj_cnt >= obj_capacity)
     {
       goto uspan_full;
     }
@@ -199,15 +211,15 @@ bool USpanMalloc(UnarySpan* self, void** addr)
       atomic_check_out(&self->pcard);
       return false;
     }
-  while (!atomic_enter_critical(&self->pcard))
-    ;
+  atomic_enter_critical(&self->pcard);
+
   atomic_store_explicit(&self->state, BM_FULL, memory_order_relaxed);
   atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
 
   heap = get_opheap(self);
 
   // TODO: document why we check-out then do the check-in, book loops.
-  // This is how we avoid data races.
+  // This is how we avoid data race.
   switch (self->magic.uspan_generic.pattern)
     {
     case TYPED_USPAN_PATTERN:
@@ -329,8 +341,7 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
       atomic_check_out(&self->pcard);
       goto retry;
     }
-  while (!atomic_enter_critical(&self->pcard))
-    ;
+  atomic_enter_critical(&self->pcard);
 
   atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
   atomic_store_explicit(&self->state, BM_NORMAL, memory_order_relaxed);
