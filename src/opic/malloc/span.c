@@ -1,44 +1,44 @@
-/* op_pspan.c --- 
- * 
+/* op_pspan.c ---
+ *
  * Filename: op_pspan.c
- * Description: 
+ * Description:
  * Author: Felix Chern
- * Maintainer: 
+ * Maintainer:
  * Copyright: (c) 2016 Felix Chern
  * Created: Sat Oct 8, 2016
  * Version: 0.3.0
  * Package-Requires: ()
- * Last-Updated: 
- *           By: 
+ * Last-Updated:
+ *           By:
  *     Update #: 0
- * URL: 
- * Doc URL: 
- * Keywords: 
- * Compatibility: 
- * 
+ * URL:
+ * Doc URL:
+ * Keywords:
+ * Compatibility:
+ *
  */
 
-/* Commentary: 
- * 
- * 
- * 
+/* Commentary:
+ *
+ *
+ *
  */
 
 /* Change Log:
- * 
- * 
+ *
+ *
  */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -53,8 +53,12 @@
 
 #define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)
 
-extern void enqueue_uspan(UnarySpan* uspan);
-extern void dequeue_uspan(UnarySpan* uspan);
+extern void enqueue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
+extern void dequeue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
+
+static void select_uspan_queue(OPHeap* heap,
+                               UnarySpan*** uspan_queue,
+                               a_int16_t** uspan_queue_pcard);
 
 UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
 {
@@ -130,7 +134,8 @@ bool USpanMalloc(UnarySpan* self, void** addr)
   ptrdiff_t bitmap_offset, item_offset;
   uint64_t old_bmap, new_bmap;
   uint16_t obj_size, obj_cnt, obj_capacity;
-  OPHeap* heap;
+  UnarySpan** uspan_queue;
+  a_int16_t* uspan_queue_pcard;
 
   state = atomic_load_explicit(&self->state,
                                memory_order_relaxed);
@@ -216,76 +221,21 @@ bool USpanMalloc(UnarySpan* self, void** addr)
   atomic_store_explicit(&self->state, BM_FULL, memory_order_relaxed);
   atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
 
-  heap = get_opheap(self);
-
-  // TODO: document why we check-out then do the check-in, book loops.
-  // This is how we avoid data race.
-  switch (self->magic.uspan_generic.pattern)
+  select_uspan_queue(get_opheap(self), &uspan_queue, &uspan_queue_pcard);
+  atomic_check_out(uspan_queue_pcard);
+  // Need to check out then check in to avoid dead lock.
+  while (1)
     {
-    case TYPED_USPAN_PATTERN:
-      {
-        TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
-        int tid = self->magic.typed_uspan.thread_id;
-        atomic_check_out(&ta->uspan_pcard[tid]);
-        while (1)
-          {
-            if (!atomic_check_in(&ta->uspan_pcard[tid]))
-              continue;
-            if (atomic_book_critical(&ta->uspan_pcard[tid]))
-              break;
-            atomic_check_out(&ta->uspan_pcard[tid]);
-          }
-        while (!dequeue_uspan(&ta->uspan[tid],
-                              &ta->uspan_pcard[tid],
-                              self))
-          ;
+      if (!atomic_check_in(uspan_queue_pcard))
+        continue;
+      if (atomic_book_critical(uspan_queue_pcard))
         break;
-      }
-    case RAW_USPAN_PATTERN:
-      {
-        uint16_t size_class = self->magic.raw_uspan.obj_size / 16;
-        int tid = self->magic.raw_uspan.thread_id;
-        atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
-        while (1)
-          {
-            if (!atomic_check_in(&heap->raw_type.uspan_pcard[size_class][tid]))
-              continue;
-            if (atomic_book_critical
-                (&heap->raw_type.uspan_pcard[size_class][tid]))
-              break;
-            atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
-          }
-        while (!dequeue_uspan
-               (&heap->raw_type.uspan[size_class][tid],
-                &heap->raw_type.uspan_pcard[size_class][tid],
-                self))
-          ;
-        break;
-      }
-    case LARGE_USPAN_PATTERN:
-      {
-        uint16_t obj_size = self->magic.large_uspan.obj_size;
-        int uid =
-          obj_size == 512 ? 0 :
-          obj_size == 1024 ? 1 : 2;
-        atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
-        while (1)
-          {
-            if (!atomic_check_in(&heap->raw_type.large_uspan_pcard[uid]))
-              continue;
-            if (atomic_book_critical
-                (&heap->raw_type.large_uspan_pcard[uid]))
-              break;
-            atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
-          }
-        while (!dequeue_uspan
-               (&heap->raw_type.large_uspan[uid],
-                &heap->raw_type.large_uspan_pcard[uid],
-                self))
-          ;
-        break;
-      }
-    } // end of switch
+      atomic_check_out(uspan_queue_pcard);
+    }
+  atomic_enter_critical(uspan_queue_pcard);
+  dequeue_uspan(uspan_queue, self);
+  atomic_exit_critical(uspan_queue_pcard);
+  // do not checkout uspan_queue, the caller will do
   atomic_check_out(&self->pcard);
   return false;
 }
@@ -298,6 +248,8 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
   OPHeap* heap;
   uint16_t obj_cnt;
   BitMapState state;
+  UnarySpan** uspan_queue;
+  a_int16_t* uspan_queue_pcard;
 
   // Locate the bitmap and item index, and validate its correctness
   base = (uintptr_t)self;
@@ -349,75 +301,19 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
                             ~(1UL << item_idx),
                             memory_order_relaxed);
 
-  // enqueue_uspan
-  switch (self->magic.uspan_generic.pattern)
+  select_uspan_queue(heap, &uspan_queue, &uspan_queue_pcard);
+  while (1)
     {
-    case TYPED_USPAN_PATTERN:
-      {
-        TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
-        int tid = self->magic.typed_uspan.thread_id;
-        while (1)
-          {
-            if (!atomic_check_in(&ta->uspan_pcard[tid]))
-              continue;
-            if (atomic_book_critical(&ta->uspan_pcard[tid]))
-              break;
-            atomic_check_out(&ta->uspan_pcard[tid]);
-          }
-        while (!enqueue_uspan(&ta->uspan[tid],
-                              &ta->uspan_pcard[tid],
-                              self))
-          ;
-        atomic_check_out(&ta->uspan_pcard[tid]);
+      if (!atomic_check_in(uspan_queue_pcard))
+        continue;
+      if (atomic_book_critical(uspan_queue_pcard))
         break;
-      }
-    case RAW_USPAN_PATTERN:
-      {
-        uint16_t size_class = self->magic.raw_uspan.obj_size / 16;
-        int tid = self->magic.raw_uspan.thread_id;
-        while (1)
-          {
-            if (!atomic_check_in(&heap->raw_type.uspan_pcard[size_class][tid]))
-              continue;
-            if (atomic_book_critical
-                (&heap->raw_type.uspan_pcard[size_class][tid]))
-              break;
-            atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
-          }
-        while (!enqueue_uspan
-               (&heap->raw_type.uspan[size_class][tid],
-                &heap->raw_type.uspan_pcard[size_class][tid],
-                self))
-          ;
-        atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
-        break;
-      }
-    case LARGE_USPAN_PATTERN:
-      {
-        uint16_t obj_size = self->magic.large_uspan.obj_size;
-        int uid =
-          obj_size == 512 ? 0 :
-          obj_size == 1024 ? 1 : 2;
-        while (1)
-          {
-            if (!atomic_check_in(&heap->raw_type.large_uspan_pcard[uid]))
-              continue;
-            if (atomic_book_critical
-                (&heap->raw_type.large_uspan_pcard[uid]))
-              break;
-            atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
-          }
-        while (!enqueue_uspan
-               (&heap->raw_type.large_uspan[uid],
-                &heap->raw_type.large_uspan_pcard[uid],
-                self))
-          ;
-        atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
-        break;
-      }
-    } // end of switch
-
+      atomic_check_out(uspan_queue_pcard);
+    }
+  atomic_enter_critical(uspan_queue_pcard);
+  enqueue_uspan(uspan_queue, self);
   atomic_exit_critical(&self->pcard);
+  atomic_check_out(uspan_queue_pcard);
   atomic_check_out(&self->pcard);
   return BM_NORMAL;
 
@@ -438,51 +334,46 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
   // Bury uspan
   op_assert(atomic_book_critical(&self->pcard),
             "only one thread can book critical to bury uspan");
-  while (!atomic_enter_critical(&self->pcard))
-    ;
-
+  atomic_enter_critical(&self->pcard);
   atomic_store_explicit(&self->state, BM_TOMBSTONE, memory_order_relaxed);
 
+  select_uspan_queue(heap, &uspan_queue, &uspan_queue_pcard);
+  while (1)
+    {
+      if (!atomic_check_in(uspan_queue_pcard))
+        continue;
+      if (atomic_book_critical(uspan_queue_pcard))
+        break;
+      atomic_check_out(uspan_queue_pcard);
+    }
+  atomic_enter_critical(uspan_queue_pcard);
+  dequeue_uspan(uspan_queue, self);
+  atomic_exit_critical(uspan_queue_pcard);
+  atomic_check_out(uspan_queue_pcard);
+  atomic_check_out(&self->pcard);
+  return BM_TOMBSTONE;
+}
+
+static inline void select_uspan_queue(OPHeap* heap,
+                                      UnarySpan*** uspan_queue,
+                                      a_int16_t** uspan_queue_pcard)
+{
   switch (self->magic.uspan_generic.pattern)
     {
     case TYPED_USPAN_PATTERN:
       {
         TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
         int tid = self->magic.typed_uspan.thread_id;
-        while (1)
-          {
-            if (!atomic_check_in(&ta->uspan_pcard[tid]))
-              continue;
-            if (atomic_book_critical(&ta->uspan_pcard[tid]))
-              break;
-            atomic_check_out(&ta->uspan_pcard[tid]);
-          }
-        while (!dequeue_uspan(&ta->uspan[tid],
-                              &ta->uspan_pcard[tid],
-                              self))
-          ;
-        atomic_check_out(&ta->uspan_pcard[tid]);
+        &uspan_queue_pcard = &ta->uspan_pcard[tid];
+        &uspan_queue = &ta->uspan[tid];
         break;
       }
     case RAW_USPAN_PATTERN:
       {
         uint16_t size_class = self->magic.raw_uspan.obj_size / 16;
         int tid = self->magic.raw_uspan.thread_id;
-        while (1)
-          {
-            if (!atomic_check_in(&heap->raw_type.uspan_pcard[size_class][tid]))
-              continue;
-            if (atomic_book_critical
-                (&heap->raw_type.uspan_pcard[size_class][tid]))
-              break;
-            atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
-          }
-        while (!dequeue_uspan
-               (&heap->raw_type.uspan[size_class][tid],
-                &heap->raw_type.uspan_pcard[size_class][tid],
-                self))
-          ;
-        atomic_check_out(&heap->raw_type.uspan_pcard[size_class][tid]);
+        &uspan_queue_pcard = &heap->raw_type.uspan_pcard[size_class][tid];
+        &uspan_queue = &heap->raw_type.uspan[size_class][tid];
         break;
       }
     case LARGE_USPAN_PATTERN:
@@ -491,27 +382,11 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
         int uid =
           obj_size == 512 ? 0 :
           obj_size == 1024 ? 1 : 2;
-        while (1)
-          {
-            if (!atomic_check_in(&heap->raw_type.large_uspan_pcard[uid]))
-              continue;
-            if (atomic_book_critical
-                (&heap->raw_type.large_uspan_pcard[uid]))
-              break;
-            atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
-          }
-        while (!dequeue_uspan
-               (&heap->raw_type.large_uspan[uid],
-                &heap->raw_type.large_uspan_pcard[uid],
-                self))
-          ;
-        atomic_check_out(&heap->raw_type.large_uspan_pcard[uid]);
+        &uspan_queue_pcard = &heap->raw_type.large_uspan_pcard[uid];
+        &uspan_queue = &heap->raw_type.large_uspan[uid];
         break;
       }
-    } // end of switch
-
-  atomic_check_out(&self->pcard);
-  return BM_TOMBSTONE;
+    }
 }
 
 /* op_pspan.c ends here */
