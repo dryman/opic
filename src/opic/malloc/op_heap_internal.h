@@ -1,44 +1,44 @@
-/* op_lock_utils.h --- 
- * 
+/* op_lock_utils.h ---
+ *
  * Filename: op_lock_utils.h
- * Description: 
+ * Description:
  * Author: Felix Chern
- * Maintainer: 
+ * Maintainer:
  * Copyright: (c) 2016 Felix Chern
  * Created: Thu Nov  3 2016
- * Version: 
+ * Version:
  * Package-Requires: ()
- * Last-Updated: 
- *           By: 
+ * Last-Updated:
+ *           By:
  *     Update #: 0
- * URL: 
- * Doc URL: 
- * Keywords: 
- * Compatibility: 
- * 
+ * URL:
+ * Doc URL:
+ * Keywords:
+ * Compatibility:
+ *
  */
 
-/* Commentary: 
- * 
- * 
- * 
+/* Commentary:
+ *
+ *
+ *
  */
 
 /* Change Log:
- * 
- * 
+ *
+ *
  */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -141,9 +141,9 @@ enqueue_new_typed_hpage(uint16_t type_alias_id,
 {
   if (!atomic_enter_critical(h_pcard))
     return false;
-  Magic magic = 
+  Magic magic =
     {
-      .typed_hpage = 
+      .typed_hpage =
       {
         .pattern = TYPED_HPAGE_PATTERN,
         .type_alias = type_alias_id
@@ -185,6 +185,26 @@ dequeue_hpage(HugePage** hpage_ref,
 }
 
 static inline void
+enqueue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan)
+{
+  UnarySpan** it = uspan_ref;
+  while (*it && (*it) < uspan)
+    it = &(*it)->next;
+
+  if (*it == NULL)
+    {
+      *it = uspan;
+      return;
+    }
+  else if (*it > uspan)
+    {
+      uspan->next = (*it);
+      *it = uspan;
+      return;
+    }
+}
+
+static inline void
 insert_uspan_internal(UnarySpan** uspan_ref, UnarySpan* uspan)
 {
   UnarySpan** it = uspan_ref;
@@ -212,12 +232,12 @@ enqueue_new_raw_uspan(RawType* raw_type,
 {
   if (!atomic_enter_critical(&raw_type->uspan_pcard[size_class][tid]))
     return false;
-  
+
   HugePage* hpage = NULL;
   UnarySpan* uspan = NULL;
-  Magic magic = 
+  Magic magic =
     {
-      .raw_uspan = 
+      .raw_uspan =
       {
         .pattern = RAW_USPAN_PATTERN,
         .obj_size = size_class,
@@ -268,12 +288,12 @@ enqueue_new_typed_uspan(TypeAlias* type_alias,
 {
   if (!atomic_enter_critical(&type_alias->uspan_pcard[tid]))
     return false;
-  
+
   HugePage* hpage = NULL;
   UnarySpan* uspan = NULL;
-  Magic magic = 
+  Magic magic =
     {
-      .typed_uspan = 
+      .typed_uspan =
       {
         .pattern = TYPED_USPAN_PATTERN,
         .obj_size = obj_size,
@@ -326,9 +346,9 @@ enqueue_new_large_uspan(RawType* raw_type,
     return false;
   HugePage* hpage = NULL;
   UnarySpan* uspan = NULL;
-  Magic magic = 
+  Magic magic =
     {
-      .large_uspan = 
+      .large_uspan =
       {
         .pattern = LARGE_USPAN_PATTERN,
         .obj_size = size_class,

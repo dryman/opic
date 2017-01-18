@@ -56,7 +56,8 @@
 extern void enqueue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
 extern void dequeue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
 
-static void select_uspan_queue(OPHeap* heap,
+static void select_uspan_queue(uint8_t pattern,
+                               OPHeap* heap,
                                UnarySpan*** uspan_queue,
                                a_int16_t** uspan_queue_pcard);
 
@@ -221,7 +222,8 @@ bool USpanMalloc(UnarySpan* self, void** addr)
   atomic_store_explicit(&self->state, BM_FULL, memory_order_relaxed);
   atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
 
-  select_uspan_queue(get_opheap(self), &uspan_queue, &uspan_queue_pcard);
+  select_uspan_queue(self->magic.uspan_generic.pattern,
+                     get_opheap(self), &uspan_queue, &uspan_queue_pcard);
   atomic_check_out(uspan_queue_pcard);
   // Need to check out then check in to avoid dead lock.
   while (1)
@@ -301,7 +303,8 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
                             ~(1UL << item_idx),
                             memory_order_relaxed);
 
-  select_uspan_queue(heap, &uspan_queue, &uspan_queue_pcard);
+  select_uspan_queue(self->magic.uspan_generic.pattern,
+                     heap, &uspan_queue, &uspan_queue_pcard);
   while (1)
     {
       if (!atomic_check_in(uspan_queue_pcard))
@@ -337,7 +340,8 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
   atomic_enter_critical(&self->pcard);
   atomic_store_explicit(&self->state, BM_TOMBSTONE, memory_order_relaxed);
 
-  select_uspan_queue(heap, &uspan_queue, &uspan_queue_pcard);
+  select_uspan_queue(self->magic.uspan_generic.pattern,
+                     heap, &uspan_queue, &uspan_queue_pcard);
   while (1)
     {
       if (!atomic_check_in(uspan_queue_pcard))
@@ -354,11 +358,12 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
   return BM_TOMBSTONE;
 }
 
-static inline void select_uspan_queue(OPHeap* heap,
+static inline void select_uspan_queue(uint8_t pattern,
+                                      OPHeap* heap,
                                       UnarySpan*** uspan_queue,
                                       a_int16_t** uspan_queue_pcard)
 {
-  switch (self->magic.uspan_generic.pattern)
+  switch (pattern)
     {
     case TYPED_USPAN_PATTERN:
       {
