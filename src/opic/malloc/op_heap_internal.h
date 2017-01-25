@@ -61,6 +61,7 @@ OP_BEGIN_DECLS
 typedef struct RawType RawType;
 typedef struct TypeAlias TypeAlias;
 
+// TODO: rename uspan to uspan_queue?
 struct RawType
 {
   // Thread local physical spans. In total of 16 size classes to serve

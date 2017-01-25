@@ -61,19 +61,13 @@ static void select_uspan_queue(uint8_t pattern,
                                UnarySpan*** uspan_queue,
                                a_int16_t** uspan_queue_pcard);
 
-UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
+void USpanInit(UnarySpan* self, Magic magic, size_t span_size)
 {
-  /* Unit test as of Oct 9, 2016 doesn't support op_assert
-     Our workaround is return NULL instead. But this should be fixed.
-  op_assert(addr, "address cannot be NULL");
-  op_assert(obj_size, "object size in bytes should be greater than 0\n");
-  op_assert(page_size, "allocated physical pages should be greater than 0\n");
-  */
-  if (op_unlikely(!magic.typed_uspan.obj_size)) return NULL;
-  if (op_unlikely(!span_size)) return NULL;
+  op_assert(magic.uspan_generic.obj_size, "uspan object size cannot be 0\n");
+  op_assert(span_size, "span_size must greater than 0\n");
 
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
-  uintptr_t iaddr;
+  uintptr_t bitmap_base;
   uint64_t* bmap;
 
   obj_size = magic.typed_uspan.obj_size;
@@ -90,38 +84,30 @@ UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   op_assert(headroom < 64,
             "headroom should be less equal to 64, but were %d\n", headroom);
 
-  UnarySpan span =
-    {
-      .magic = magic,
-      .bitmap_cnt = (uint8_t)bitmap_cnt,
-      .bitmap_headroom = (uint8_t)headroom,
-      .bitmap_padding = (uint8_t)padding,
-      .bitmap_hint = 0,
-      .pcard = 0,
-      .obj_cnt = 0,
-      .state = BM_NEW,
-      .next = NULL
-    };
+  self->magic = magic;
+  self->bitmap_cnt = bitmap_cnt;
+  self->bitmap_headroom = headroom;
+  self->bitmap_padding = padding;
+  self->bitmap_hint = 0;
+  self->pcard = 0;
+  self->obj_cnt = 0;
+  self->state = BM_NEW;
+  self->struct_padding = 0;
+  self->next = NULL;
 
-  memcpy(addr, &span, sizeof(span));
-
-  // Point to the first bitmap
-  iaddr = (uintptr_t)addr + sizeof(UnarySpan);
+  bitmap_base = (uintptr_t)self + sizeof(UnarySpan);
   // Set all bitmap to 0
-  memset((void*)iaddr, 0, bitmap_cnt << 3);
+  memset((void*)bitmap_base, 0, bitmap_cnt << 3);
   // Mark the headroom bits
-  bmap = (uint64_t*)iaddr;
+  bmap = (uint64_t*)bitmap_base;
   *bmap |= (1UL << headroom) - 1;
 
   // Mark the padding bits
   if (padding)
     {
-      bmap = (uint64_t*)(iaddr + (bitmap_cnt - 1) * 8);
+      bmap = (uint64_t*)(bitmap_base + (bitmap_cnt - 1) * 8);
       *bmap |=  ~((1UL << (64-padding))-1);
     }
-
-  atomic_thread_fence(memory_order_release);
-  return (UnarySpan*) addr;
 }
 
 bool USpanMalloc(UnarySpan* self, void** addr)
@@ -224,20 +210,16 @@ bool USpanMalloc(UnarySpan* self, void** addr)
 
   select_uspan_queue(self->magic.uspan_generic.pattern,
                      get_opheap(self), &uspan_queue, &uspan_queue_pcard);
-  atomic_check_out(uspan_queue_pcard);
-  // Need to check out then check in to avoid dead lock.
-  while (1)
+  if (!atomic_book_critical(uspan_queue_pcard))
     {
-      if (!atomic_check_in(uspan_queue_pcard))
-        continue;
-      if (atomic_book_critical(uspan_queue_pcard))
-        break;
-      atomic_check_out(uspan_queue_pcard);
+      atomic_exit_critical(&self->pcard);
+      atomic_check_out(&self->pcard);
+      return false;
     }
   atomic_enter_critical(uspan_queue_pcard);
   dequeue_uspan(uspan_queue, self);
   atomic_exit_critical(uspan_queue_pcard);
-  // do not checkout uspan_queue, the caller will do
+  atomic_exit_critical(&self->pcard);
   atomic_check_out(&self->pcard);
   return false;
 }

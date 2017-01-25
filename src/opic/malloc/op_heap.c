@@ -132,40 +132,72 @@ void* OPAllocRaw(OPHeap* self, size_t size)
 
       UnarySpan* uspan = NULL;
 
+      a_int16_t* pcard = self->raw_type.uspan_card[size_class][tid];
       while (1)
         {
-          acq_rlock(&self->raw_type.uspan_rwlock[size_class][tid],
-                    &self->raw_type.uspan_favor[size_class],
-                    tid);
+          if (!atomic_check_in(pcard))
+            continue;
           uspan = self->raw_type.uspan[size_class][tid];
           if (uspan == NULL)
             {
-              favor_write(&self->raw_type.uspan_favor[size_class],
-                          tid);
-              rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
-              insert_new_raw_uspan(&self->raw_type,
-                                   size_class,
-                                   tid,
-                                   self);
-              continue;
+              if (!atomic_book_critical(pcard))
+                {
+                  atomic_check_out(pcard);
+                  continue;
+                }
+              atomic_enter_critical(pcard);
+              Magic magic =
+                {
+                  .raw_uspan =
+                  {
+                    .pattern = RAW_USPAN_PATTERN,
+                    .obj_size = size_class,
+                    .thread_id = tid
+                  }
+                };
+              while (1)
+                {
+                  // TODO: would this be a dead lock?
+                  a_int16_t* hpage_pcard = self->raw_type.hpage_pcard;
+                  if (!atomic_check_in(hpage_pcard))
+                    continue;
+                  HugePage* hpage = self->raw_type.hpage;
+                  if (hpage == NULL)
+                    {
+                      if(!atomic_book_critical(hpage_pcard))
+                        {
+                          atomic_check_out(hpage_pcard);
+                          continue;
+                        }
+                      atomic_enter_critical(hpage_pcard);
+                      Magic magic =
+                        {.raw_hpage = {.pattern = RAW_HPAGE_PATTERN}};
+                      hpage = ObtainHPage(self, magic);
+                      enqueue_hpage(&self->raw_type.hpage, hpage);
+                      atomic_exit_critical(hpage_pcard);
+                    }
+                  // TODO: We can optimize for different object sizes.
+                  // Larger object can use larger span.
+                  // Or the size that get allocated frequently can use
+                  // larger span.
+                  uspan = ObtainUSpan(hpage, magic, 1);
+                  atomic_check_out(hpage_pcard);
+                  if (uspan)
+                    break;
+                }
+              enqueue_uspan(&self->raw_type.uspan[size_class][tid],
+                            uspan);
+              atomic_exit_critical(pcard);
+              break;
             }
-          addr = USpanMalloc(uspan);
-          if (addr == NULL)
+          if (!USpanMalloc(uspan, &addr))
             {
-              favor_write(&self->raw_type.uspan_favor[size_class],
-                          tid);
-              rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
-              remove_uspan(&self->raw_type.uspan[size_class][tid],
-                           &self->raw_type.uspan_rwlock[size_class][tid],
-                           &self->raw_type.uspan_favor[size_class],
-                           tid,
-                           uspan);
+              atomic_check_out(pcard);
               continue;
             }
-          break;
+          atomic_check_out(pcard);
+          return addr;
         }
-      rel_rlock(&self->raw_type.uspan_rwlock[size_class][tid]);
-      return addr;
     }
   else if (size <= 2048)
     {

@@ -1,44 +1,44 @@
-/* op_vpage.c --- 
- * 
+/* op_vpage.c ---
+ *
  * Filename: op_vpage.c
- * Description: 
+ * Description:
  * Author: Felix Chern
- * Maintainer: 
+ * Maintainer:
  * Copyright: (c) 2016 Felix Chern
  * Created: Tue Oct 11 2016
- * Version: 
+ * Version:
  * Package-Requires: ()
- * Last-Updated: 
- *           By: 
+ * Last-Updated:
+ *           By:
  *     Update #: 0
- * URL: 
- * Doc URL: 
- * Keywords: 
- * Compatibility: 
- * 
+ * URL:
+ * Doc URL:
+ * Keywords:
+ * Compatibility:
+ *
  */
 
-/* Commentary: 
- * 
- * 
- * 
+/* Commentary:
+ *
+ *
+ *
  */
 
 /* Change Log:
- * 
- * 
+ *
+ *
  */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -68,51 +68,89 @@ HugePage* HugePageInit(void* addr, Magic magic)
 }
 
 
-UnarySpan* ObtainUSpan(HugePage* self,
-                       Magic magic,
-                       unsigned int span_cnt)
+bool ObtainUSpan(HugePage* self,
+                 UnarySpan** uspan,
+                 Magic magic,
+                 unsigned int span_cnt)
 {
+  // In current logic, we can get at most 64 spans..
   op_assert(span_cnt <= 256, "span_cnt is limited to 256 pages, aka 1MB\n");
 
   uint64_t old_bmap, new_bmap;
-  void* base = self;
+  uintptr_t base;
 
-  for (int i = 0; i < 8; i++)
+  while (1)
     {
-      old_bmap = atomic_load_explicit(&self->occupy_bmap[i],
-                                      memory_order_relaxed);
-      while(1)
+      base = (uintptr_t)self;
+      atomic_check_in(&self->pcard);
+      for (int i = 0; i < 8; i++)
         {
-          if (old_bmap == ~0UL) break;
-          int pos = fftstr0l(old_bmap, span_cnt);
-          if (pos == -1) break;
-          new_bmap = old_bmap | ((1UL << span_cnt)-1) << pos;
-
-          if (atomic_compare_exchange_weak_explicit
-              (&self->occupy_bmap[i], &old_bmap, new_bmap,
-               memory_order_acquire,
-               memory_order_relaxed))
+          old_bmap = atomic_load_explicit(&self->occupy_bmap[i],
+                                          memory_order_relaxed);
+          /* Unlike uspan, we don't capture the item count in
+           * huge span.  In uspan we can use the count to show
+           * if the span is available for allocation, because
+           * the empty spot is guaranteed to present.  In huge page,
+           * however, even if the required space is less than the
+           * count, we may not have enough contiguous space to allocate.
+           */
+          while(1)
             {
-              UnarySpan* span;
-              if (i == 0 && pos == 0)
+              if (old_bmap == ~0UL) break;
+              int pos = fftstr0l(old_bmap, span_cnt);
+              if (pos == -1) break;
+              new_bmap = old_bmap | ((1UL << span_cnt)-1) << pos;
+
+              if (atomic_compare_exchange_weak_explicit
+                  (&self->occupy_bmap[i], &old_bmap, new_bmap,
+                   memory_order_acquire,
+                   memory_order_relaxed))
                 {
-                  span = USpanInit(base + sizeof(HugePage),
-                                   magic,
-                                   (span_cnt << 12) - sizeof(HugePage));
+                  *uspan = (UnarySpan*)(base + ((i*64 + pos) << 12));
+                  if (i == 0 && pos == 0)
+                    USpanInit(*uspan, magic,
+                              (span_cnt << 12) - sizeof(HugePage));
+                  else
+                    USpanInit(*uspan, magic, span_cnt << 12);
+                  atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << pos,
+                                           memory_order_release);
+                  atomic_check_out(&self->pcard);
+                  return true;
                 }
-              else
-                {
-                  span = USpanInit(base + (((i << 6) + pos) << 12),
-                                   magic,
-                                   span_cnt << 12);
-                }
-              atomic_fetch_or_explicit(&self->header_bmap[i], 1UL << pos,
-                                       memory_order_release);              
-              return span;
             }
         }
+      Magic magic = self->magic;
+      OPHeap* heap = get_opheap(self);
+      a_int16_t* hpage_queue_pcard;
+      HugePage** hpage_queue;
+      HugePage* next;
+      atomic_check_out(&self->pcard);
+
+      if (magic.generic.pattern == RAW_HPAGE_PATTERN)
+        {
+          hpage_queue_pcard = &heap->raw_type.hpage_pcard;
+          hpage_queue = &heap->raw_type.hpage;
+        }
+      else
+        {
+          TypeAlias* ta = &heap->type_alias[magic.typed_hpage.type_alias];
+          hpage_queue_pcard = &ta->hpage_pcard;
+          hpage_queue = &ta->hpage;
+        }
+      if (!atomic_book_critical(hpage_queue_pcard))
+        return false;
+      atomic_enter_critical(hpage_queue_pcard);
+      next = self->next;
+      dequeue_hpage(hpage_queue, self);
+      atomic_exit_critical(hpage_queue_pcard);
+      if (next)
+        {
+          self = next;
+          continue;
+        }
+      // TODO: insert new hpage..
+      return false;
     }
-  return NULL;
 }
 
 FreeStatus HugePageFree(HugePage* self, void* addr)
@@ -130,15 +168,15 @@ FreeStatus HugePageFree(HugePage* self, void* addr)
   // UnaryPSpan, but we might have Varying PSpan (alloc multiple
   // element at same time), and Array PSpan (array of objects cross
   // multiple pages) in near future.
-  
+
   if (page_idx == 0)
     {
       span = base + sizeof(HugePage);
       header_mask = ~1UL;
       span_header_idx = 0;
     }
-  else 
-    {    
+  else
+    {
       uint64_t bitmap = atomic_load_explicit(&self->header_bmap[page_idx >> 6],
                                              memory_order_relaxed);
       uint64_t clear_low = bitmap & ~((1UL << page_idx % 64)-1);
@@ -160,7 +198,7 @@ FreeStatus HugePageFree(HugePage* self, void* addr)
   /*         memory_order_acquire, */
   /*         memory_order_relaxed)) */
   /*   expected_refcnt = 0; */
-  
+
   atomic_fetch_and_explicit(&self->header_bmap[page_idx >> 6], header_mask,
                             memory_order_relaxed);
 
@@ -176,7 +214,7 @@ FreeStatus HugePageFree(HugePage* self, void* addr)
   // Release semantic to ensure header unmark happens before occupy unmark
   atomic_fetch_and_explicit(&self->occupy_bmap[page_idx >> 6], occupy_mask,
                             memory_order_release);
-  
+
   if (atomic_load_explicit(&self->occupy_bmap[page_idx >> 6],
                            memory_order_relaxed))
     return false;
@@ -184,7 +222,7 @@ FreeStatus HugePageFree(HugePage* self, void* addr)
 
   uint64_t expected_empty = 0UL;
   int iter = 0;
-  
+
   for (iter = 0; iter < 8; iter++)
     {
       expected_empty = 0UL;
@@ -196,13 +234,13 @@ FreeStatus HugePageFree(HugePage* self, void* addr)
     }
 
   return true;
-  
+
  catch_nonempty_exception:
 
   for (int i = 0; i < iter; i++)
     atomic_store_explicit(&self->occupy_bmap[i], 0UL,
                           memory_order_release);
-      
+
   return false;
 }
 

@@ -96,14 +96,12 @@ struct BlobSpan
 struct HugePage
 {
   const Magic magic;
-  atomic_uint_fast16_t rwlock;
-  atomic_uint_fast16_t del_attempt;
-  atomic_uint_fast8_t span_cnt;
+  a_int16_t pcard;
   _Atomic BitMapState state;
-  const uint64_t padding : 48;
+  //const uint64_t padding : 48;
   HugePage* next;
-  atomic_uint_fast64_t occupy_bmap[8];
-  atomic_uint_fast64_t header_bmap[8];
+  a_uint64_t occupy_bmap[8];
+  a_uint64_t header_bmap[8];
 };
 
 static_assert(sizeof(HugePage) == 144, "HugePage size should be 144\n");
