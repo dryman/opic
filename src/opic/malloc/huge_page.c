@@ -74,15 +74,29 @@ bool ObtainUSpan(HugePage* self,
                  unsigned int span_cnt)
 {
   // In current logic, we can get at most 64 spans..
-  op_assert(span_cnt <= 256, "span_cnt is limited to 256 pages, aka 1MB\n");
+  op_assert(span_cnt <= 64,
+            "span_cnt is limited to 64 pages, aka 512KB\n");
 
+  // TODO we probably need state, because punch_card is not sufficient
+
+  BitMapState state;
   uint64_t old_bmap, new_bmap;
   uintptr_t base;
+  Magic magic = self->magic;
+  OPHeap* heap = get_opheap(self);
+  a_int16_t* hpage_queue_pcard;
+  HugePage** hpage_queue;
+
+  state = atomic_load_explicit(&self->state,
+                               memory_order_relaxed);
+  if (state == BM_NORMAL &&
+      atomic_load
 
   while (1)
     {
       base = (uintptr_t)self;
-      atomic_check_in(&self->pcard);
+      if (!atomic_check_in(&self->pcard))
+        return false;
       for (int i = 0; i < 8; i++)
         {
           old_bmap = atomic_load_explicit(&self->occupy_bmap[i],
@@ -119,11 +133,6 @@ bool ObtainUSpan(HugePage* self,
                 }
             }
         }
-      Magic magic = self->magic;
-      OPHeap* heap = get_opheap(self);
-      a_int16_t* hpage_queue_pcard;
-      HugePage** hpage_queue;
-      HugePage* next;
       atomic_check_out(&self->pcard);
 
       if (magic.generic.pattern == RAW_HPAGE_PATTERN)
@@ -140,16 +149,27 @@ bool ObtainUSpan(HugePage* self,
       if (!atomic_book_critical(hpage_queue_pcard))
         return false;
       atomic_enter_critical(hpage_queue_pcard);
-      next = self->next;
       dequeue_hpage(hpage_queue, self);
-      atomic_exit_critical(hpage_queue_pcard);
-      if (next)
+
+      // If the next page is available, use it
+      if (*hpage_queue)
         {
-          self = next;
+          self = *hpage_queue;
+          atomic_exit_critical(hpage_queue_pcard);
           continue;
         }
-      // TODO: insert new hpage..
+      // else insert a new hpage
+      for (int i = 0; i < 10; i++)
+        {
+          if (ObtainHPage(heap, &self, magic))
+            goto obtain_hpage_success;
+        }
       return false;
+
+    obtain_hpage_success:
+      enqueue_hpage(hpage_queue, self);
+      atomic_exit_critical(hpage_queue_pcard);
+      // continue with new self
     }
 }
 
