@@ -57,6 +57,8 @@
 
 OP_BEGIN_DECLS
 
+#define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)
+
 typedef struct UnarySpan UnarySpan;
 typedef struct BolbSpan BlobSpan;
 typedef struct HugePage HugePage;

@@ -51,8 +51,6 @@
 #include "span.h"
 #include "opic/common/op_atomic.h"
 
-#define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)
-
 extern void enqueue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
 extern void dequeue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
 
@@ -261,67 +259,45 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
                 addr, self);
     }
 
- retry:
-  if (!atomic_check_in(&self->pcard))
-    goto retry;
-
-  state = atomic_load_explicit(&self->state, memory_order_acquire);
-  if (state == BM_NORMAL)
-    goto free_bm_normal;
-
-  // free on full state
-  op_assert(state == BM_FULL,
-            "free should not operate on BM_NEW or BM_TOMEBSTONE\n");
-  if (!atomic_book_critical(&self->pcard))
-    {
-      atomic_check_out(&self->pcard);
-      goto retry;
-    }
-  atomic_enter_critical(&self->pcard);
-
+  atomic_fetch_and_explicit(&bitmap[bmap_idx],
+                            ~(1UL << item_idx),
+                            memory_order_relaxed);
   atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
-  atomic_store_explicit(&self->state, BM_NORMAL, memory_order_relaxed);
-  atomic_fetch_and_explicit(&bitmap[bmap_idx],
-                            ~(1UL << item_idx),
-                            memory_order_relaxed);
 
-  select_uspan_queue(self->magic.uspan_generic.pattern,
-                     heap, &uspan_queue, &uspan_queue_pcard);
-  while (1)
+  while (atomic_load_explicit(&self->state, memory_order_acquire) == BM_FULL)
     {
-      if (!atomic_check_in(uspan_queue_pcard))
+      if (!atomic_check_in_book(&self->pcard))
         continue;
-      if (atomic_book_critical(uspan_queue_pcard))
-        break;
+      atomic_enter_critical(&self->pcard);
+      select_uspan_queue(self->magic.uspan_generic.pattern,
+                         heap, &uspan_queue, &uspan_queue_pcard);
+      if (!atomic_check_in_book(uspan_queue_pcard))
+        {
+          atomic_exit_critical(&self->pcard);
+          atomic_check_out(&self->pcard);
+          continue;
+        }
+      atomic_enter_critical(uspan_queue_pcard);
+      enqueue_uspan(uspan_queue, self);
+      atomic_store_explicit(&self->state, BM_NORMAL, memory_order_relaxed);
+      atomic_exit_critical(&self->pcard);
       atomic_check_out(uspan_queue_pcard);
-    }
-  atomic_enter_critical(uspan_queue_pcard);
-  enqueue_uspan(uspan_queue, self);
-  atomic_exit_critical(&self->pcard);
-  atomic_check_out(uspan_queue_pcard);
-  atomic_check_out(&self->pcard);
-  return BM_NORMAL;
-
- free_bm_normal:
-
-  obj_cnt = atomic_fetch_sub_explicit(&self->obj_cnt, 1,
-                                      memory_order_acq_rel);
-  atomic_fetch_and_explicit(&bitmap[bmap_idx],
-                            ~(1UL << item_idx),
-                            memory_order_relaxed);
-  // Normal case
-  if (obj_cnt > 1)
-    {
       atomic_check_out(&self->pcard);
       return BM_NORMAL;
     }
 
-  // Bury uspan
-  op_assert(atomic_book_critical(&self->pcard),
-            "only one thread can book critical to bury uspan");
-  atomic_enter_critical(&self->pcard);
-  atomic_store_explicit(&self->state, BM_TOMBSTONE, memory_order_relaxed);
 
+  if (atomic_load_explicit(&self->obj_cnt) != 0)
+    return BM_NORMAL;
+  if (!atomic_check_in_book(&self->pcard))
+    return BM_NORMAL;
+  atomic_enter_critical(&self->pcard);
+  if (atomic_load_explicit(&self->obj_cnt) != 0)
+    {
+      atomic_exit_critical(&self->pcard);
+      atomic_check_out(&self->pcard);
+      return BM_NORMAL;
+    }
   select_uspan_queue(self->magic.uspan_generic.pattern,
                      heap, &uspan_queue, &uspan_queue_pcard);
   while (1)
@@ -336,6 +312,8 @@ BitMapState USpanFree(UnarySpan* self, void* addr)
   dequeue_uspan(uspan_queue, self);
   atomic_exit_critical(uspan_queue_pcard);
   atomic_check_out(uspan_queue_pcard);
+  // TODO why not delete the span here?
+  atomic_exit_critical(&self->pcard);
   atomic_check_out(&self->pcard);
   return BM_TOMBSTONE;
 }

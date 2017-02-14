@@ -55,16 +55,27 @@
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.huge_page");
 
-HugePage* HugePageInit(void* addr, Magic magic)
+void HugePageInit(HugePage* self, Magic magic)
 {
+  /*
   op_assert(((size_t)addr & ((1UL<<21)-1)) == 0,
             "HugePage address should align 2MB, but were %p\n", addr);
-  HugePage *self = addr;
-  memcpy(addr, &magic, sizeof(magic));
-  self->next = NULL;
+  */
+  OPHeap* heap = get_opheap(self);
+
   memset(&self->occupy_bmap, 0, sizeof(self->occupy_bmap));
   memset(&self->header_bmap, 0, sizeof(self->header_bmap));
-  return self;
+  self->magic = magic;
+  self->next = NULL;
+
+  if (self == heap->first_hpage)
+    {
+      int occupied = round_up_div(sizeof(OPHeap), (1UL << 12));
+      int i;
+      for (i = 0; i < occupied/64; i++)
+        self->occupy_bmap[i] = ~0UL;
+      self->occupy_bmap[i] |= (1UL << (occupied % 64)) - 1;
+    }
 }
 
 
@@ -77,9 +88,6 @@ bool ObtainUSpan(HugePage* self,
   op_assert(span_cnt <= 64,
             "span_cnt is limited to 64 pages, aka 512KB\n");
 
-  // TODO we probably need state, because punch_card is not sufficient
-
-  BitMapState state;
   uint64_t old_bmap, new_bmap;
   uintptr_t base;
   Magic magic = self->magic;
@@ -87,14 +95,9 @@ bool ObtainUSpan(HugePage* self,
   a_int16_t* hpage_queue_pcard;
   HugePage** hpage_queue;
 
-  state = atomic_load_explicit(&self->state,
-                               memory_order_relaxed);
-  if (state == BM_NORMAL &&
-      atomic_load
-
   while (1)
     {
-      base = (uintptr_t)self;
+      base = self == heap->first_hpage ? (uintptr_t)heap : (uintptr_t)self;
       if (!atomic_check_in(&self->pcard))
         return false;
       for (int i = 0; i < 8; i++)
@@ -173,12 +176,13 @@ bool ObtainUSpan(HugePage* self,
     }
 }
 
-FreeStatus HugePageFree(HugePage* self, void* addr)
+BitMapState HPageFree(HugePage* self, void* addr)
 {
-  void* base = (void*)self;
-  ptrdiff_t diff = addr - base;
+  OPHeap* heap = get_opheap(self);
+  bool is_first_hpage = self == heap->first_hpage;
+  uintptr_t base = is_first_hpage ? (uintptr_t)heap : (uintptr_t)self;
+  ptrdiff_t diff = (uintptr_t)addr - base;
   UnarySpan* span;
-  // thid doesn't work for the first hpage
   int page_idx = diff >> 12;
   int span_header_idx;
   uint64_t header_mask, occupy_mask;
@@ -188,6 +192,11 @@ FreeStatus HugePageFree(HugePage* self, void* addr)
   // UnaryPSpan, but we might have Varying PSpan (alloc multiple
   // element at same time), and Array PSpan (array of objects cross
   // multiple pages) in near future.
+
+  // Do we really need to check in?
+  while (!atomic_check_in(&self->punch_card))
+    ;
+
 
   if (page_idx == 0)
     {
@@ -205,8 +214,9 @@ FreeStatus HugePageFree(HugePage* self, void* addr)
       header_mask = ~(clear_low & (~(clear_low) + 1));
     }
 
-  if (!USpanFree(span, addr))
-    return false;
+  if (USpanFree(span, addr) == BM_NORMAL)
+    return BM_NORMAL;
+
 
   /*** PSpan is freed. Start critical section ***/
 
@@ -262,6 +272,10 @@ FreeStatus HugePageFree(HugePage* self, void* addr)
                           memory_order_release);
 
   return false;
+}
+
+void HPageFreeUSpan(HugePage* self, void* addr)
+{
 }
 
 /* op_vpage.c ends here */
