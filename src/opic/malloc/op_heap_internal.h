@@ -59,12 +59,7 @@
 OP_BEGIN_DECLS
 
 
-HugePage* ObtainHPage(OPHeap* self, Magic magic);
 
-static inline OPHeap* get_opheap(void* addr)
-{
-  return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE-1));
-}
 
 static inline void
 insert_hpage_internal(HugePage** hpage_ref, HugePage* hpage)
@@ -154,25 +149,6 @@ dequeue_hpage(HugePage** hpage_ref,
   return true;
 }
 
-static inline void
-enqueue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan)
-{
-  UnarySpan** it = uspan_ref;
-  while (*it && (*it) < uspan)
-    it = &(*it)->next;
-
-  if (*it == NULL)
-    {
-      *it = uspan;
-      return;
-    }
-  else if (*it > uspan)
-    {
-      uspan->next = (*it);
-      *it = uspan;
-      return;
-    }
-}
 
 static inline void
 insert_uspan_internal(UnarySpan** uspan_ref, UnarySpan* uspan)
@@ -375,22 +351,6 @@ dequeue_hpage(HugePage** hpage_ref,
 }
 
 
-static inline bool
-dequeue_uspan(UnarySpan** uspan_ref,
-              a_int8_t* pcard,
-              UnarySpan* uspan)
-{
-  if (!atomic_enter_critical(pcard))
-    return false;
-
-  UnarySpan** it = uspan_ref;
-  while (*it != uspan)
-    it = &(*it)->next;
-
-  *it = (*it)->next;
-  atomic_exit_critical(pcard);
-  return true;
-}
 
 
 static inline bool

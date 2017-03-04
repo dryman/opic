@@ -51,22 +51,22 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "op_malloc.h"
-#include "magic.h"
 #include "opic/common/op_atomic.h"
 #include "opic/common/op_macros.h"
+#include "magic.h"
+#include "op_malloc.h"
 
 OP_BEGIN_DECLS
 
-#define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)
-
 typedef struct UnarySpan UnarySpan;
-typedef struct BolbSpan BlobSpan;
 typedef struct HugePage HugePage;
 typedef struct UnarySpanQueue UnarySpanQueue;
 typedef struct HugePageQueue HugePageQueue;
+typedef struct SmallBlob SmallBlob;
+typedef struct HugeBlob HugeBlob;
 typedef struct RawType RawType;
 typedef struct TypeAlias TypeAlias;
+typedef struct HugeSpanCtx HugeSpanCtx;
 
 // TODO: change to enqueued/dequeued
 typedef enum __attribute__((packed)) BitMapState
@@ -79,8 +79,6 @@ typedef enum __attribute__((packed)) BitMapState
 BitMapState;
 static_assert(sizeof(BitMapState) == 1, "BitMapState should be 1 byte\n");
 
-#define HPAGE_BMAP_NUM 512
-#define TYPE_ALIAS_NUM 2048
 
 struct UnarySpan
 {
@@ -88,7 +86,7 @@ struct UnarySpan
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
-  uint8_t bitmap_hint;
+  uint8_t bitmap_hint;           // TODO: do we still need this?
   a_int16_t pcard;
   a_uint16_t obj_cnt;
   _Atomic BitMapState state;
@@ -98,10 +96,6 @@ struct UnarySpan
 
 static_assert(sizeof(UnarySpan) == 24, "UnarySpan size should be 24 bytes");
 
-struct BlobSpan
-{
-  const Magic magic;
-};
 
 struct HugePage
 {
@@ -131,6 +125,20 @@ struct HugePageQueue
 } __attribute__((packed));
 
 static_assert(sizeof(HugePageQueue) == 10, "HugePageQueue should be 10");
+
+// Blob contained by HPage
+struct SmallBlob
+{
+  const Magic magic;
+};
+
+// Blob contained by OPHeap
+struct HugeBlob
+{
+  const Magic magic;
+};
+
+/************** OPHeap Layout ******************/
 
 struct RawType
 {
@@ -168,6 +176,15 @@ struct OPHeap
 
 static_assert(sizeof(OPHeap) == 391864, "sizeof(OPHeap) := 391864");
 
+struct HugeSpanCtx
+{
+  uint8_t pattern;
+  union
+  {
+    HugePage* hpage;
+    HugeBlob* hblob;
+  }
+};
 
 OP_END_DECLS
 

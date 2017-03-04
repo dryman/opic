@@ -51,12 +51,14 @@
 #include <assert.h>
 #include <stdint.h>
 
-#define OPHEAP_SIZE (1L << 36)
-#define VPAGE_MASK (~((1L << 21) - 1))
-#define PPAGE_MASK (~((1L << 12) - 1))
-#define VSPAN_NUM (1 << 15)
-#define VSPAN_BMAP_NUM (1 << 9)
+#define OPHEAP_SIZE (1UL << 36)
+#define HPAGE_SIZE (1UL << 21)
+#define HPAGE_BMAP_NUM 512
+#define TYPE_ALIAS_NUM 2048
 
+// TODO: try to make it a enum and compile.
+// I didn't try enum because it has to pack into 4 bits.
+// But gcc might be smart enough to handle it.
 #define TYPED_USPAN_PATTERN 0
 #define RAW_USPAN_PATTERN 1
 #define LARGE_USPAN_PATTERN 2
@@ -65,7 +67,6 @@
 #define RAW_HPAGE_PATTERN 5
 #define BLOB_HPAGE_PATTERN 6
 
-// TODO the first hpage might need its own pattern?
 
 typedef union Magic
 {
