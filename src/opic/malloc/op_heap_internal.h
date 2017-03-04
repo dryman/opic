@@ -58,37 +58,6 @@
 
 OP_BEGIN_DECLS
 
-typedef struct RawType RawType;
-typedef struct TypeAlias TypeAlias;
-
-// TODO: rename uspan to uspan_queue?
-struct RawType
-{
-  // Thread local physical spans. In total of 16 size classes to serve
-  // objects of size from 16 bytes to 256 bytes. Each size class has
-  // 16 thread local UnaryPSpan pointers.
-  UnarySpan* uspan[16][16];
-  // Thread local read write lock
-  a_int8_t uspan_pcard[16][16];
-  // size class 512, 1024, 2048
-  UnarySpan* large_uspan[3];
-  a_int16_t large_uspan_pcard[3];
-  HugePage* hpage;
-  a_int16_t hpage_pcard;
-};
-
-struct TypeAlias
-{
-  // TODO: change to Class* when we merge with object
-  void *klass;
-  char *type_name;
-  // TODO: record version so we can do upward and downward
-  // compatibility changes.
-  UnarySpan* uspan[16];
-  a_int8_t uspan_pcard[16];
-  HugePage* hpage;
-  a_int16_t hpage_pcard;
-};
 
 HugePage* ObtainHPage(OPHeap* self, Magic magic);
 

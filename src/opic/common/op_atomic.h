@@ -241,7 +241,7 @@ atomic_book_critical_64(a_int64_t* punch_card)
     (punch_card, 1L<<63, memory_order_acq_rel) > 0;
 }
 
-static inline void
+static inline bool
 atomic_check_in_book_8(a_int8_t* punch_card)
 {
   int8_t val = atomic_load_explicit(punch_card,
@@ -258,7 +258,7 @@ atomic_check_in_book_8(a_int8_t* punch_card)
   return true;
 }
 
-static inline void
+static inline bool
 atomic_check_in_book_16(a_int16_t* punch_card)
 {
   int16_t val = atomic_load_explicit(punch_card,
@@ -275,7 +275,7 @@ atomic_check_in_book_16(a_int16_t* punch_card)
   return true;
 }
 
-static inline void
+static inline bool
 atomic_check_in_book_32(a_int32_t* punch_card)
 {
   int32_t val = atomic_load_explicit(punch_card,
@@ -292,7 +292,7 @@ atomic_check_in_book_32(a_int32_t* punch_card)
   return true;
 }
 
-static inline void
+static inline bool
 atomic_check_in_book_64(a_int64_t* punch_card)
 {
   int64_t val = atomic_load_explicit(punch_card,

@@ -1,6 +1,6 @@
 AC_INIT([OPIC],[0.2])
 
-AC_CONFIG_SRCDIR([src/opic.h])
+AC_CONFIG_SRCDIR([README.md])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_CONFIG_HEADER([src/config.h])
@@ -23,7 +23,6 @@ AX_PTHREAD
 
 # TODO(fchern):
 # check cmocka
-# check c11
 
 # Checks for log4c
 AC_PATH_PROG([LOG4C_CONFIG], [log4c-config])
@@ -45,7 +44,10 @@ AC_SUBST([atomic_LIBS])
 
 PKG_CHECK_MODULES([cmocka], [cmocka >= 1.0.1])
 
-AC_CONFIG_FILES([Makefile src/Makefile pm_serde_example/Makefile
-tests/Makefile])
+AC_CONFIG_FILES([
+  Makefile
+  src/Makefile
+  src/opic/malloc/Makefile
+])
 
 AC_OUTPUT

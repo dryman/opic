@@ -63,19 +63,6 @@ static atomic_uint round_robin = 0;
 OP_LOGGER_FACTORY(logger, "opic.malloc.op_heap");
 
 
-struct OPHeap
-{
-  // TODO: add a magic in the very front so UNIX
-  // can recognize us?
-  // TODO: references to root objects
-  // TODO: first hpage
-  // TODO: rwlock for access (user can only set rlock)
-  atomic_uint_fast64_t occupy_bmap[VSPAN_BMAP_NUM];
-  atomic_uint_fast64_t header_bmap[VSPAN_BMAP_NUM];
-  struct RawType raw_type;
-  struct TypeAlias type_alias[2048];
-  HugePage first_hpage;
-};
 
 int OPHeapCreate(OPHeap** heap_ref)
 {
