@@ -25,7 +25,7 @@
 
 /* Change Log:
  *
- H*
+ *
  */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -45,14 +45,58 @@
 
 /* Code: */
 
-void
-OPHeapInit(OPHeap* heap)
+#include <stdbool.h>
+#include <sys/mman.h>
+#include "opic/common/op_log.h"
+
+OP_LOGGER_FACTORY(logger, "opic.malloc.init_helper");
+
+bool
+OPHeapNew(OPHeap** heap_ref)
 {
+  void *addr, *map_addr;
+  addr = NULL + OPHEAP_SIZE;
+  map_addr = MAP_FAILED;
+  for (int i = 0; i < (1<<15); i++)
+    {
+      OP_LOG_INFO(logger,
+                  "Attempt to create OPHeap on %p",
+                  addr);
+      map_addr = mmap(addr, OPHEAP_SIZE,
+                      PROT_READ | PROT_WRITE,
+                      MAP_ANON | MAP_PRIVATE | MAP_FIXED,
+                      -1, 0);
+      if (map_addr != MAP_FAILED)
+        {
+          OP_LOG_INFO(logger,
+                      "Successfully created OPHeap on %p",
+                      map_addr);
+          *heap_ref = map_addr;
+          memset(*heap_ref, 0, sizeof(OPHeap));
+          return true;
+        }
+      else
+        addr += OPHEAP_SIZE;
+    }
+  OP_LOG_ERROR(logger, "Cannot allocate OPHeap, reached address limit");
+  return false;
 }
 
+bool
+OPHeapNewFromFile(OPHeap** heap_ref, FILE fd)
+{
+  OP_LOG_ERROR(logger, "Not implemented yet");
+  return false;
+}
+
+// TODO: how do I handle magic?
 void
 HPageInit(HugePage* hpage)
 {
+  OPHeap* heap;
+  uintptr_t heap_base;
+
+  heap = ObtainOPHeap(hpage);
 }
 
 void
@@ -71,22 +115,47 @@ SBlobInit(SmallBlob* sblob)
 }
 
 void
-OPHeapEmptiedBMaps(OPHeap* heap,
-                   uint64_t* occupy_bmap,
-                   uint64_t* header_bmap)
-{
-}
-
-void
 HPageEmptiedBMaps(HugePage* hpage,
                   uint64_t* occupy_bmap,
                   uint64_t* header_bmap)
 {
+  OPHeap* heap;
+  heap = ObtainOPHeap(hpage);
+
+  memset(occupy_bmap, 0, 8 * sizeof(uint64_t));
+  memset(header_bmap, 0, 8 * sizeof(uint64_t));
+
+  if (hpage == &heap->hpage)
+    {
+      int header_size, cnt_sp, cnt_bmidx, cnt_bmbit;
+      header_size = (int)sizeof(OPHeap);
+      cnt_sp = header_size / SPAGE_SIZE;
+      cnt_bmidx = cnt_sp / 64;
+      cnt_bmbit = cnt_sp % 64;
+      for (int bmidx = 0;
+           (cnt_bmbit && bmidx < cnt_bmidx) ||
+             (bmidx <= cnt_bmidx);
+           bmidx++)
+        memset(&occupy_bmap[bmidx], 0xff, sizeof(uint64_t));
+
+      if (cnt_bmbit)
+        {
+          occupy_bmap[cnt_bmidx] = (1UL << (cnt_bit + 1)) - 1;
+          header_bmap[cnt_bmidx] = 1UL << cnt_bit;
+        }
+    }
 }
 
 void
 USpanEmptiedBMap(UnarySpan* uspan, uint64_t* bmap)
 {
+  memset(bmap, 0, uspan->bitmap_cnt * sizeof(uint64_t));
+  // TODO: check this logic carefully...
+  bmap[0] = (1UL << uspan->bitmap_headroom) - 1;
+  
+  if (uspan->bitmap_padding)
+    bmap[uspan->bitmap_cnt - 1] =
+      ~((1UL << (64 - uspan->bitmap_padding)) - 1);
 }
 
 

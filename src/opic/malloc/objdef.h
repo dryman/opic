@@ -58,6 +58,7 @@
 
 OP_BEGIN_DECLS
 
+typedef enum BitMapState BitMapState;
 typedef struct UnarySpan UnarySpan;
 typedef struct HugePage HugePage;
 typedef struct UnarySpanQueue UnarySpanQueue;
@@ -73,14 +74,14 @@ typedef struct HugeSpanCtx HugeSpanCtx;
 
 // TODO: change to enqueued/dequeued
 // TODO: Rename to something more meaningful
-typedef enum __attribute__((packed)) BitMapState
+enum BitMapState
   {
     BM_NORMAL = 0,
     BM_NEW = 1,
     BM_FULL = 2,
     BM_TOMBSTONE = 3,
-  }
-BitMapState;
+  } __attribute__((packed));
+
 static_assert(sizeof(BitMapState) == 1, "BitMapState should be 1 byte\n");
 
 
