@@ -72,6 +72,7 @@ typedef struct TypeAlias TypeAlias;
 typedef struct HugeSpanCtx HugeSpanCtx;
 
 // TODO: change to enqueued/dequeued
+// TODO: Rename to something more meaningful
 typedef enum __attribute__((packed)) BitMapState
   {
     BM_NORMAL = 0,
@@ -85,16 +86,17 @@ static_assert(sizeof(BitMapState) == 1, "BitMapState should be 1 byte\n");
 
 struct UnarySpan
 {
-  const Magic magic;             // 32 bits
+  const Magic magic;
   const uint8_t bitmap_cnt;
   const uint8_t bitmap_headroom;
   const uint8_t bitmap_padding;
-  uint8_t bitmap_hint;           // TODO: do we still need this?
+  uint8_t bitmap_hint;  // TODO: Document how this hints to search avail space.
   a_int16_t pcard;
   a_uint16_t obj_cnt;
-  _Atomic BitMapState state;
+  _Atomic BitMapState state; // TODO: is this _Atomic still needed?
   const uint32_t struct_padding: 24;
   UnarySpan* next;
+  // TODO: Document how bitmap is stored after this header
 };
 
 static_assert(sizeof(UnarySpan) == 24, "UnarySpan size should be 24 bytes");
