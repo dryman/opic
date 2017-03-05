@@ -68,6 +68,7 @@ static inline int fftstr0 (uint32_t x, int n)
 
 // find first trailing string of 1 bits
 // return -1 if no such string exists
+// TODO: docuemnt this better. This is used for some bitmap magic
 static inline int fftstr1l (uint64_t x, int n)
 {
   int s;

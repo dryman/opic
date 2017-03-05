@@ -62,8 +62,11 @@ typedef struct UnarySpan UnarySpan;
 typedef struct HugePage HugePage;
 typedef struct UnarySpanQueue UnarySpanQueue;
 typedef struct HugePageQueue HugePageQueue;
+typedef struct GenericContainer GenericContainer;
 typedef struct SmallBlob SmallBlob;
 typedef struct HugeBlob HugeBlob;
+typedef union SmallSpanPtr SmallSpanPtr;
+typedef union HugeSpanPtr HugeSpanPtr;
 typedef struct RawType RawType;
 typedef struct TypeAlias TypeAlias;
 typedef struct HugeSpanCtx HugeSpanCtx;
@@ -126,16 +129,39 @@ struct HugePageQueue
 
 static_assert(sizeof(HugePageQueue) == 10, "HugePageQueue should be 10");
 
+struct GenericContainer
+{
+  const Magic magic;
+};
+
 // Blob contained by HPage
 struct SmallBlob
 {
   const Magic magic;
+  // May have more info like size and offset.
 };
 
 // Blob contained by OPHeap
 struct HugeBlob
 {
   const Magic magic;
+  // May have more info like size and offset.
+};
+
+union SmallSpanPtr
+{
+  uintptr_t uintptr;
+  GenericContainer* generic;
+  UnarySpan* uspan;
+  SmallBlob* sblob;
+};
+
+union HugeSpanPtr
+{
+  uintptr_t uintptr;
+  GenericContainer* generic;
+  HugePage* hpage;
+  HugeBlob* hblob;
 };
 
 /************** OPHeap Layout ******************/
@@ -176,15 +202,6 @@ struct OPHeap
 
 static_assert(sizeof(OPHeap) == 391864, "sizeof(OPHeap) := 391864");
 
-struct HugeSpanCtx
-{
-  uint8_t pattern;
-  union
-  {
-    HugePage* hpage;
-    HugeBlob* hblob;
-  }
-};
 
 OP_END_DECLS
 

@@ -1,6 +1,7 @@
 #include "objdef.h"
 #include <stdio.h>
 #include <inttypes.h>
+#include "inline_aux.h"
 
 int main()
 {

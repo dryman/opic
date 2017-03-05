@@ -51,8 +51,12 @@
 #include <assert.h>
 #include <stdint.h>
 
-#define OPHEAP_SIZE (1UL << 36)
-#define HPAGE_SIZE (1UL << 21)
+#define OPHEAP_BITS 36
+#define HPAGE_BITS 21
+#define SPAGE_BITS 12
+#define OPHEAP_SIZE (1UL << OPHEAP_BITS)
+#define HPAGE_SIZE (1UL << HPAGE_BITS)
+#define SPAGE_SIZE (1UL << SPAGE_BITS)
 #define HPAGE_BMAP_NUM 512
 #define TYPE_ALIAS_NUM 2048
 
@@ -62,10 +66,10 @@
 #define TYPED_USPAN_PATTERN 0
 #define RAW_USPAN_PATTERN 1
 #define LARGE_USPAN_PATTERN 2
-#define BLOBSPAN_PATTERN 3
+#define SMALL_BLOB_PATTERN 3
 #define TYPED_HPAGE_PATTERN 4
 #define RAW_HPAGE_PATTERN 5
-#define BLOB_HPAGE_PATTERN 6
+#define HUGE_BLOB_PATTERN 6
 
 
 typedef union Magic
@@ -107,7 +111,7 @@ typedef union Magic
     uint8_t pattern : 4;
     uint16_t pages : 12;
     uint16_t reserved;
-  } blobspan;
+  } small_blob;
   struct
   {
     uint8_t pattern : 4;
@@ -124,7 +128,7 @@ typedef union Magic
     uint8_t pattern : 4;
     uint16_t reserved : 12;
     uint16_t huge_pages;
-  } blob_hpage;
+  } huge_blob;
 } Magic;
 
 static_assert(sizeof(Magic) == 4, "Magic should be 32bit");
