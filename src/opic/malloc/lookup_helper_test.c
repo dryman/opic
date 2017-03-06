@@ -92,20 +92,100 @@ test_ObtainHPage(void** state)
   first_hpage = (uintptr_t)&heap->hpage;
   second_hpage = heap_base + HPAGE_SIZE;
 
-  assert_ptr_equal(first_hpage, ObtainHPage((void*)heap_base));
-  assert_ptr_equal(first_hpage, ObtainHPage((void*)heap_base + 10));
-  assert_ptr_equal(first_hpage, ObtainHPage((void*)heap_base + 4096));
-  assert_ptr_equal(first_hpage, ObtainHPage((void*)heap_base + HPAGE_SIZE - 1));
-  assert_ptr_equal(first_hpage, ObtainHPage((void*)first_hpage));
+  assert_ptr_equal
+    (first_hpage, ObtainHPage((void*)heap_base));
+  assert_ptr_equal
+    (first_hpage, ObtainHPage((void*)(heap_base + 10)));
+  assert_ptr_equal
+    (first_hpage, ObtainHPage((void*)(heap_base + 4096)));
+  assert_ptr_equal
+    (first_hpage, ObtainHPage((void*)(heap_base + HPAGE_SIZE - 1)));
+  assert_ptr_equal
+    (first_hpage, ObtainHPage((void*)(first_hpage)));
 
-  assert_ptr_equal(second_hpage, ObtainHPage((void*)heap_base + HPAGE_SIZE));
-  assert_ptr_equal(second_hpage, ObtainHPage((void*)heap_base
-                                             + HPAGE_SIZE + 10));
-  assert_ptr_equal(second_hpage, ObtainHPage((void*)heap_base
-                                             + HPAGE_SIZE + 4096));
-  assert_ptr_equal(second_hpage, ObtainHPage((void*)heap_base
-                                             + HPAGE_SIZE*2 - 1));
+  assert_ptr_equal
+    (second_hpage,
+     ObtainHPage(((void*)heap_base + HPAGE_SIZE)));
+  assert_ptr_equal
+    (second_hpage,
+     ObtainHPage((void*)(heap_base + HPAGE_SIZE + 10)));
+  assert_ptr_equal
+    (second_hpage,
+     ObtainHPage((void*)(heap_base + HPAGE_SIZE + 4096)));
+  assert_ptr_equal
+    (second_hpage,
+     ObtainHPage((void*)(heap_base + HPAGE_SIZE*2 - 1)));
   assert_ptr_equal(second_hpage, ObtainHPage((void*)second_hpage));
+
+  OPHeapDestroy(heap);
+}
+
+static void
+test_ObtainHugeSpanPtr_fristBMap(void** state)
+{
+  OPHeap* heap;
+  uintptr_t heap_base, first_hpage, second_hpage, isolated_hpage, hblob;
+
+  assert_true(OPHeapNew(&heap));
+
+  // test first hpage
+  first_hpage = (uintptr_t)&heap->hpage;
+  heap_base = (uintptr_t)heap;
+  heap->occupy_bmap[0] = 0x01;
+  heap->header_bmap[0] = 0x01;
+
+  assert_ptr_equal
+    (first_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base))
+     .hpage);
+  assert_ptr_equal
+    (first_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + 10))
+     .hpage);
+  assert_ptr_equal
+    (first_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + 4096))
+     .hpage);
+  assert_ptr_equal
+    (first_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + HPAGE_SIZE - 1))
+     .hpage);
+
+  heap->occupy_bmap[0] = 0x03;
+  heap->header_bmap[0] = 0x03;
+  second_hpage = heap_base + HPAGE_SIZE;
+  assert_ptr_equal
+    (first_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + HPAGE_SIZE - 1))
+     .hpage);
+  assert_ptr_equal
+    (second_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + HPAGE_SIZE))
+     .hpage);
+  assert_ptr_equal
+    (second_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + HPAGE_SIZE + 10))
+     .hpage);
+  assert_ptr_equal
+    (second_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + HPAGE_SIZE + 4096))
+     .hpage);
+  assert_ptr_equal
+    (second_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + 2 * HPAGE_SIZE -1))
+     .hpage);
+
+  heap->occupy_bmap[0] = 0x13;
+  heap->header_bmap[0] = 0x13;
+  isolated_hpage = heap_base + 4 * HPAGE_SIZE;
+  assert_ptr_equal
+    (isolated_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + 4 * HPAGE_SIZE))
+     .hpage);
+  assert_ptr_equal
+    (isolated_hpage,
+     ObtainHugeSpanPtr((void*)(heap_base + 5 * HPAGE_SIZE -1))
+     .hpage);
 
   OPHeapDestroy(heap);
 }
@@ -113,12 +193,13 @@ test_ObtainHPage(void** state)
 int
 main (void)
 {
-  const struct CMUnitTest inline_lookup_helper_tests[] =
+  const struct CMUnitTest lookup_helper_tests[] =
     {
       cmocka_unit_test(test_ObtainOPHeap),
       cmocka_unit_test(test_ObtainHPage),
+      cmocka_unit_test(test_ObtainHugeSpanPtr_fristBMap),
     };
 
-  return cmocka_run_group_tests(inline_lookup_helper_tests, NULL, NULL);
+  return cmocka_run_group_tests(lookup_helper_tests, NULL, NULL);
 }
 /* lookup_helper_test.c ends here */

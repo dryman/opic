@@ -57,7 +57,7 @@ ObtainHugeSpanPtr(void* addr)
   OPHeap* heap;
   HugeSpanPtr hspan_ptr;
   uintptr_t heap_base, addr_base,
-    _addr, _addr_hp, _addr_bmidx, _addr_bmbit;
+    _addr, _addr_hpage, _addr_bmidx, _addr_bmbit;
   uint64_t bmap, mask, bmap_masked;
   int leading_zeros;
 
@@ -66,17 +66,17 @@ ObtainHugeSpanPtr(void* addr)
   addr_base = (uintptr_t)addr;
   _addr = addr_base - heap_base;
 
-  _addr_hp = _addr >> HPAGE_BITS;
-  _addr_bmidx = _addr_hp / 64;
-  _addr_bmbit = _addr_hp % 64;
+  _addr_hpage = _addr >> HPAGE_BITS;
+  _addr_bmidx = _addr_hpage / 64;
+  _addr_bmbit = _addr_hpage % 64;
 
   // Not informative enough
   op_assert(atomic_load_explicit(&heap->occupy_bmap[_addr_bmidx],
                                  memory_order_relaxed) &
             (1UL << _addr_bmbit),
-            "Addr located in %" PRIuPTR " OPHeap bitmap "
-            "has value %" PRIx64 "\n",
-            _addr_bmidx, heap->occupy_bmap[_addr_bmidx]);
+            "Addr %p located in %" PRIuPTR " OPHeap bitmap "
+            "has value 0x%" PRIx64 "\n",
+            addr, _addr_bmidx, heap->occupy_bmap[_addr_bmidx]);
 
   if (_addr < HPAGE_SIZE)
     {
@@ -88,7 +88,7 @@ ObtainHugeSpanPtr(void* addr)
                            memory_order_relaxed) &
       (1UL << _addr_bmbit))
     {
-      hspan_ptr.uintptr = heap_base + _addr_hp;
+      hspan_ptr.uintptr = heap_base + _addr_hpage * HPAGE_SIZE;
       return hspan_ptr;
     }
 
@@ -99,8 +99,8 @@ ObtainHugeSpanPtr(void* addr)
 
   if (bmap_masked && leading_zeros)
     {
-      hspan_ptr.uintptr = heap_base + _addr_bmidx * 64
-        + (64 - leading_zeros);
+      hspan_ptr.uintptr = heap_base +
+        (_addr_bmidx * 64 + (64 - leading_zeros - 1)) * HPAGE_SIZE;
       return hspan_ptr;
     }
 
@@ -111,8 +111,8 @@ ObtainHugeSpanPtr(void* addr)
       if (bmap)
         {
           leading_zeros = __builtin_clzl(bmap);
-          hspan_ptr.uintptr = heap_base + bmidx * 64 +
-            (64 - leading_zeros);
+          hspan_ptr.uintptr = heap_base +
+            (bmidx * 64 + (64 - leading_zeros - 1)) * HPAGE_SIZE;
           return hspan_ptr;
         }
     }
