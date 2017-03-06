@@ -47,6 +47,9 @@
 
 #include <stdbool.h>
 #include <sys/mman.h>
+#include <string.h>
+#include "lookup_helper.h"
+#include "init_helper.h"
 #include "opic/common/op_log.h"
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.init_helper");
@@ -89,6 +92,13 @@ OPHeapNewFromFile(OPHeap** heap_ref, FILE fd)
   return false;
 }
 
+void
+OPHeapDestroy(OPHeap* heap)
+{
+  munmap(heap, OPHEAP_SIZE);
+  OP_LOG_INFO(logger, "Successfully destroyed OPHeap on %p", heap);
+}
+
 // TODO: how do I handle magic?
 void
 HPageInit(HugePage* hpage)
@@ -127,11 +137,11 @@ HPageEmptiedBMaps(HugePage* hpage,
 
   if (hpage == &heap->hpage)
     {
-      int header_size, cnt_sp, cnt_bmidx, cnt_bmbit;
+      int header_size, cnt_spage, cnt_bmidx, cnt_bmbit;
       header_size = (int)sizeof(OPHeap);
-      cnt_sp = header_size / SPAGE_SIZE;
-      cnt_bmidx = cnt_sp / 64;
-      cnt_bmbit = cnt_sp % 64;
+      cnt_spage = round_up_div(header_size, SPAGE_SIZE);
+      cnt_bmidx = cnt_spage / 64;
+      cnt_bmbit = cnt_spage % 64;
       for (int bmidx = 0;
            (cnt_bmbit && bmidx < cnt_bmidx) ||
              (bmidx <= cnt_bmidx);
@@ -139,10 +149,7 @@ HPageEmptiedBMaps(HugePage* hpage,
         memset(&occupy_bmap[bmidx], 0xff, sizeof(uint64_t));
 
       if (cnt_bmbit)
-        {
-          occupy_bmap[cnt_bmidx] = (1UL << (cnt_bit + 1)) - 1;
-          header_bmap[cnt_bmidx] = 1UL << cnt_bit;
-        }
+        occupy_bmap[cnt_bmidx] = (1UL << cnt_bmbit) - 1;
     }
 }
 
@@ -150,9 +157,9 @@ void
 USpanEmptiedBMap(UnarySpan* uspan, uint64_t* bmap)
 {
   memset(bmap, 0, uspan->bitmap_cnt * sizeof(uint64_t));
-  // TODO: check this logic carefully...
+
   bmap[0] = (1UL << uspan->bitmap_headroom) - 1;
-  
+
   if (uspan->bitmap_padding)
     bmap[uspan->bitmap_cnt - 1] =
       ~((1UL << (64 - uspan->bitmap_padding)) - 1);

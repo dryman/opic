@@ -126,7 +126,7 @@ static_assert(sizeof(UnarySpanQueue) == 10, "UnarySpanQueue should be 10");
 
 struct HugePageQueue
 {
-  HugePage* upage;
+  HugePage* hpage;
   a_int16_t pcard;
 } __attribute__((packed));
 

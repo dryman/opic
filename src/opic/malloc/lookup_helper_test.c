@@ -1,0 +1,124 @@
+/* lookup_helper_test.c ---
+ *
+ * Filename: lookup_helper_test.c
+ * Description:
+ * Author: Felix Chern
+ * Maintainer:
+ * Copyright: (c) 2016 Felix Chern
+ * Created: Sun Mar  5 16:04:06 2017 (-0800)
+ * Version:
+ * Package-Requires: ()
+ * Last-Updated:
+ *           By:
+ *     Update #: 0
+ * URL:
+ * Doc URL:
+ * Keywords:
+ * Compatibility:
+ *
+ */
+
+/* Commentary:
+ *
+ *
+ *
+ */
+
+/* Change Log:
+ *
+ *
+ */
+
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/* Code: */
+
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <stdint.h>
+#include <sys/mman.h>
+#include <cmocka.h>
+
+#include "magic.h"
+#include "inline_aux.h"
+#include "lookup_helper.h"
+#include "init_helper.h"
+
+static void
+test_ObtainOPHeap(void** state)
+{
+  uintptr_t base, header, inner, boundary, out_of_reach;
+  OPHeap* heap;
+
+  assert_true(OPHeapNew(&heap));
+
+  base = (uintptr_t)heap;
+  header = (uintptr_t)&heap->hpage;
+  inner = base + HPAGE_SIZE * 100;
+  boundary = base + OPHEAP_SIZE - 1;
+  out_of_reach = base + OPHEAP_SIZE;
+
+  assert_ptr_equal(heap, ObtainOPHeap((void*)base));
+  assert_ptr_equal(heap, ObtainOPHeap((void*)header));
+  assert_ptr_equal(heap, ObtainOPHeap((void*)inner));
+  assert_ptr_equal(heap, ObtainOPHeap((void*)boundary));
+  assert_ptr_not_equal(heap, ObtainOPHeap((void*)out_of_reach));
+
+  OPHeapDestroy(heap);
+}
+
+static void
+test_ObtainHPage(void** state)
+{
+  uintptr_t heap_base, first_hpage, second_hpage;
+  OPHeap* heap;
+
+  assert_true(OPHeapNew(&heap));
+
+  heap_base = (uintptr_t)heap;
+  first_hpage = (uintptr_t)&heap->hpage;
+  second_hpage = heap_base + HPAGE_SIZE;
+
+  assert_ptr_equal(first_hpage, ObtainHPage((void*)heap_base));
+  assert_ptr_equal(first_hpage, ObtainHPage((void*)heap_base + 10));
+  assert_ptr_equal(first_hpage, ObtainHPage((void*)heap_base + 4096));
+  assert_ptr_equal(first_hpage, ObtainHPage((void*)heap_base + HPAGE_SIZE - 1));
+  assert_ptr_equal(first_hpage, ObtainHPage((void*)first_hpage));
+
+  assert_ptr_equal(second_hpage, ObtainHPage((void*)heap_base + HPAGE_SIZE));
+  assert_ptr_equal(second_hpage, ObtainHPage((void*)heap_base
+                                             + HPAGE_SIZE + 10));
+  assert_ptr_equal(second_hpage, ObtainHPage((void*)heap_base
+                                             + HPAGE_SIZE + 4096));
+  assert_ptr_equal(second_hpage, ObtainHPage((void*)heap_base
+                                             + HPAGE_SIZE*2 - 1));
+  assert_ptr_equal(second_hpage, ObtainHPage((void*)second_hpage));
+
+  OPHeapDestroy(heap);
+}
+
+int
+main (void)
+{
+  const struct CMUnitTest inline_lookup_helper_tests[] =
+    {
+      cmocka_unit_test(test_ObtainOPHeap),
+      cmocka_unit_test(test_ObtainHPage),
+    };
+
+  return cmocka_run_group_tests(inline_lookup_helper_tests, NULL, NULL);
+}
+/* lookup_helper_test.c ends here */
