@@ -125,12 +125,14 @@ SmallSpanPtr
 HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
 {
   SmallSpanPtr sspan_ptr;
+  OPHeap* heap;
   uintptr_t hpage_base, addr_base,
     _addr, _addr_spage, _addr_bmidx, _addr_bmbit;
   uint64_t bmap, mask, bmap_masked;
   int leading_zeros;
 
-  hpage_base = (uintptr_t)hpage;
+  heap = ObtainOPHeap(hpage);
+  hpage_base = hpage == &heap->hpage ? (uintptr_t)heap : (uintptr_t)hpage;
   addr_base = (uintptr_t)addr;
   _addr = addr_base - hpage_base;
   op_assert(_addr >= 0 && _addr < HPAGE_SIZE,
@@ -153,8 +155,8 @@ HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
                            memory_order_relaxed) &
       (1UL << _addr_bmbit))
     {
-      sspan_ptr.uintptr = hpage_base + _addr_spage;
-      goto first_sspan_adjustment;
+      sspan_ptr.uintptr = hpage_base + _addr_spage * SPAGE_SIZE;
+      return sspan_ptr;
     }
 
   mask = (1UL << _addr_bmbit) - 1;
@@ -164,9 +166,9 @@ HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
 
   if (bmap_masked && leading_zeros)
     {
-      sspan_ptr.uintptr = hpage_base + _addr_bmidx * 64
-        + (64 - leading_zeros);
-      goto first_sspan_adjustment;
+      sspan_ptr.uintptr = hpage_base +
+        (_addr_bmidx * 64 + (64 - leading_zeros - 1)) * SPAGE_SIZE;
+      return sspan_ptr;
     }
 
   for (int bmidx = (int)_addr_bmidx - 1; bmidx >= 0; bmidx--)
@@ -178,18 +180,12 @@ HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
           leading_zeros = __builtin_clzl(bmap);
           sspan_ptr.uintptr = hpage_base + bmidx * 64 +
             (64 - leading_zeros);
-          goto first_sspan_adjustment;
+          return sspan_ptr;
         }
     }
   op_assert(0, "Could not find valid SSpan for addr %p in HPage %p\n",
             addr, hpage);
   sspan_ptr.uintptr = 0;
-  return sspan_ptr;
-
- first_sspan_adjustment:
-  if (sspan_ptr.uintptr == hpage_base)
-    sspan_ptr.uintptr = hpage_base + sizeof(HugePage);
-
   return sspan_ptr;
 }
 
