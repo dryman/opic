@@ -105,7 +105,7 @@ static_assert(sizeof(UnarySpan) == 24, "UnarySpan size should be 24 bytes");
 
 struct HugePage
 {
-  const Magic magic;
+  Magic magic;
   a_int16_t pcard;
   _Atomic BitMapState state;
   const int8_t struct_padding;

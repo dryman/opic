@@ -107,11 +107,13 @@ HPageInit(OPHeapCtx* ctx, Magic magic)
   hpage->magic = magic;
   hpage->pcard = 0;
   hpage->state = BM_NEW;  // TODO: we need to define new state
-  HPageEmptiedBMaps(hpage, &hpage->occupy_bmap, &hpage->header_bmap);
+  HPageEmptiedBMaps(hpage,
+                    (uint64_t*)&hpage->occupy_bmap,
+                    (uint64_t*)&hpage->header_bmap);
 }
 
 void
-USpanInit(OPHeapCtx* ctx, Magic, size_t size)
+USpanInit(OPHeapCtx* ctx, Magic magic, size_t span_size)
 {
   UnarySpan* uspan;
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
@@ -137,7 +139,6 @@ USpanInit(OPHeapCtx* ctx, Magic, size_t size)
   uspan->pcard = 0;
   uspan->obj_cnt = 0;
   uspan->state = BM_NEW;
-  uspan->struct_padding = 0;
   uspan->next = NULL;
 
   bmap = (uint64_t*)(ctx->sspan.uintptr + sizeof(UnarySpan));

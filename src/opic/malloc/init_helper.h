@@ -55,6 +55,8 @@ OP_BEGIN_DECLS
 
 bool OPHeapNew(OPHeap** heap_ref);
 void OPHeapDestroy(OPHeap* heap);
+void HPageInit(OPHeapCtx* ctx, Magic magic);
+void USpanInit(OPHeapCtx* ctx, Magic magic, size_t span_size);
 void HPageEmptiedBMaps(HugePage* hpage, uint64_t* occupy_bmap,
                        uint64_t* header_bmap);
 void USpanEmptiedBMap(UnarySpan* uspan, uint64_t* bmap);
