@@ -335,7 +335,7 @@ test_HPageObtainSmallSpanPtr_firstHPage(void** context)
 {
   OPHeap* heap;
   HugePage* hpage;
-  uintptr_t heap_base, hpage_base, cross_bmap_uspan;
+  uintptr_t heap_base, cross_bmap_uspan;
 
   assert_true(OPHeapNew(&heap));
   heap_base = (uintptr_t)heap;
@@ -371,6 +371,79 @@ test_HPageObtainSmallSpanPtr_firstHPage(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_ObtainUSpanQueue(void** state)
+{
+  OPHeap* heap;
+  UnarySpan* uspan;
+  Magic* magic;
+  uintptr_t uspan_base;
+
+  assert_true(OPHeapNew(&heap));
+
+  uspan_base = (uintptr_t)heap + HPAGE_SIZE + SPAGE_SIZE;
+  magic = (Magic*)uspan_base;
+  uspan = (UnarySpan*)uspan_base;
+
+  magic->raw_uspan.pattern = RAW_USPAN_PATTERN;
+  magic->raw_uspan.obj_size = 8;
+  magic->raw_uspan.thread_id = 0;
+  assert_ptr_equal(&heap->raw_type.uspan_queue[0][0],
+                   ObtainUSpanQueue(uspan));
+
+  magic->raw_uspan.obj_size = 256;
+  magic->raw_uspan.thread_id = 5;
+  assert_ptr_equal(&heap->raw_type.uspan_queue[15][5],
+                   ObtainUSpanQueue(uspan));
+
+  magic->large_uspan.pattern = LARGE_USPAN_PATTERN;
+  magic->large_uspan.obj_size = 512;
+  assert_ptr_equal(&heap->raw_type.large_uspan_queue[0],
+                   ObtainUSpanQueue(uspan));
+
+  magic->large_uspan.obj_size = 1024;
+  assert_ptr_equal(&heap->raw_type.large_uspan_queue[1],
+                   ObtainUSpanQueue(uspan));
+
+  magic->large_uspan.obj_size = 2048;
+  assert_ptr_equal(&heap->raw_type.large_uspan_queue[2],
+                   ObtainUSpanQueue(uspan));
+
+  magic->typed_uspan.pattern = TYPED_USPAN_PATTERN;
+  magic->typed_uspan.obj_size = 30;
+  magic->typed_uspan.thread_id = 6;
+  magic->typed_uspan.type_alias = 5;
+  assert_ptr_equal(&heap->type_alias[5].uspan_queue[6],
+                   ObtainUSpanQueue(uspan));
+
+  OPHeapDestroy(heap);
+}
+
+static void
+test_ObtainHPageQueue(void** state)
+{
+  OPHeap* heap;
+  HugePage* hpage;
+  Magic* magic;
+  uintptr_t hpage_base;
+
+  assert_true(OPHeapNew(&heap));
+
+  hpage_base = (uintptr_t)heap + HPAGE_SIZE;
+  magic = (Magic*)hpage_base;
+  hpage = (HugePage*)hpage_base;
+
+  magic->typed_hpage.pattern = TYPED_HPAGE_PATTERN;
+  magic->typed_hpage.type_alias = 8;
+  assert_ptr_equal(&heap->type_alias[8].hpage_queue,
+                   ObtainHPageQueue(hpage));
+
+  magic->raw_hpage.pattern = RAW_HPAGE_PATTERN;
+  assert_ptr_equal(&heap->raw_type.hpage_queue,
+                   ObtainHPageQueue(hpage));
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -382,6 +455,8 @@ main (void)
       cmocka_unit_test(test_ObtainHugeSpanPtr_crossBMap),
       cmocka_unit_test(test_HPageObtainSmallSpanPtr),
       cmocka_unit_test(test_HPageObtainSmallSpanPtr_firstHPage),
+      cmocka_unit_test(test_ObtainUSpanQueue),
+      cmocka_unit_test(test_ObtainHPageQueue),
     };
 
   return cmocka_run_group_tests(lookup_helper_tests, NULL, NULL);

@@ -210,7 +210,7 @@ ObtainUSpanQueue(UnarySpan* uspan)
       tid = uspan->magic.typed_uspan.thread_id;
       return &ta->uspan_queue[tid];
     case RAW_USPAN_PATTERN:
-      size_class = uspan->magic.raw_uspan.obj_size / 16;
+      size_class = round_up_div(uspan->magic.raw_uspan.obj_size, 16) - 1;
       tid = uspan->magic.raw_uspan.thread_id;
       return &heap->raw_type.uspan_queue[size_class][tid];
     case LARGE_USPAN_PATTERN:
