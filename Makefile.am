@@ -1,1 +1,1 @@
-SUBDIRS = src pm_serde_example tests
+SUBDIRS = src

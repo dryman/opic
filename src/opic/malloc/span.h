@@ -1,87 +1,73 @@
-/* op_vpage.h --- 
- * 
- * Filename: op_vpage.h
- * Description: 
+/* span.h ---
+ *
+ * Filename: span.h
+ * Description:
  * Author: Felix Chern
- * Maintainer: 
+ * Maintainer:
  * Copyright: (c) 2016 Felix Chern
- * Created: Tue Oct 11 2016
- * Version: 
+ * Created: Sat Oct 8, 2016
+ * Version: 0.3.0
  * Package-Requires: ()
- * Last-Updated: 
- *           By: 
+ * Last-Updated:
+ *           By:
  *     Update #: 0
- * URL: 
- * Doc URL: 
- * Keywords: 
- * Compatibility: 
- * 
+ * URL:
+ * Doc URL:
+ * Keywords:
+ * Compatibility:
+ *
  */
 
-/* Commentary: 
- * 
- * 
- * 
+/* Commentary:
+ *
+ *
+ *
  */
 
 /* Change Log:
- * 
- * 
+ *
+ *
  */
 
 /* This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /* Code: */
 
-#ifndef OP_VPAGE_H
-#define OP_VPAGE_H 1
+#ifndef SPAN_H
+#define SPAN_H 1
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdatomic.h>
 #include "opic/common/op_macros.h"
 #include "opic/common/op_assert.h"
 #include "opic/common/op_log.h"
-#include "opic/malloc/op_pspan.h"
+#include "malloc_internal.h"
 
 OP_BEGIN_DECLS
 
-typedef struct OPVPage OPVPage;
 
-struct OPVPage 
-{
-  _Atomic uint64_t occupy_bmap[8];
-  _Atomic uint64_t header_bmap[8];
-};
-
-OPVPage* OPVPageInit(void* addr)
+UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
   __attribute__((nonnull));
 
-OPSingularPSpan* OPVPageAllocPSpan(OPVPage* restrict self,
-                                   uint16_t ta_idx,
-                                   uint16_t obj_size,
-                                   unsigned int span_cnt)
+void* USpanMalloc(UnarySpan* self)
   __attribute__((nonnull));
 
-bool OPVPageFree(OPVPage* restrict self, void* addr)
+FreeStatus USpanFree(UnarySpan* self, void* addr)
   __attribute__((nonnull));
-
-
-
 
 OP_END_DECLS
 
 #endif
-/* op_vpage.h ends here */
+/* span.h ends here */
