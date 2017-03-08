@@ -156,7 +156,7 @@ HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
       (1UL << _addr_bmbit))
     {
       sspan_ptr.uintptr = hpage_base + _addr_spage * SPAGE_SIZE;
-      return sspan_ptr;
+      goto first_sspan_adjustment;
     }
 
   mask = (1UL << _addr_bmbit) - 1;
@@ -168,7 +168,7 @@ HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
     {
       sspan_ptr.uintptr = hpage_base +
         (_addr_bmidx * 64 + (64 - leading_zeros - 1)) * SPAGE_SIZE;
-      return sspan_ptr;
+      goto first_sspan_adjustment;
     }
 
   for (int bmidx = (int)_addr_bmidx - 1; bmidx >= 0; bmidx--)
@@ -178,14 +178,20 @@ HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
       if (bmap)
         {
           leading_zeros = __builtin_clzl(bmap);
-          sspan_ptr.uintptr = hpage_base + bmidx * 64 +
-            (64 - leading_zeros);
-          return sspan_ptr;
+          sspan_ptr.uintptr = hpage_base +
+            (bmidx * 64 + (64 - leading_zeros - 1)) * SPAGE_SIZE;
+          goto first_sspan_adjustment;
         }
     }
   op_assert(0, "Could not find valid SSpan for addr %p in HPage %p\n",
             addr, hpage);
   sspan_ptr.uintptr = 0;
+  return sspan_ptr;
+
+ first_sspan_adjustment:
+  if (sspan_ptr.uintptr == hpage_base)
+    sspan_ptr.uintptr = hpage_base + sizeof(HugePage);
+
   return sspan_ptr;
 }
 
