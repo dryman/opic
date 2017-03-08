@@ -99,29 +99,50 @@ OPHeapDestroy(OPHeap* heap)
   OP_LOG_INFO(logger, "Successfully destroyed OPHeap on %p", heap);
 }
 
-// TODO: how do I handle magic?
 void
-HPageInit(HugePage* hpage)
+HPageInit(OPHeapCtx* ctx, Magic magic)
 {
-  OPHeap* heap;
-  uintptr_t heap_base;
-
-  heap = ObtainOPHeap(hpage);
+  HugePage* hpage;
+  hpage = ctx->hspan.hpage;
+  hpage->magic = magic;
+  hpage->pcard = 0;
+  hpage->state = BM_NEW;  // TODO: we need to define new state
+  HPageEmptiedBMaps(hpage, &hpage->occupy_bmap, &hpage->header_bmap);
 }
 
 void
-HBlobInit(HugeBlob* hblob)
+USpanInit(OPHeapCtx* ctx, Magic, size_t size)
 {
-}
+  UnarySpan* uspan;
+  unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
+  uint64_t* bmap;
 
-void
-USpanInit(UnarySpan* uspan)
-{
-}
+  obj_size = magic.typed_uspan.obj_size;
+  /* Number of objects fits into the span, regardless of header.  Note
+   * this is different to the capcity of object that can stored in this
+   * span.  The capacity should be calculated as
+   * bitmap_cnt * 64 - headroom - padding.
+   */
+  obj_cnt = span_size / obj_size;
+  bitmap_cnt = round_up_div(obj_cnt, 64);
+  padding = (bitmap_cnt << 6) - obj_cnt;
+  headroom = (sizeof(UnarySpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
 
-void
-SBlobInit(SmallBlob* sblob)
-{
+  uspan = ctx->sspan.uspan;
+  uspan->magic = magic;
+  uspan->bitmap_cnt = bitmap_cnt;
+  uspan->bitmap_headroom = headroom;
+  uspan->bitmap_padding = padding;
+  uspan->bitmap_hint = 0;
+  uspan->pcard = 0;
+  uspan->obj_cnt = 0;
+  uspan->state = BM_NEW;
+  uspan->struct_padding = 0;
+  uspan->next = NULL;
+
+  bmap = (uint64_t*)(ctx->sspan.uintptr + sizeof(UnarySpan));
+
+  USpanEmptiedBMap(uspan, bmap);
 }
 
 void

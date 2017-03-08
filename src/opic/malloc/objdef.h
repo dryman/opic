@@ -70,7 +70,7 @@ typedef union SmallSpanPtr SmallSpanPtr;
 typedef union HugeSpanPtr HugeSpanPtr;
 typedef struct RawType RawType;
 typedef struct TypeAlias TypeAlias;
-typedef struct HugeSpanCtx HugeSpanCtx;
+typedef struct OPHeapCtx OPHeapCtx;
 
 // TODO: change to enqueued/dequeued
 // TODO: Rename to something more meaningful
@@ -87,14 +87,14 @@ static_assert(sizeof(BitMapState) == 1, "BitMapState should be 1 byte\n");
 
 struct UnarySpan
 {
-  const Magic magic;
-  const uint8_t bitmap_cnt;
-  const uint8_t bitmap_headroom;
-  const uint8_t bitmap_padding;
+  Magic magic;
+  uint8_t bitmap_cnt;
+  uint8_t bitmap_headroom;
+  uint8_t bitmap_padding;
   uint8_t bitmap_hint;  // TODO: Document how this hints to search avail space.
   a_int16_t pcard;
   a_uint16_t obj_cnt;
-  _Atomic BitMapState state; // TODO: is this _Atomic still needed?
+  _Atomic BitMapState state;
   const uint32_t struct_padding: 24;
   UnarySpan* next;
   // TODO: Document how bitmap is stored after this header
@@ -108,7 +108,7 @@ struct HugePage
   const Magic magic;
   a_int16_t pcard;
   _Atomic BitMapState state;
-  const int8_t padding; // may change
+  const int8_t struct_padding;
   HugePage* next;
   a_uint64_t occupy_bmap[8];
   a_uint64_t header_bmap[8];
@@ -154,6 +154,7 @@ struct HugeBlob
 union SmallSpanPtr
 {
   uintptr_t uintptr;
+  Magic* magic;
   GenericContainer* generic;
   UnarySpan* uspan;
   SmallBlob* sblob;
@@ -162,6 +163,7 @@ union SmallSpanPtr
 union HugeSpanPtr
 {
   uintptr_t uintptr;
+  Magic* magic;
   GenericContainer* generic;
   HugePage* hpage;
   HugeBlob* hblob;
@@ -205,6 +207,13 @@ struct OPHeap
 
 static_assert(sizeof(OPHeap) == 391864, "sizeof(OPHeap) := 391864");
 
+struct OPHeapCtx
+{
+  SmallSpanPtr sspan;
+  HugeSpanPtr hspan;
+  UnarySpanQueue* uqueue;
+  HugePageQueue* hqueue;
+};
 
 OP_END_DECLS
 
