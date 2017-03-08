@@ -108,8 +108,8 @@ HPageInit(OPHeapCtx* ctx, Magic magic)
   hpage->pcard = 0;
   hpage->state = BM_NEW;  // TODO: we need to define new state
   HPageEmptiedBMaps(hpage,
-                    (uint64_t*)&hpage->occupy_bmap,
-                    (uint64_t*)&hpage->header_bmap);
+                    &hpage->occupy_bmap[0],
+                    &hpage->header_bmap[0]);
 }
 
 void
@@ -148,14 +148,14 @@ USpanInit(OPHeapCtx* ctx, Magic magic, size_t span_size)
 
 void
 HPageEmptiedBMaps(HugePage* hpage,
-                  uint64_t* occupy_bmap,
-                  uint64_t* header_bmap)
+                  BmapPtr occupy_bmap,
+                  BmapPtr header_bmap)
 {
   OPHeap* heap;
   heap = ObtainOPHeap(hpage);
 
-  memset(occupy_bmap, 0, 8 * sizeof(uint64_t));
-  memset(header_bmap, 0, 8 * sizeof(uint64_t));
+  memset(occupy_bmap.uint64, 0, 8 * sizeof(uint64_t));
+  memset(header_bmap.uint64, 0, 8 * sizeof(uint64_t));
 
   if (hpage == &heap->hpage)
     {
@@ -168,22 +168,22 @@ HPageEmptiedBMaps(HugePage* hpage,
            (cnt_bmbit && bmidx < cnt_bmidx) ||
              (bmidx <= cnt_bmidx);
            bmidx++)
-        memset(&occupy_bmap[bmidx], 0xff, sizeof(uint64_t));
+        memset(&occupy_bmap.uint64[bmidx], 0xff, sizeof(uint64_t));
 
       if (cnt_bmbit)
-        occupy_bmap[cnt_bmidx] = (1UL << cnt_bmbit) - 1;
+        occupy_bmap.uint64[cnt_bmidx] = (1UL << cnt_bmbit) - 1;
     }
 }
 
 void
-USpanEmptiedBMap(UnarySpan* uspan, uint64_t* bmap)
+USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap)
 {
-  memset(bmap, 0, uspan->bitmap_cnt * sizeof(uint64_t));
+  memset(bmap.uint64, 0, uspan->bitmap_cnt * sizeof(uint64_t));
 
-  bmap[0] = (1UL << uspan->bitmap_headroom) - 1;
+  bmap.uint64[0] = (1UL << uspan->bitmap_headroom) - 1;
 
   if (uspan->bitmap_padding)
-    bmap[uspan->bitmap_cnt - 1] =
+    bmap.uint64[uspan->bitmap_cnt - 1] =
       ~((1UL << (64 - uspan->bitmap_padding)) - 1);
 }
 

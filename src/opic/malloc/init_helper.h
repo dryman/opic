@@ -53,13 +53,21 @@
 
 OP_BEGIN_DECLS
 
+typedef union BmapPtr BmapPtr;
+
+union BmapPtr
+{
+  uint64_t* uint64;
+  a_uint64_t* a_uint64;
+} __attribute__ ((__transparent_union__));
+
 bool OPHeapNew(OPHeap** heap_ref);
 void OPHeapDestroy(OPHeap* heap);
 void HPageInit(OPHeapCtx* ctx, Magic magic);
 void USpanInit(OPHeapCtx* ctx, Magic magic, size_t span_size);
-void HPageEmptiedBMaps(HugePage* hpage, uint64_t* occupy_bmap,
-                       uint64_t* header_bmap);
-void USpanEmptiedBMap(UnarySpan* uspan, uint64_t* bmap);
+void HPageEmptiedBMaps(HugePage* hpage, BmapPtr occupy_bmap,
+                       BmapPtr header_bmap);
+void USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap);
 
 OP_END_DECLS
 
