@@ -330,6 +330,47 @@ test_HPageObtainSmallSpanPtr(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_HPageObtainSmallSpanPtr_firstHPage(void** context)
+{
+  OPHeap* heap;
+  HugePage* hpage;
+  uintptr_t heap_base, hpage_base, cross_bmap_uspan;
+
+  assert_true(OPHeapNew(&heap));
+  heap_base = (uintptr_t)heap;
+
+  heap->occupy_bmap[0] = 0x01;
+  heap->header_bmap[0] = 0x01;
+
+  hpage = ObtainHugeSpanPtr(heap).hpage;
+  assert_ptr_equal(&heap->hpage, hpage);
+
+  hpage->occupy_bmap[0] = ~0UL;
+  hpage->occupy_bmap[1] = ~0UL;
+  hpage->occupy_bmap[2] = ~0UL;
+  hpage->header_bmap[2] = 0x01;
+  hpage->occupy_bmap[3] = ~0UL;
+
+  cross_bmap_uspan = heap_base + 128 * SPAGE_SIZE;
+
+  assert_ptr_equal
+    (cross_bmap_uspan,
+     HPageObtainSmallSpanPtr
+     (hpage,
+      (void*)(heap_base + SPAGE_SIZE * 128))
+     .uspan);
+
+  assert_ptr_equal
+    (cross_bmap_uspan,
+     HPageObtainSmallSpanPtr
+     (hpage,
+      (void*)(heap_base + SPAGE_SIZE * 64 * 3 - 1))
+     .uspan);
+
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -340,6 +381,7 @@ main (void)
       cmocka_unit_test(test_ObtainHugeSpanPtr_fristBMap),
       cmocka_unit_test(test_ObtainHugeSpanPtr_crossBMap),
       cmocka_unit_test(test_HPageObtainSmallSpanPtr),
+      cmocka_unit_test(test_HPageObtainSmallSpanPtr_firstHPage),
     };
 
   return cmocka_run_group_tests(lookup_helper_tests, NULL, NULL);
