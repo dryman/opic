@@ -4,7 +4,7 @@
  * Description:
  * Author: Felix Chern
  * Maintainer:
- * Copyright: (c) 2016 Felix Chern
+ * Copyright: (c) 2016-2017 Felix Chern
  * Created: Sat Oct 8, 2016
  * Version: 0.3.0
  * Package-Requires: ()
