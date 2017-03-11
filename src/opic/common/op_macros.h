@@ -1,5 +1,53 @@
-#ifndef OP_MACROS_H
-#define OP_MACROS_H 1
+/* op_macros.h ---
+ *
+ * Filename: op_macros.h
+ * Description:
+ * Author: Felix Chern
+ * Maintainer:
+ * Copyright: (c) 2016-2017 Felix Chern
+ * Created: Apr 26, 2016
+ * Version:
+ * Package-Requires: ()
+ * Last-Updated:
+ *           By:
+ *     Update #: 0
+ * URL:
+ * Doc URL:
+ * Keywords:
+ * Compatibility:
+ *
+ */
+
+/* Commentary:
+ *
+ *
+ *
+ */
+
+/* Change Log:
+ *
+ *
+ */
+
+/* This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/* Code: */
+
+
+#ifndef OPIC_COMMON_OP_MACROS_H
+#define OPIC_COMMON_OP_MACROS_H 1
 
 /* copied from sys/cdefs.h */
 #if defined(__cplusplus)
@@ -25,7 +73,7 @@
 #define _OP_GET_MACRO_BY_ARGS(_01,_02,_03,_04,_05,_06,_07,_08,_09,_10, \
                               _11,_12,_13,_14,_15,_16,_17,_18,_19,_20, \
                               _21,_22,_23,_24,_25,_26,_27,_28,_29,_30, \
-                              _31,_32,_33,_34,_35,_36, NAME,...) NAME 
+                              _31,_32,_33,_34,_35,_36, NAME,...) NAME
 
 /**
  * OP_MR_S0(M,R)
@@ -368,4 +416,6 @@
 #define OP_MR_35_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), OP_MR_34_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
 #define OP_MR_36_(I, M, R, S1, S2, S3, S4, S5, S6, X, ...) R(M(X,I,S1,S2,S3,S4,S5,S6), OP_MR_35_(I##1,M,R,S1,S2,S3,S4,S5,S6,__VA_ARGS__) ,S1,S2,S3,S4,S5,S6)
 
-#endif /* OP_MACROS_H */
+#endif
+
+/* op_macros.h ends here */

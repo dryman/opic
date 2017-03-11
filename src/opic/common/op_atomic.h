@@ -45,13 +45,14 @@
 
 /* Code: */
 
-#ifndef OP_ATOMIC_H
-#define OP_ATOMIC_H 1
+#ifndef OPIC_COMMON_OP_ATOMIC_H
+#define OPIC_COMMON_OP_ATOMIC_H 1
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdatomic.h>
 
 #include "op_macros.h"
-#include "stdatomic.h"
-#include "stdint.h"
-#include "stdbool.h"
 
 OP_BEGIN_DECLS
 

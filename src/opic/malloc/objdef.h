@@ -158,7 +158,7 @@ union SmallSpanPtr
   GenericContainer* generic;
   UnarySpan* uspan;
   SmallBlob* sblob;
-};
+} __attribute__((__transparent_union__));
 
 union HugeSpanPtr
 {
@@ -167,7 +167,7 @@ union HugeSpanPtr
   GenericContainer* generic;
   HugePage* hpage;
   HugeBlob* hblob;
-};
+} __attribute__((__transparent_union__));
 
 /************** OPHeap Layout ******************/
 

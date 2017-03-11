@@ -1,11 +1,11 @@
-/* init_helper.h ---
+/* init_helper_test.c ---
  *
- * Filename: init_helper.h
+ * Filename: init_helper_test.c
  * Description:
  * Author: Felix Chern
  * Maintainer:
  * Copyright: (c) 2016 Felix Chern
- * Created: Sun Mar  5 16:41:20 2017 (-0800)
+ * Created: Wed Mar  8 20:07:16 2017 (-0800)
  * Version:
  * Package-Requires: ()
  * Last-Updated:
@@ -45,32 +45,56 @@
 
 /* Code: */
 
-#ifndef OPIC_MALLOC_INIT_HELPER_H
-#define OPIC_MALLOC_INIT_HELPER_H 1
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <stdint.h>
+#include <sys/mman.h>
+#include <cmocka.h>
 
-#include "objdef.h"
+#include "magic.h"
 #include "inline_aux.h"
+#include "lookup_helper.h"
+#include "init_helper.h"
 
-OP_BEGIN_DECLS
-
-typedef union BmapPtr BmapPtr;
-
-union BmapPtr
+static void
+test_HPageInit(void** ctx)
 {
-  uint64_t* uint64;
-  a_uint64_t* a_uint64;
-} __attribute__ ((__transparent_union__));
+  OPHeap* heap;
+  HugePage* hpage;
 
-bool OPHeapNew(OPHeap** heap_ref);
-void OPHeapDestroy(OPHeap* heap);
-void HPageInit(OPHeapCtx* ctx, Magic magic);
-void USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt);
-void HPageEmptiedBMaps(HugePage* hpage, BmapPtr occupy_bmap,
-                       BmapPtr header_bmap);
-void USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap);
+  assert_true(OPHeapNew(&heap));
 
-OP_END_DECLS
+  OPHeapDestroy(heap);
+}
 
-#endif
+static void
+test_USpanInit(void** ctx)
+{
+}
 
-/* init_helper.h ends here */
+static void
+test_HPageEmptiedBMaps(void** ctx)
+{
+}
+
+static void
+test_USpanEmptiedBMap(void** ctx)
+{
+}
+
+int
+main (void)
+{
+  const struct CMUnitTest init_helper_tests[] =
+    {
+      cmocka_unit_test(test_HPageInit),
+      cmocka_unit_test(test_USpanInit),
+      cmocka_unit_test(test_HPageEmptiedBMaps),
+      cmocka_unit_test(test_USpanEmptiedBMap),
+    };
+
+  return cmocka_run_group_tests(init_helper_tests, NULL, NULL);
+}
+
+/* init_helper_test.c ends here */

@@ -108,29 +108,27 @@ HPageInit(OPHeapCtx* ctx, Magic magic)
   hpage->pcard = 0;
   hpage->state = BM_NEW;  // TODO: we need to define new state
   HPageEmptiedBMaps(hpage,
-                    &hpage->occupy_bmap[0],
-                    &hpage->header_bmap[0]);
+                    hpage->occupy_bmap,
+                    hpage->header_bmap);
 }
 
 void
-USpanInit(OPHeapCtx* ctx, Magic magic, size_t span_size)
+USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
 {
   UnarySpan* uspan;
+  uintptr_t uspan_base;
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
   uint64_t* bmap;
 
-  obj_size = magic.typed_uspan.obj_size;
-  /* Number of objects fits into the span, regardless of header.  Note
-   * this is different to the capcity of object that can stored in this
-   * span.  The capacity should be calculated as
-   * bitmap_cnt * 64 - headroom - padding.
-   */
-  obj_cnt = span_size / obj_size;
-  bitmap_cnt = round_up_div(obj_cnt, 64);
-  padding = (bitmap_cnt << 6) - obj_cnt;
-  headroom = (sizeof(UnarySpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
-
   uspan = ctx->sspan.uspan;
+  uspan_base = ObtainSSpanBase(uspan);
+  obj_size = magic.typed_uspan.obj_size;
+  obj_cnt = spage_cnt * SPAGE_SIZE / obj_size;
+  bitmap_cnt = round_up_div(obj_cnt, 64);
+  padding = bitmap_cnt * 64 - obj_cnt;
+  headroom = round_up_div((uintptr_t)uspan - uspan_base +
+                          bitmap_cnt * sizeof(a_uint64_t),
+                          obj_size);
   uspan->magic = magic;
   uspan->bitmap_cnt = bitmap_cnt;
   uspan->bitmap_headroom = headroom;
@@ -142,7 +140,6 @@ USpanInit(OPHeapCtx* ctx, Magic magic, size_t span_size)
   uspan->next = NULL;
 
   bmap = (uint64_t*)(ctx->sspan.uintptr + sizeof(UnarySpan));
-
   USpanEmptiedBMap(uspan, bmap);
 }
 
@@ -164,12 +161,7 @@ HPageEmptiedBMaps(HugePage* hpage,
       cnt_spage = round_up_div(header_size, SPAGE_SIZE);
       cnt_bmidx = cnt_spage / 64;
       cnt_bmbit = cnt_spage % 64;
-      for (int bmidx = 0;
-           (cnt_bmbit && bmidx < cnt_bmidx) ||
-             (bmidx <= cnt_bmidx);
-           bmidx++)
-        memset(&occupy_bmap.uint64[bmidx], 0xff, sizeof(uint64_t));
-
+      memset(occupy_bmap.uint64, 0xff, cnt_bmidx * sizeof(uint64_t));
       if (cnt_bmbit)
         occupy_bmap.uint64[cnt_bmidx] = (1UL << cnt_bmbit) - 1;
     }
@@ -178,9 +170,15 @@ HPageEmptiedBMaps(HugePage* hpage,
 void
 USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap)
 {
-  memset(bmap.uint64, 0, uspan->bitmap_cnt * sizeof(uint64_t));
+  int headroom_bmidx, headroom_bmbit;
+  headroom_bmidx = uspan->bitmap_headroom / 64;
+  headroom_bmbit = uspan->bitmap_headroom % 64;
 
-  bmap.uint64[0] = (1UL << uspan->bitmap_headroom) - 1;
+  memset(bmap.uint64, 0, uspan->bitmap_cnt * sizeof(uint64_t));
+  if (headroom_bmidx)
+    memset(bmap.uint64, 0xff, headroom_bmidx * sizeof(uint64_t));
+  if (headroom_bmbit)
+    bmap.uint64[headroom_bmidx] = (1UL << headroom_bmbit) - 1;
 
   if (uspan->bitmap_padding)
     bmap.uint64[uspan->bitmap_cnt - 1] =

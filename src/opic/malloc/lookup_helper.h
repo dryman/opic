@@ -74,6 +74,18 @@ ObtainHPage(void* addr)
   return (HugePage*)(addr_base & ~(HPAGE_SIZE - 1));
 }
 
+static inline uintptr_t
+ObtainHSpanBase(HugeSpanPtr header)
+{
+  return header.uintptr & ~(HPAGE_SIZE - 1);
+}
+
+static inline uintptr_t
+ObtainSSpanBase(SmallSpanPtr header)
+{
+  return header.uintptr & ~(SPAGE_SIZE - 1);
+}
+
 HugeSpanPtr ObtainHugeSpanPtr(void* addr);
 SmallSpanPtr HPageObtainSmallSpanPtr(HugePage* hpage, void* addr);
 UnarySpanQueue* ObtainUSpanQueue(UnarySpan* uspan);
