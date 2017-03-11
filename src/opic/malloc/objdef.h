@@ -82,7 +82,7 @@ enum BitMapState
     BM_TOMBSTONE = 3,
   } __attribute__((packed));
 
-static_assert(sizeof(BitMapState) == 1, "BitMapState should be 1 byte\n");
+static_assert(sizeof(BitMapState) == 1, "sizeof(BitMapState)");
 
 
 struct UnarySpan
@@ -100,7 +100,7 @@ struct UnarySpan
   // TODO: Document how bitmap is stored after this header
 };
 
-static_assert(sizeof(UnarySpan) == 24, "UnarySpan size should be 24 bytes");
+static_assert(sizeof(UnarySpan) == 24, "sizeof(UnarySpan)");
 
 
 struct HugePage
@@ -114,7 +114,7 @@ struct HugePage
   a_uint64_t header_bmap[8];
 };
 
-static_assert(sizeof(HugePage) == 144, "HugePage size should be 144");
+static_assert(sizeof(HugePage) == 144, "sizeof(HugePage)");
 
 struct UnarySpanQueue
 {
@@ -122,7 +122,7 @@ struct UnarySpanQueue
   a_int16_t pcard;
 } __attribute__((packed));
 
-static_assert(sizeof(UnarySpanQueue) == 10, "UnarySpanQueue should be 10");
+static_assert(sizeof(UnarySpanQueue) == 10, "sizeof(UnarySpanQueue)");
 
 struct HugePageQueue
 {
@@ -130,7 +130,7 @@ struct HugePageQueue
   a_int16_t pcard;
 } __attribute__((packed));
 
-static_assert(sizeof(HugePageQueue) == 10, "HugePageQueue should be 10");
+static_assert(sizeof(HugePageQueue) == 10, "sizeof(HugePageQueue)");
 
 struct GenericContainer
 {
@@ -182,7 +182,7 @@ struct RawType
   HugePageQueue hpage_queue;
 } __attribute__((packed));
 
-static_assert(sizeof(RawType) == 2600, "sizeof(RawType) := 2600");
+static_assert(sizeof(RawType) == 2600, "sizeof(RawType)");
 
 struct TypeAlias
 {
@@ -194,7 +194,7 @@ struct TypeAlias
   HugePageQueue hpage_queue;
 } __attribute__((packed));
 
-static_assert(sizeof(TypeAlias) == 186, "sizeof(TypeAlias) := 186");
+static_assert(sizeof(TypeAlias) == 186, "sizeof(TypeAlias)");
 
 struct OPHeap
 {
@@ -205,7 +205,7 @@ struct OPHeap
   HugePage hpage;
 };
 
-static_assert(sizeof(OPHeap) == 391864, "sizeof(OPHeap) := 391864");
+static_assert(sizeof(OPHeap) == 391864, "sizeof(OPHeap)");
 
 struct OPHeapCtx
 {

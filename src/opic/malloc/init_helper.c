@@ -157,13 +157,13 @@ HPageEmptiedBMaps(HugePage* hpage,
   if (hpage == &heap->hpage)
     {
       int header_size, cnt_spage, cnt_bmidx, cnt_bmbit;
-      header_size = (int)sizeof(OPHeap);
+      header_size = (int)(sizeof(OPHeap) + sizeof(HugePage));
       cnt_spage = round_up_div(header_size, SPAGE_SIZE);
       cnt_bmidx = cnt_spage / 64;
       cnt_bmbit = cnt_spage % 64;
       memset(occupy_bmap.uint64, 0xff, cnt_bmidx * sizeof(uint64_t));
       if (cnt_bmbit)
-        occupy_bmap.uint64[cnt_bmidx] = (1UL << cnt_bmbit) - 1;
+        occupy_bmap.uint64[cnt_bmidx] |= (1UL << cnt_bmbit) - 1;
     }
 }
 
@@ -178,10 +178,10 @@ USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap)
   if (headroom_bmidx)
     memset(bmap.uint64, 0xff, headroom_bmidx * sizeof(uint64_t));
   if (headroom_bmbit)
-    bmap.uint64[headroom_bmidx] = (1UL << headroom_bmbit) - 1;
+    bmap.uint64[headroom_bmidx] |= (1UL << headroom_bmbit) - 1;
 
   if (uspan->bitmap_padding)
-    bmap.uint64[uspan->bitmap_cnt - 1] =
+    bmap.uint64[uspan->bitmap_cnt - 1] |=
       ~((1UL << (64 - uspan->bitmap_padding)) - 1);
 }
 

@@ -135,7 +135,7 @@ union Magic
   } huge_blob;
 };
 
-static_assert(sizeof(Magic) == 4, "Magic is 4 bytes");
+static_assert(sizeof(Magic) == 4, "sizeof(Magic)");
 
 #endif
 /* magic.h ends here */
