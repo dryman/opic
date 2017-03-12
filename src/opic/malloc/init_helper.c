@@ -112,21 +112,37 @@ HPageInit(OPHeapCtx* ctx, Magic magic)
                     hpage->header_bmap);
 }
 
+// TODO: document why minimal size is 16 bytes
+// 1. gnu malloc is 16 bytes aligned
+// 2. when bytes are two small, our headroom would be to large:
+  /*
+   * Object size: 2 bytes
+   * 1 Page count => 4096 bytes
+   * Bitmap: 4096 / 2 = 2048 bits to map the space = 32 bitmaps
+   * headroom size in bytes: sizeof(HugePage) sizeof(UnarySpan) + 8 * 32
+   *   = 144 + 24 + 256 = 424 bytes
+   */
 void
 USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
 {
   UnarySpan* uspan;
   uintptr_t uspan_base;
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
+  size_t container_size, bmap_projection;
   uint64_t* bmap;
 
   uspan = ctx->sspan.uspan;
+  container_size = (size_t)spage_cnt * SPAGE_SIZE;
   uspan_base = ObtainSSpanBase(uspan);
-  obj_size = magic.typed_uspan.obj_size;
-  obj_cnt = spage_cnt * SPAGE_SIZE / obj_size;
+  obj_size = magic.typed_uspan.obj_size < 16 ?
+    16 : magic.typed_uspan.obj_size;
+  obj_cnt = container_size / obj_size;
   bitmap_cnt = round_up_div(obj_cnt, 64);
-  padding = bitmap_cnt * 64 - obj_cnt;
+  bmap_projection = (size_t)bitmap_cnt * 64UL * obj_size;
+  padding = round_up_div(bmap_projection - container_size,
+                         obj_size);
   headroom = round_up_div((uintptr_t)uspan - uspan_base +
+                          sizeof(UnarySpan) +
                           bitmap_cnt * sizeof(a_uint64_t),
                           obj_size);
   uspan->magic = magic;
