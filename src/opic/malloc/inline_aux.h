@@ -50,6 +50,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+
 #include "opic/common/op_macros.h"
 #include "magic.h"
 #include "objdef.h"

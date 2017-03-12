@@ -133,9 +133,10 @@ union Magic
     uint16_t reserved : 12;
     uint16_t huge_pages;
   } huge_blob;
+  uint32_t int_value;
 };
 
-static_assert(sizeof(Magic) == 4, "Magic is 4 bytes");
+static_assert(sizeof(Magic) == 4, "sizeof(Magic)");
 
 #endif
 /* magic.h ends here */

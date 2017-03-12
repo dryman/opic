@@ -95,3 +95,23 @@ build-aux
 /config.status
 m4/libtool.m4
 m4/lt*.m4
+
+# emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Org-mode
+.org-id-locations
+*_archive
+
+# projectiles files
+.projectile
+
+# directory configuration
+.dir-locals.el

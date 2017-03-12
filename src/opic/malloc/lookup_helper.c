@@ -125,14 +125,12 @@ SmallSpanPtr
 HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
 {
   SmallSpanPtr sspan_ptr;
-  OPHeap* heap;
   uintptr_t hpage_base, addr_base,
     _addr, _addr_spage, _addr_bmidx, _addr_bmbit;
   uint64_t bmap, mask, bmap_masked;
   int leading_zeros;
 
-  heap = ObtainOPHeap(hpage);
-  hpage_base = hpage == &heap->hpage ? (uintptr_t)heap : (uintptr_t)hpage;
+  hpage_base = ObtainHSpanBase(hpage);
   addr_base = (uintptr_t)addr;
   _addr = addr_base - hpage_base;
   op_assert(_addr >= 0 && _addr < HPAGE_SIZE,
