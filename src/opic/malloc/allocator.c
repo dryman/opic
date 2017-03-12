@@ -45,14 +45,80 @@
 
 /* Code: */
 
+#include <string.h>
 #include "opic/common/op_atomic.h"
+#include "opic/common/op_log.h"
 #include "allocator.h"
 #include "init_helper.h"
 #include "lookup_helper.h"
 
+OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
+
 bool
 OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
 {
+  int hpage_bmidx, hpage_bmbit, cmp_result;
+  uint64_t old_bmap, new_bmap;
+  uintptr_t heap_base;
+
+  uint64_t empty_occupy_bmap[HPAGE_BMAP_NUM];
+
+  heap_base = (uintptr_t)heap;
+
+ retry:
+  while (!atomic_check_in(&heap->pcard))
+    ;
+
+  for (hpage_bmidx = 0; hpage_bmidx < HPAGE_BMAP_NUM; hpage_bmidx++)
+    {
+      old_bmap = atomic_load_explicit(&heap->occupy_bmap[hpage_bmidx],
+                                      memory_order_relaxed);
+      while (1)
+        {
+          if (old_bmap == ~0UL) break;
+          new_bmap = old_bmap + 1;
+          hpage_bmbit = __builtin_ctzl(new_bmap);
+          new_bmap |= old_bmap;
+
+          if (atomic_compare_exchange_weak_explicit
+              (&heap->occupy_bmap[hpage_bmidx], &old_bmap, new_bmap,
+               memory_order_acquire,
+               memory_order_relaxed))
+            {
+              atomic_fetch_or_explicit(&heap->header_bmap[hpage_bmidx],
+                                       1UL << hpage_bmbit,
+                                       memory_order_relaxed);
+              atomic_check_out(&heap->pcard);
+
+              if (hpage_bmidx == 0 && hpage_bmbit == 0)
+                ctx->hspan.hpage = &heap->hpage;
+              else
+                ctx->hspan.uintptr = heap_base +
+                  (64 * hpage_bmidx + hpage_bmbit) * HPAGE_SIZE;
+              return true;
+            }
+        }
+    }
+
+  OP_LOG_WARN(logger,
+              "Running out of available hpages. Lock to check remaining");
+
+  if (!atomic_book_critical(&heap->pcard))
+    {
+      atomic_check_out(&heap->pcard);
+      goto retry;
+    }
+
+  atomic_enter_critical(&heap->pcard);
+  memset(empty_occupy_bmap, 0xFF, sizeof(empty_occupy_bmap));
+  cmp_result = memcmp(heap->occupy_bmap, empty_occupy_bmap,
+                      sizeof(empty_occupy_bmap));
+  atomic_exit_check_out(&heap->pcard);
+
+  if (cmp_result)
+    goto retry;
+
+  OP_LOG_ERROR(logger, "No available hpage.");
   return false;
 }
 

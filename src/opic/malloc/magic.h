@@ -45,8 +45,8 @@
 
 /* Code: */
 
-#ifndef MAGIC_H
-#define MAGIC_H 1
+#ifndef OPIC_MALLOC_MAGIC_H
+#define OPIC_MALLOC_MAGIC_H 1
 
 #include <assert.h>
 #include <stdint.h>
