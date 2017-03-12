@@ -45,27 +45,14 @@
 
 /* Code: */
 
-#ifndef SPAN_H
-#define SPAN_H 1
+#ifndef OPIC_MALLOC_ALLOCATOR_H
+#define OPIC_MALLOC_ALLOCATOR_H 1
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "opic/common/op_macros.h"
-#include "opic/common/op_assert.h"
-#include "opic/common/op_log.h"
-#include "malloc_internal.h"
+#include "objdef.h"
 
 OP_BEGIN_DECLS
 
-
-UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
-  __attribute__((nonnull));
-
-void* USpanMalloc(UnarySpan* self)
-  __attribute__((nonnull));
-
-FreeStatus USpanFree(UnarySpan* self, void* addr)
-  __attribute__((nonnull));
+bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx);
 
 OP_END_DECLS
 

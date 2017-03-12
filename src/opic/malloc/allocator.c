@@ -1,6 +1,6 @@
-/* op_pspan.c ---
+/* allocator.c ---
  *
- * Filename: op_pspan.c
+ * Filename: allocator.c
  * Description:
  * Author: Felix Chern
  * Maintainer:
@@ -45,11 +45,18 @@
 
 /* Code: */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stddef.h>
-#include "span.h"
 #include "opic/common/op_atomic.h"
+#include "allocator.h"
+#include "init_helper.h"
+#include "lookup_helper.h"
+
+bool
+OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
+{
+  return false;
+}
+
+/*
 
 extern void enqueue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
 extern void dequeue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
@@ -69,11 +76,11 @@ void USpanInit(UnarySpan* self, Magic magic, size_t span_size)
   uint64_t* bmap;
 
   obj_size = magic.typed_uspan.obj_size;
-  /* Number of objects fits into the span, regardless of header.  Note
-   * this is different to the capcity of object that can stored in this
-   * span.  The capacity should be calculated as
-   * bitmap_cnt * 64 - headroom - padding.
-   */
+  // Number of objects fits into the span, regardless of header.  Note
+  // this is different to the capcity of object that can stored in this
+  // span.  The capacity should be calculated as
+  // bitmap_cnt * 64 - headroom - padding.
+  ///
   obj_cnt = span_size / obj_size;
   bitmap_cnt = round_up_div(obj_cnt, 64);
   padding = (bitmap_cnt << 6) - obj_cnt;
@@ -144,18 +151,18 @@ bool USpanMalloc(UnarySpan* self, void** addr)
   obj_capacity = ((uint16_t)self->bitmap_cnt)*64 -
     self->bitmap_headroom - self->bitmap_padding;
 
-  /*
-   * Say the capacity is N, and the object count is n.  When n = N, we
-   * still insert the object into uspan, and since the insertion
-   * succeeded, we return true.  When n > N (n > N+1 when accessed by
-   * more than one thread), this uspan need to be removed from the
-   * queue and allocates a new uspan to hold the object. This uspan
-   * wasn't able to hold a new object, thus return false.
-   *
-   * Note that obj_cnt is (self->obj_cnt - 1). The logic below is
-   * equivalent to
-   * if (self->obj_cnt > obj_capacity) {...}
-   */
+  //
+  // Say the capacity is N, and the object count is n.  When n = N, we
+  // still insert the object into uspan, and since the insertion
+  // succeeded, we return true.  When n > N (n > N+1 when accessed by
+  // more than one thread), this uspan need to be removed from the
+  // queue and allocates a new uspan to hold the object. This uspan
+  // wasn't able to hold a new object, thus return false.
+  //
+  // Note that obj_cnt is (self->obj_cnt - 1). The logic below is
+  // equivalent to
+  // if (self->obj_cnt > obj_capacity) {...}
+  ///
   if (obj_cnt >= obj_capacity)
     {
       goto uspan_full;
@@ -193,8 +200,8 @@ bool USpanMalloc(UnarySpan* self, void** addr)
     }
 
  uspan_full:
-  /* If we couldn't book, there were some other thread booked the critical
-     section.  Retry and start over again. */
+  // If we couldn't book, there were some other thread booked the critical
+  // section.  Retry and start over again.
   if (!atomic_book_critical(&self->pcard))
     {
       atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
@@ -353,5 +360,7 @@ static inline void select_uspan_queue(uint8_t pattern,
       }
     }
 }
+
+*/
 
 /* op_pspan.c ends here */

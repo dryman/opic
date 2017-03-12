@@ -45,7 +45,6 @@
 
 /* Code: */
 
-#include <stdbool.h>
 #include <sys/mman.h>
 #include <string.h>
 #include "lookup_helper.h"
