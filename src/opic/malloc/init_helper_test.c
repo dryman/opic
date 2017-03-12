@@ -82,9 +82,9 @@ test_HPageInit(void** context)
   // TODO: skip state test for now
 
   /*
-   * sizeof(OPHeap) = 391864;
-   * sizeof(HugePage) = 144;
-   * (391864 + 144) = 4096 * 95 + 2888
+   * sizeof(OPHeap) = 391872
+   * sizeof(HugePage) = 144
+   * (391872 + 144) = 4096 * 95 + 2896
    * => 96 bit spaces to occupy
    * 96 = 64 + 32
    */
@@ -417,6 +417,35 @@ test_USpanInit_OtherSizes(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_OPHeapEmptiedBMaps(void** context)
+{
+  OPHeap* heap;
+  uint64_t test_bmap[HPAGE_BMAP_NUM] = {0};
+
+  assert_true(OPHeapNew(&heap));
+  OPHeapEmptiedBMaps(heap, heap->occupy_bmap, heap->header_bmap);
+  assert_memory_equal(test_bmap, heap->occupy_bmap,
+                      HPAGE_BMAP_NUM * sizeof(uint64_t));
+  assert_memory_equal(test_bmap, heap->header_bmap,
+                      HPAGE_BMAP_NUM * sizeof(uint64_t));
+
+  heap->hpage_num = 1;
+  OPHeapEmptiedBMaps(heap, heap->occupy_bmap, heap->header_bmap);
+  //               7654321076543210
+  test_bmap[0] = 0xFFFFFFFFFFFFFFFEUL;
+  memset(&test_bmap[1], 0xFF, (HPAGE_BMAP_NUM - 1) * sizeof(uint64_t));
+  assert_memory_equal(test_bmap, heap->occupy_bmap,
+                      HPAGE_BMAP_NUM * sizeof(uint64_t));
+
+  heap->hpage_num = 64;
+  OPHeapEmptiedBMaps(heap, heap->occupy_bmap, heap->header_bmap);
+  test_bmap[0] = 0UL;
+  assert_memory_equal(test_bmap, heap->occupy_bmap,
+                      HPAGE_BMAP_NUM * sizeof(uint64_t));
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -427,6 +456,7 @@ main (void)
       cmocka_unit_test(test_USpanInit_RawTypeSmall_FstPage),
       cmocka_unit_test(test_USpanInit_RawTypeLarge),
       cmocka_unit_test(test_USpanInit_OtherSizes),
+      cmocka_unit_test(test_OPHeapEmptiedBMaps),
     };
 
   return cmocka_run_group_tests(init_helper_tests, NULL, NULL);

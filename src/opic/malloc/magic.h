@@ -51,6 +51,8 @@
 #include <assert.h>
 #include <stdint.h>
 
+#define OPHEAP_VERSION 3
+
 #define OPHEAP_BITS 36
 #define HPAGE_BITS 21
 #define SPAGE_BITS 12
