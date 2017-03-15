@@ -171,6 +171,31 @@ test_OPHeapObtainHPage_SmallSize(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_OPHeapObtainHBlob_SmallSize(void** context)
+{  OPHeap* heap;
+  uintptr_t heap_base, hblob_base;
+  uint64_t occupy_bmap[HPAGE_BMAP_NUM] = {};
+  uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
+  OPHeapCtx ctx;
+
+  assert_true(OPHeapNew(&heap));
+  heap_base = (uintptr_t)heap;
+
+  // first hpage won't be alloc for hblob
+  hblob_base = heap_base + HPAGE_SIZE;
+  occupy_bmap[0] = 0x02UL;
+  header_bmap[0] = 0x02UL;
+  assert_true(OPHeapObtainHBlob(heap, &ctx, 1));
+  assert_ptr_equal(hblob_base, ctx.hspan.hblob);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -178,6 +203,7 @@ main (void)
     {
       cmocka_unit_test(test_OPHeapObtainHPage_FullSize),
       cmocka_unit_test(test_OPHeapObtainHPage_SmallSize),
+      cmocka_unit_test(test_OPHeapObtainHBlob_SmallSize),
     };
 
   return cmocka_run_group_tests(allocator_tests, NULL, NULL);

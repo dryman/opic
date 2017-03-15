@@ -53,6 +53,7 @@
 OP_BEGIN_DECLS
 
 bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx);
+bool OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 
 OP_END_DECLS
 
