@@ -48,11 +48,17 @@
 #include <string.h>
 #include "opic/common/op_atomic.h"
 #include "opic/common/op_log.h"
+#include "opic/common/op_utils.h"
 #include "allocator.h"
 #include "init_helper.h"
 #include "lookup_helper.h"
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
+
+static bool
+OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
+static bool
+OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 
 bool
 OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
@@ -122,6 +128,159 @@ OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
   return false;
 }
 
+bool
+OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
+{
+  bool result;
+
+  if (hpage_cnt < 32)
+    return OPHeapObtainSmallHBlob(heap, ctx, hpage_cnt);
+
+  while (!atomic_check_in_book(&heap->pcard))
+    ;
+  result = OPHeapObtainLargeHBlob(heap, ctx, hpage_cnt);
+  atomic_exit_check_out(&heap->pcard);
+  return result;
+}
+
+static bool
+OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
+{
+  int hblob_bmidx, hblob_bmbit;
+  uint64_t old_bmap, new_bmap;
+  uintptr_t heap_base;
+  bool result;
+
+  heap_base = (uintptr_t)heap;
+
+ retry:
+  while (!atomic_check_in(&heap->pcard))
+    ;
+
+  for (hblob_bmidx = 0; hblob_bmidx < HPAGE_BMAP_NUM; hblob_bmidx++)
+    {
+      old_bmap = atomic_load_explicit(&heap->occupy_bmap[hblob_bmidx],
+                                      memory_order_relaxed);
+      while (1)
+        {
+          if (old_bmap == ~0UL) break;
+          new_bmap = hblob_bmidx == 0 ? old_bmap | 0x01 : old_bmap;
+          hblob_bmbit = fftstr0l(new_bmap, hpage_cnt);
+          if (hblob_bmbit == -1) break;
+          new_bmap = new_bmap | ((1UL<< hpage_cnt) - 1) << hblob_bmbit;
+
+          if (atomic_compare_exchange_weak_explicit
+              (&heap->occupy_bmap[hblob_bmidx], &old_bmap, new_bmap,
+               memory_order_acquire,
+               memory_order_relaxed))
+            {
+              atomic_fetch_or_explicit(&heap->header_bmap[hblob_bmidx],
+                                       1UL << hblob_bmbit,
+                                       memory_order_relaxed);
+              atomic_check_out(&heap->pcard);
+              ctx->hspan.uintptr = heap_base +
+                (64 * hblob_bmidx + hblob_bmbit) * HPAGE_SIZE;
+              return true;
+            }
+        }
+    }
+
+  OP_LOG_WARN(logger,
+              "Running out of available hpages. Lock to check remaining");
+
+  if (!atomic_book_critical(&heap->pcard))
+    {
+      atomic_check_out(&heap->pcard);
+      goto retry;
+    }
+
+  atomic_enter_critical(&heap->pcard);
+  result = OPHeapObtainLargeHBlob(heap, ctx, hpage_cnt);
+  atomic_exit_check_out(&heap->pcard);
+  return result;
+}
+
+static bool
+OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
+{
+  int bmidx_head, bmidx_iter, _hpage_cnt, bmbit_head;
+  uintptr_t heap_base;
+  uint64_t* occupy_bmap;
+
+  heap_base = (uintptr_t)heap;
+  occupy_bmap = (uint64_t*)(heap->occupy_bmap);
+  bmidx_head = 0;
+
+  while (1)
+    {
+      if (bmidx_head > HPAGE_BMAP_NUM) goto fail;
+      if (occupy_bmap[bmidx_head] && 1UL << 63)
+        {
+          bmidx_head++;
+          continue;
+        }
+      _hpage_cnt = hpage_cnt;
+      bmidx_iter = bmidx_head;
+      bmbit_head = occupy_bmap[bmidx_head] == 0 ?
+        0 : 64 - __builtin_clzl(occupy_bmap[bmidx_head]);
+      if (bmidx_head == 0 && bmbit_head == 0)
+        bmbit_head = 1;
+      if (_hpage_cnt <= 64 - bmbit_head)
+        goto found;
+
+      while (1)
+        {
+          if (bmidx_iter > HPAGE_BMAP_NUM)
+            goto fail;
+          if (_hpage_cnt > 64)
+            {
+              if (occupy_bmap[bmidx_iter] != 0UL)
+                {
+                  bmidx_head++;
+                  break;
+                }
+              bmidx_iter++;
+              _hpage_cnt -= 64;
+              continue;
+            }
+          else if (_hpage_cnt == 64)
+            {
+              bmidx_iter++;
+              _hpage_cnt -= 64;
+              goto found;
+            }
+          else if (_hpage_cnt < __builtin_ctzl(occupy_bmap[bmidx_iter]))
+            {
+              goto found;
+            }
+          bmidx_head++;
+          break;
+        }
+    }
+ found:
+  ctx->hspan.uintptr = heap_base +
+    (64 * bmidx_head + bmbit_head) * HPAGE_SIZE;
+  if (bmidx_iter == 0)
+    {
+      occupy_bmap[0] = ((1UL << _hpage_cnt) - 1) << bmbit_head;
+    }
+  else
+    {
+      occupy_bmap[bmidx_head] |=
+        ~((1UL << bmbit_head) - 1) &
+        ~(1UL << bmbit_head);
+      occupy_bmap[bmidx_iter] |= (1UL << _hpage_cnt) - 1;
+      for (int bmidx = bmidx_head + 1; bmidx < bmidx_iter; bmidx++)
+        occupy_bmap[bmidx] = ~0UL;
+    }
+  return true;
+
+ fail:
+  OP_LOG_ERROR(logger,
+               "No available contiguous hpages for huge page count %d",
+               hpage_cnt);
+  return false;
+}
 /*
 
 extern void enqueue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
