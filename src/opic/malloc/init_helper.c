@@ -45,7 +45,6 @@
 
 /* Code: */
 
-#include <stdbool.h>
 #include <sys/mman.h>
 #include <string.h>
 #include "lookup_helper.h"
@@ -76,6 +75,8 @@ OPHeapNew(OPHeap** heap_ref)
                       map_addr);
           *heap_ref = map_addr;
           memset(*heap_ref, 0, sizeof(OPHeap));
+          (*heap_ref)->version = OPHEAP_VERSION;
+          (*heap_ref)->hpage_num = HPAGE_BMAP_NUM * 64;
           return true;
         }
       else
@@ -157,6 +158,30 @@ USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
 
   bmap = (uint64_t*)(ctx->sspan.uintptr + sizeof(UnarySpan));
   USpanEmptiedBMap(uspan, bmap);
+}
+
+void
+OPHeapEmptiedBMaps(OPHeap* heap,
+                   BmapPtr occupy_bmap,
+                   BmapPtr header_bmap)
+{
+  int hpage_bmidx, hpage_bmbit;
+
+  memset(occupy_bmap.uint64, 0, HPAGE_BMAP_NUM * sizeof(uint64_t));
+  memset(header_bmap.uint64, 0, HPAGE_BMAP_NUM * sizeof(uint64_t));
+
+  hpage_bmidx = heap->hpage_num / 64;
+  hpage_bmbit = heap->hpage_num % 64;
+
+  if (hpage_bmidx < HPAGE_BMAP_NUM)
+    {
+      if (hpage_bmbit)
+        occupy_bmap.uint64[hpage_bmidx] = ~((1UL << hpage_bmbit) - 1);
+
+      for (int bmidx = round_up_div(heap->hpage_num, 64);
+           bmidx < HPAGE_BMAP_NUM; bmidx++)
+        occupy_bmap.uint64[bmidx] = ~0UL;
+    }
 }
 
 void

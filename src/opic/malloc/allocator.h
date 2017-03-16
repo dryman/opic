@@ -1,10 +1,10 @@
-/* span.h ---
+/* allocator.h ---
  *
- * Filename: span.h
+ * Filename: allocator.h
  * Description:
  * Author: Felix Chern
  * Maintainer:
- * Copyright: (c) 2016 Felix Chern
+ * Copyright: (c) 2016-2017 Felix Chern
  * Created: Sat Oct 8, 2016
  * Version: 0.3.0
  * Package-Requires: ()
@@ -45,27 +45,15 @@
 
 /* Code: */
 
-#ifndef SPAN_H
-#define SPAN_H 1
+#ifndef OPIC_MALLOC_ALLOCATOR_H
+#define OPIC_MALLOC_ALLOCATOR_H 1
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "opic/common/op_macros.h"
-#include "opic/common/op_assert.h"
-#include "opic/common/op_log.h"
-#include "malloc_internal.h"
+#include "objdef.h"
 
 OP_BEGIN_DECLS
 
-
-UnarySpan* USpanInit(void* addr, Magic magic, size_t span_size)
-  __attribute__((nonnull));
-
-void* USpanMalloc(UnarySpan* self)
-  __attribute__((nonnull));
-
-FreeStatus USpanFree(UnarySpan* self, void* addr)
-  __attribute__((nonnull));
+bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx);
+bool OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 
 OP_END_DECLS
 

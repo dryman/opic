@@ -198,6 +198,9 @@ static_assert(sizeof(TypeAlias) == 186, "sizeof(TypeAlias)");
 
 struct OPHeap
 {
+  uint32_t version;
+  a_int16_t pcard;
+  uint16_t hpage_num;
   a_uint64_t occupy_bmap[HPAGE_BMAP_NUM];
   a_uint64_t header_bmap[HPAGE_BMAP_NUM];
   RawType raw_type;
@@ -205,7 +208,7 @@ struct OPHeap
   HugePage hpage;
 };
 
-static_assert(sizeof(OPHeap) == 391864, "sizeof(OPHeap)");
+static_assert(sizeof(OPHeap) == 391872, "sizeof(OPHeap)");
 
 struct OPHeapCtx
 {
