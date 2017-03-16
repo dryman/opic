@@ -172,8 +172,9 @@ test_OPHeapObtainHPage_SmallSize(void** context)
 }
 
 static void
-test_OPHeapObtainHBlob_SmallSize(void** context)
-{  OPHeap* heap;
+test_OPHeapObtainHBlob(void** context)
+{
+  OPHeap* heap;
   uintptr_t heap_base, hblob_base;
   uint64_t occupy_bmap[HPAGE_BMAP_NUM] = {};
   uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
@@ -192,6 +193,24 @@ test_OPHeapObtainHBlob_SmallSize(void** context)
   assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
   assert_int_equal(0, heap->pcard);
 
+  hblob_base = heap_base + 2 * HPAGE_SIZE;
+  occupy_bmap[0] = 0xFFEUL;
+  header_bmap[0] = 0x06UL;
+  assert_true(OPHeapObtainHBlob(heap, &ctx, 10));
+  assert_ptr_equal(hblob_base, ctx.hspan.hblob);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  hblob_base = heap_base + 12 * HPAGE_SIZE;
+  //                 7654321076543210
+  occupy_bmap[0] = 0x00000FFFFFFFFFFEUL;
+  header_bmap[0] = 0x0000000000001006UL;
+  assert_true(OPHeapObtainHBlob(heap, &ctx, 32));
+  assert_ptr_equal(hblob_base, ctx.hspan.hblob);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
 
   OPHeapDestroy(heap);
 }
@@ -203,7 +222,7 @@ main (void)
     {
       cmocka_unit_test(test_OPHeapObtainHPage_FullSize),
       cmocka_unit_test(test_OPHeapObtainHPage_SmallSize),
-      cmocka_unit_test(test_OPHeapObtainHBlob_SmallSize),
+      cmocka_unit_test(test_OPHeapObtainHBlob),
     };
 
   return cmocka_run_group_tests(allocator_tests, NULL, NULL);

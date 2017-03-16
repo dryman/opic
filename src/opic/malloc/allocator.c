@@ -133,7 +133,7 @@ OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
 {
   bool result;
 
-  if (hpage_cnt < 32)
+  if (hpage_cnt <= 32)
     return OPHeapObtainSmallHBlob(heap, ctx, hpage_cnt);
 
   while (!atomic_check_in_book(&heap->pcard))
@@ -167,7 +167,7 @@ OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
           new_bmap = hblob_bmidx == 0 ? old_bmap | 0x01 : old_bmap;
           hblob_bmbit = fftstr0l(new_bmap, hpage_cnt);
           if (hblob_bmbit == -1) break;
-          new_bmap = new_bmap | ((1UL<< hpage_cnt) - 1) << hblob_bmbit;
+          new_bmap = old_bmap | ((1UL<< hpage_cnt) - 1) << hblob_bmbit;
 
           if (atomic_compare_exchange_weak_explicit
               (&heap->occupy_bmap[hblob_bmidx], &old_bmap, new_bmap,
