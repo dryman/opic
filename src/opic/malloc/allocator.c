@@ -261,9 +261,9 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   ctx->hspan.uintptr = heap_base +
     (64 * bmidx_head + bmbit_head) * HPAGE_SIZE;
   heap->header_bmap[bmidx_head] |= 1UL << bmbit_head;
-  if (bmidx_iter == 0)
+  if (bmidx_iter - bmidx_head == 0)
     {
-      occupy_bmap[0] = ((1UL << _hpage_cnt) - 1) << bmbit_head;
+      occupy_bmap[bmidx_head] = ((1UL << _hpage_cnt) - 1) << bmbit_head;
     }
   else
     {
