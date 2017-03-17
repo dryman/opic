@@ -1,12 +1,12 @@
-/* allocator.h ---
+/* deallocator.c ---
  *
- * Filename: allocator.h
+ * Filename: deallocator.c
  * Description:
  * Author: Felix Chern
  * Maintainer:
- * Copyright: (c) 2016-2017 Felix Chern
- * Created: Sat Oct 8, 2016
- * Version: 0.3.0
+ * Copyright: (c) 2017 Felix Chern
+ * Created: Thu Mar 16 22:04:56 2017 (-0700)
+ * Version:
  * Package-Requires: ()
  * Last-Updated:
  *           By:
@@ -45,17 +45,7 @@
 
 /* Code: */
 
-#ifndef OPIC_MALLOC_ALLOCATOR_H
-#define OPIC_MALLOC_ALLOCATOR_H 1
+#include "deallocator.h"
 
-#include "objdef.h"
 
-OP_BEGIN_DECLS
-
-bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx);
-bool OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
-
-OP_END_DECLS
-
-#endif
-/* allocator.h ends here */
+/* deallocator.c ends here */
