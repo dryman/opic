@@ -214,7 +214,7 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   while (1)
     {
       if (bmidx_head > HPAGE_BMAP_NUM) goto fail;
-      if (occupy_bmap[bmidx_head] && 1UL << 63)
+      if (occupy_bmap[bmidx_head] & (1UL << 63))
         {
           bmidx_head++;
           continue;
@@ -227,6 +227,9 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
         bmbit_head = 1;
       if (_hpage_cnt <= 64 - bmbit_head)
         goto found;
+
+      _hpage_cnt -= 64 - bmbit_head;
+      bmidx_iter++;
 
       while (1)
         {
@@ -249,7 +252,8 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
               _hpage_cnt -= 64;
               goto found;
             }
-          else if (_hpage_cnt < __builtin_ctzl(occupy_bmap[bmidx_iter]))
+          else if (_hpage_cnt < (occupy_bmap[bmidx_iter] == 0 ?
+                                 64 : __builtin_ctzl(occupy_bmap[bmidx_iter])))
             {
               goto found;
             }
@@ -268,8 +272,7 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   else
     {
       occupy_bmap[bmidx_head] |=
-        ~((1UL << bmbit_head) - 1) &
-        ~(1UL << bmbit_head);
+        ~((1UL << bmbit_head) - 1) | (1UL << bmbit_head);
       occupy_bmap[bmidx_iter] |= (1UL << _hpage_cnt) - 1;
       for (int bmidx = bmidx_head + 1; bmidx < bmidx_iter; bmidx++)
         occupy_bmap[bmidx] = ~0UL;
