@@ -296,6 +296,17 @@ test_OPHeapObtainHBlob_Large(void** context)
   assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
   assert_int_equal(0, heap->pcard);
 
+  hblob_base = heap_base + 228 * HPAGE_SIZE;
+  //                 7654321076543210
+  occupy_bmap[3] = 0xFFFFFFFFFFFFFFFFUL;
+  header_bmap[3] = 0x0000001000000000UL;
+  occupy_bmap[4] = 0xFFFFFFFFFFFFFFFFUL;
+  assert_true(OPHeapObtainHBlob(heap, &ctx, 92));
+  assert_ptr_equal(hblob_base, ctx.hspan.hblob);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
   OPHeapDestroy(heap);
 }
 

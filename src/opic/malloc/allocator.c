@@ -273,7 +273,8 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
     {
       occupy_bmap[bmidx_head] |=
         ~((1UL << bmbit_head) - 1) | (1UL << bmbit_head);
-      occupy_bmap[bmidx_iter] |= (1UL << _hpage_cnt) - 1;
+      if (_hpage_cnt)
+        occupy_bmap[bmidx_iter] |= (1UL << _hpage_cnt) - 1;
       for (int bmidx = bmidx_head + 1; bmidx < bmidx_iter; bmidx++)
         occupy_bmap[bmidx] = ~0UL;
     }
