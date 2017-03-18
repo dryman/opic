@@ -168,12 +168,83 @@ test_OPHeapReleaseHSpan_1Page(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_OPHeapReleaseHSpan_smallHBlob(void** context)
+{
+  OPHeap* heap;
+  uintptr_t heap_base;
+  uint64_t occupy_bmap[HPAGE_BMAP_NUM] = {};
+  uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
+  HugeSpanPtr hspan[4];
+
+  assert_true(OPHeapNew(&heap));
+  heap_base = (uintptr_t)heap;
+
+  //                       7654321076543210
+  heap->occupy_bmap[0] = 0x0000000FFFFFFFFFUL;
+  heap->header_bmap[0] = 0x0000000000000103UL;
+  heap->occupy_bmap[1] = 0xFFFFFFFFFFFFFFFFUL;
+  heap->header_bmap[1] = 0x0000000100000001UL;
+  occupy_bmap[0] = heap->occupy_bmap[0];
+  header_bmap[0] = heap->header_bmap[0];
+  occupy_bmap[1] = heap->occupy_bmap[1];
+  header_bmap[1] = heap->header_bmap[1];
+
+  hspan[0].uintptr = heap_base + HPAGE_SIZE;
+  hspan[1].uintptr = heap_base + 8 * HPAGE_SIZE;
+  hspan[2].uintptr = heap_base + 64 * HPAGE_SIZE;
+  hspan[3].uintptr = heap_base + 96 * HPAGE_SIZE;
+  hspan[0].magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+  hspan[1].magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+  hspan[2].magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+  hspan[3].magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+  hspan[0].magic->huge_blob.huge_pages = 7;
+  hspan[1].magic->huge_blob.huge_pages = 28;
+  hspan[2].magic->huge_blob.huge_pages = 32;
+  hspan[3].magic->huge_blob.huge_pages = 32;
+
+  //                 7654321076543210
+  occupy_bmap[0] = 0x0000000FFFFFFF01UL;
+  header_bmap[0] = 0x0000000000000101UL;
+  OPHeapReleaseHSpan(hspan[0]);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  //                 7654321076543210
+  occupy_bmap[0] = 0x0000000000000001UL;
+  header_bmap[0] = 0x0000000000000001UL;
+  OPHeapReleaseHSpan(hspan[1]);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  //                 7654321076543210
+  occupy_bmap[1] = 0x00000000FFFFFFFFUL;
+  header_bmap[1] = 0x0000000000000001UL;
+  OPHeapReleaseHSpan(hspan[3]);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  //                 7654321076543210
+  occupy_bmap[1] = 0x0000000000000000UL;
+  header_bmap[1] = 0x0000000000000000UL;
+  OPHeapReleaseHSpan(hspan[2]);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
   const struct CMUnitTest deallocator_tests[] =
     {
       cmocka_unit_test(test_OPHeapReleaseHSpan_1Page),
+      cmocka_unit_test(test_OPHeapReleaseHSpan_smallHBlob),
     };
 
   return cmocka_run_group_tests(deallocator_tests, NULL, NULL);
