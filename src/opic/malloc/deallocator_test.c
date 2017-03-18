@@ -238,6 +238,96 @@ test_OPHeapReleaseHSpan_smallHBlob(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_OPHeapReleaseHSpan_lageHBlob(void** context)
+{
+  OPHeap* heap;
+  uintptr_t heap_base;
+  uint64_t occupy_bmap[HPAGE_BMAP_NUM] = {};
+  uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
+  HugeSpanPtr hspan[4];
+
+  assert_true(OPHeapNew(&heap));
+  heap_base = (uintptr_t)heap;
+
+  //                       7654321076543210
+  heap->occupy_bmap[0] = 0xFFFFFFFF00000000UL;
+  heap->header_bmap[0] = 0x0000000100000000UL;
+  heap->occupy_bmap[1] = 0xFFFFFFFFFFFFFFFFUL;
+  heap->header_bmap[1] = 0x0000000100000000UL;
+  heap->occupy_bmap[2] = 0xFFFFFFFFFFFFFFFFUL;
+  heap->header_bmap[2] = 0x0000000000000000UL;
+  heap->occupy_bmap[3] = 0xFFFFFFFFFFFFFFF0UL;
+  heap->header_bmap[3] = 0x8000000000000010UL;
+  heap->occupy_bmap[4] = 0xFFFFFFFFFFFFFFFFUL;
+  heap->occupy_bmap[5] = 0xFFFFFFFFFFFFFFFFUL;
+  heap->occupy_bmap[6] = 0x0000000000000001UL;
+  occupy_bmap[0] = heap->occupy_bmap[0];
+  header_bmap[0] = heap->header_bmap[0];
+  occupy_bmap[1] = heap->occupy_bmap[1];
+  header_bmap[1] = heap->header_bmap[1];
+  occupy_bmap[2] = heap->occupy_bmap[2];
+  header_bmap[2] = heap->header_bmap[2];
+  occupy_bmap[3] = heap->occupy_bmap[3];
+  header_bmap[3] = heap->header_bmap[3];
+  occupy_bmap[4] = heap->occupy_bmap[4];
+  occupy_bmap[5] = heap->occupy_bmap[5];
+  occupy_bmap[6] = heap->occupy_bmap[6];
+
+  hspan[0].uintptr = heap_base + 32 * HPAGE_SIZE;
+  hspan[1].uintptr = heap_base + 96 * HPAGE_SIZE;
+  hspan[2].uintptr = heap_base + 196 * HPAGE_SIZE;
+  hspan[3].uintptr = heap_base + 255 * HPAGE_SIZE;
+  hspan[0].magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+  hspan[1].magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+  hspan[2].magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+  hspan[3].magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+  hspan[0].magic->huge_blob.huge_pages = 64;
+  hspan[1].magic->huge_blob.huge_pages = 96;
+  hspan[2].magic->huge_blob.huge_pages = 59;
+  hspan[3].magic->huge_blob.huge_pages = 130;
+
+  //                 7654321076543210
+  occupy_bmap[0] = 0x0000000000000000UL;
+  header_bmap[0] = 0x0000000000000000UL;
+  occupy_bmap[1] = 0xFFFFFFFF00000000UL;
+  header_bmap[1] = 0x0000000100000000UL;
+  OPHeapReleaseHSpan(hspan[0]);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  //                 7654321076543210
+  occupy_bmap[1] = 0x0000000000000000UL;
+  header_bmap[1] = 0x0000000000000000UL;
+  occupy_bmap[2] = 0x0000000000000000UL;
+  OPHeapReleaseHSpan(hspan[1]);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  //                 7654321076543210
+  occupy_bmap[3] = 0x8000000000000000UL;
+  header_bmap[3] = 0x8000000000000000UL;
+  OPHeapReleaseHSpan(hspan[2]);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  //                 7654321076543210
+  occupy_bmap[3] = 0x0000000000000000UL;
+  header_bmap[3] = 0x0000000000000000UL;
+  occupy_bmap[4] = 0x0000000000000000UL;
+  occupy_bmap[5] = 0x0000000000000000UL;
+  occupy_bmap[6] = 0x0000000000000000UL;
+  OPHeapReleaseHSpan(hspan[3]);
+  assert_memory_equal(occupy_bmap, heap->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
+  assert_int_equal(0, heap->pcard);
+
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -245,6 +335,7 @@ main (void)
     {
       cmocka_unit_test(test_OPHeapReleaseHSpan_1Page),
       cmocka_unit_test(test_OPHeapReleaseHSpan_smallHBlob),
+      cmocka_unit_test(test_OPHeapReleaseHSpan_lageHBlob),
     };
 
   return cmocka_run_group_tests(deallocator_tests, NULL, NULL);
