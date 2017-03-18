@@ -1,11 +1,11 @@
-/* deallocator.h ---
+/* deallocator_test.c ---
  *
- * Filename: deallocator.h
+ * Filename: deallocator_test.c
  * Description:
  * Author: Felix Chern
  * Maintainer:
  * Copyright: (c) 2017 Felix Chern
- * Created: Thu Mar 16 22:04:38 2017 (-0700)
+ * Created: Fri Mar 17 23:38:38 2017 (-0700)
  * Version:
  * Package-Requires: ()
  * Last-Updated:
@@ -45,17 +45,34 @@
 
 /* Code: */
 
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <stdint.h>
+#include <sys/mman.h>
+#include <string.h>
+#include <cmocka.h>
 
-#ifndef OPIC_MALLOC_DEALLOCATOR_H
-#define OPIC_MALLOC_DEALLOCATOR_H 1
+#include "magic.h"
+#include "inline_aux.h"
+#include "lookup_helper.h"
+#include "init_helper.h"
+#include "allocator.h"
 
-#include "objdef.h"
+int
+main (void)
+{
+  /*
+  const struct CMUnitTest allocator_tests[] =
+    {
+      cmocka_unit_test(test_OPHeapObtainHPage_FullSize),
+      cmocka_unit_test(test_OPHeapObtainHPage_SmallSize),
+      cmocka_unit_test(test_OPHeapObtainHBlob_Small),
+      cmocka_unit_test(test_OPHeapObtainHBlob_Large),
+    };
 
-OP_BEGIN_DECLS
+  return cmocka_run_group_tests(allocator_tests, NULL, NULL);
+  */
+}
 
-void OPHeapReleaseHSpan(HugeSpanPtr hspan);
-
-OP_END_DECLS
-
-#endif
-/* deallocator.h ends here */
+/* deallocator_test.c ends here */
