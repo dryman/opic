@@ -58,7 +58,7 @@
 
 OP_BEGIN_DECLS
 
-typedef enum SpanState SpanState;
+typedef enum USpanState USpanState;
 typedef enum QueueOperation QueueOperation;
 typedef struct UnarySpan UnarySpan;
 typedef struct HugePage HugePage;
@@ -76,10 +76,11 @@ typedef struct OPHeapCtx OPHeapCtx;
 // TODO: change to enqueued/dequeued
 // TODO: Rename to something more meaningful
 // ENQUEUED, DEQUEUED, TOMBSTONE, NEW
-enum SpanState
+enum USpanState
   {
-    SPAN_ENQUEUED = 0,
-    SPAN_DEQUEUED = 1,
+    USPAN_ENQUEUED_NEW = 0,
+    USPAN_ENQUEUED = 1,
+    USPAN_DEQUEUED = 2,
   } __attribute__((packed));
 
 enum QueueOperation
@@ -89,7 +90,7 @@ enum QueueOperation
     QOP_RESTART = 3,
   };
 
-static_assert(sizeof(SpanState) == 1, "sizeof(SpanState)");
+static_assert(sizeof(USpanState) == 1, "sizeof(USpanState)");
 
 
 struct UnarySpan
@@ -101,7 +102,7 @@ struct UnarySpan
   uint8_t bitmap_hint;  // TODO: Document how this hints to search avail space.
   a_int16_t pcard;
   a_uint16_t obj_cnt;
-  _Atomic SpanState state;
+  _Atomic USpanState state;
   const uint32_t struct_padding: 24;
   UnarySpan* next;
   // TODO: Document how bitmap is stored after this header
@@ -114,7 +115,7 @@ struct HugePage
 {
   Magic magic;
   a_int16_t pcard;
-  _Atomic SpanState state;
+  _Atomic USpanState state;
   const int8_t struct_padding;
   HugePage* next;
   a_uint64_t occupy_bmap[8];
