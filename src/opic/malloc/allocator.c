@@ -60,6 +60,181 @@ OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 static bool
 OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 
+// dispatch hpage for uspan, or other stuff..?
+bool
+DispatchHPageForUSpan(OPHeapCtx* ctx)
+{
+  /*
+    goal: dispatch an initialized hpage to callee
+    if no hpage in queue, create a new one and init
+    if no hpage to create, return false
+
+    problem: fail conditions..
+   */
+
+  /*
+  while (!atomic_check_in(&ctx->hqueue.pcard))
+    ;
+  HugePage** it = &ctx->hqueue->hpage;
+  if (*it)
+    {
+      // HPageObtainUSpan(ctx, other op)
+    }
+  else
+  */
+  return true;
+}
+
+QueueOperation
+USpanObtainAddr(OPHeapCtx* ctx, void** addr)
+{
+  UnarySpan* uspan;
+  uintptr_t uspan_base;
+  uint64_t old_bmap, new_bmap;
+  uint16_t obj_size, obj_cnt_old, obj_cnt_new, obj_capacity;
+  a_uint64_t *bmap;
+  uint64_t bmidx, bmbit;
+
+  uspan = ctx->sspan.uspan;
+  uspan_base = ObtainSSpanBase(uspan);
+
+  if (!atomic_check_in(&uspan->pcard))
+    return QOP_CONTINUE;
+
+  obj_capacity = uspan->bitmap_cnt * 64 -
+    uspan->bitmap_headroom - uspan->bitmap_padding;
+  obj_cnt_old = atomic_load_explicit(&uspan->obj_cnt,
+                                     memory_order_relaxed);
+  do
+    {
+      if (obj_cnt_old >= obj_capacity)
+        goto uspan_full;
+      obj_cnt_new = obj_cnt_old + 1;
+    }
+  while (!atomic_compare_exchange_weak_explicit
+         (&uspan->obj_cnt, &obj_cnt_old, obj_cnt_new,
+          memory_order_acq_rel,
+          memory_order_relaxed));
+
+  obj_size = uspan->magic.typed_uspan.obj_size;
+  bmap = (a_uint64_t *)((uintptr_t)uspan + sizeof(UnarySpan));
+  bmidx = uspan->bitmap_hint;
+
+  while (1)
+    {
+      old_bmap = atomic_load_explicit(&bmap[bmidx], memory_order_relaxed);
+      do
+        {
+          if (old_bmap == ~0UL) goto next_bmap;
+          new_bmap = (old_bmap + 1);
+          bmbit = __builtin_ctzl(new_bmap);
+          new_bmap |= old_bmap;
+        }
+      while(!atomic_compare_exchange_strong_explicit
+            (&bmap[bmidx], &old_bmap, new_bmap,
+             memory_order_relaxed,
+             memory_order_relaxed));
+      *addr = (void*)(uspan_base + (bmidx * 64UL + bmbit) * obj_size);
+      uspan->bitmap_hint = bmidx;
+      atomic_check_out(&uspan->pcard);
+      return QOP_SUCCESS;
+
+    next_bmap:
+      bmidx++;
+      bmidx %= uspan->bitmap_cnt;
+    }
+
+ uspan_full:
+  if (atomic_load_explicit(&uspan->state,
+                           memory_order_acquire) == SPAN_DEQUEUED)
+    {
+      atomic_check_out(&uspan->pcard);
+      return QOP_RESTART;
+    }
+  if (!atomic_book_critical(&ctx->uqueue->pcard))
+    {
+      atomic_check_out(&uspan->pcard);
+      return QOP_RESTART;
+    }
+  atomic_enter_critical(&ctx->uqueue->pcard);
+  DequeueUSpan(ctx->uqueue, uspan);
+  atomic_store_explicit(&uspan->state, SPAN_DEQUEUED,
+                        memory_order_release);
+  atomic_exit_critical(&ctx->uqueue->pcard);
+  atomic_check_out(&uspan->pcard);
+  return QOP_RESTART;
+}
+
+QueueOperation
+HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
+{
+  // what is our limitation for uspan size?
+  // when do we move hpage out of queue?
+  HugePage* hpage;
+  uintptr_t hpage_base;
+  int sspan_bmidx, sspan_bmbit;
+  uint64_t old_bmap, new_bmap;
+
+  hpage = ctx->hspan.hpage;
+  hpage_base = ObtainHSpanBase(hpage);
+
+  if (!atomic_check_in(&hpage->pcard))
+    return QOP_CONTINUE;
+  for (sspan_bmidx = 0; sspan_bmidx < 8; sspan_bmidx++)
+    {
+      old_bmap = atomic_load_explicit(&hpage->occupy_bmap[sspan_bmidx],
+                                      memory_order_relaxed);
+      while (1)
+        {
+          if (old_bmap == ~0UL) break;
+          sspan_bmbit = fftstr0l(old_bmap, spage_cnt);
+          if (sspan_bmbit == -1) break;
+          new_bmap = old_bmap | ((1UL<< spage_cnt) - 1) << sspan_bmbit;
+
+          if (atomic_compare_exchange_weak_explicit
+              (&hpage->occupy_bmap[sspan_bmidx], &old_bmap, new_bmap,
+               memory_order_acquire,
+               memory_order_relaxed))
+            {
+              atomic_fetch_or_explicit(&hpage->header_bmap[sspan_bmidx],
+                                       1UL << sspan_bmbit,
+                                       memory_order_relaxed);
+              atomic_check_out(&hpage->pcard);
+              ctx->sspan.uintptr = hpage_base +
+                (64 * sspan_bmidx + sspan_bmbit) * SPAGE_SIZE;
+              return QOP_SUCCESS;
+            }
+        }
+    }
+  if (!atomic_book_critical(&hpage->pcard))
+    {
+      atomic_check_out(&hpage->pcard);
+      return QOP_CONTINUE;
+    }
+  atomic_enter_critical(&hpage->pcard);
+  for (int bmidx = 0; bmidx < 8; bmidx++)
+    {
+      if (atomic_load_explicit(&hpage->occupy_bmap[bmidx],
+                               memory_order_relaxed)
+          != ~0UL)
+        {
+          atomic_exit_check_out(&hpage->pcard);
+          return QOP_CONTINUE;
+        }
+    }
+  if (!atomic_book_critical(&ctx->hqueue->pcard))
+    {
+      atomic_exit_check_out(&hpage->pcard);
+      return QOP_RESTART;
+    }
+  atomic_enter_critical(&ctx->hqueue->pcard);
+  DequeueHPage(ctx->hqueue, hpage);
+  atomic_exit_critical(&ctx->hqueue->pcard);
+  atomic_exit_check_out(&hpage->pcard);
+  return QOP_RESTART;
+}
+
+
 bool
 OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
 {
@@ -214,7 +389,7 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   while (1)
     {
       if (bmidx_head > HPAGE_BMAP_NUM) goto fail;
-      if (occupy_bmap[bmidx_head] && 1UL << 63)
+      if (occupy_bmap[bmidx_head] & (1UL << 63))
         {
           bmidx_head++;
           continue;
@@ -227,6 +402,9 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
         bmbit_head = 1;
       if (_hpage_cnt <= 64 - bmbit_head)
         goto found;
+
+      _hpage_cnt -= 64 - bmbit_head;
+      bmidx_iter++;
 
       while (1)
         {
@@ -249,7 +427,8 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
               _hpage_cnt -= 64;
               goto found;
             }
-          else if (_hpage_cnt < __builtin_ctzl(occupy_bmap[bmidx_iter]))
+          else if (_hpage_cnt < (occupy_bmap[bmidx_iter] == 0 ?
+                                 64 : __builtin_ctzl(occupy_bmap[bmidx_iter])))
             {
               goto found;
             }
@@ -268,9 +447,9 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   else
     {
       occupy_bmap[bmidx_head] |=
-        ~((1UL << bmbit_head) - 1) &
-        ~(1UL << bmbit_head);
-      occupy_bmap[bmidx_iter] |= (1UL << _hpage_cnt) - 1;
+        ~((1UL << bmbit_head) - 1) | (1UL << bmbit_head);
+      if (_hpage_cnt)
+        occupy_bmap[bmidx_iter] |= (1UL << _hpage_cnt) - 1;
       for (int bmidx = bmidx_head + 1; bmidx < bmidx_iter; bmidx++)
         occupy_bmap[bmidx] = ~0UL;
     }

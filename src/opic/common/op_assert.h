@@ -56,13 +56,13 @@
 #ifndef OPIC_COMMON_OP_ASSERT_H
 #define OPIC_COMMON_OP_ASSERT_H 1
 
-#define op_stacktrace(stream) \
-  do {\
-    void* stack[OP_ASSERT_STACK_LIMIT]; \
-    size_t size; \
-    size = backtrace(stack, OP_ASSERT_STACK_LIMIT); \
-    backtrace_symbols_fd(stack,size,fileno(stream)); \
-    abort(); \
+#define op_stacktrace(stream)                           \
+  do {                                                  \
+    void* stack[OP_ASSERT_STACK_LIMIT];                 \
+    size_t size;                                        \
+    size = backtrace(stack, OP_ASSERT_STACK_LIMIT);     \
+    backtrace_symbols_fd(stack,size,fileno(stream));    \
+    abort();                                            \
   } while(0)
 
 #endif /* OP_ASSERT_H */
@@ -72,6 +72,7 @@
  * multiple times, with and without NDEBUG defined.
  * TODO: test the overhead of assert (though should have minimized by unlikely)
  * TODO: Do we want to use log4c instead of stderr?
+ * TODO: integrate with cmocka to test assersions.
  */
 
 #ifndef OP_ASSERT_STACK_LIMIT
@@ -80,25 +81,25 @@
 
 #ifndef NDEBUG
 
-#define op_assert(X, ...) \
- do{ \
-   if (op_unlikely(!(X))) { \
-     fprintf(stderr,"Assertion failed: %s (%s:%d)\n", \
-             __func__, __FILE__, __LINE__);           \
-     fprintf(stderr,"Error message: " __VA_ARGS__); \
-     op_stacktrace(stderr); \
-   } \
- } while(0)
+#define op_assert(X, ...)                               \
+  do{                                                   \
+    if (op_unlikely(!(X))) {                            \
+      fprintf(stderr,"Assertion failed: %s (%s:%d)\n",  \
+              __func__, __FILE__, __LINE__);            \
+      fprintf(stderr,"Error message: " __VA_ARGS__);    \
+      op_stacktrace(stderr);                            \
+    }                                                   \
+  } while(0)
 
 
-#define op_assert_diagnose(X,cb, ...) \
-  do { \
-   if (op_unlikely(!(X))) { \
-     fprintf(stderr,"Assertion failed: %s (%s:%d)\n", \
-             __func__, __FILE__, __LINE__);           \
-     (cb)(__VA_ARGS__); \
-     op_stacktrace(stderr); \
-   } \
+#define op_assert_diagnose(X,cb, ...)                   \
+  do {                                                  \
+    if (op_unlikely(!(X))) {                            \
+      fprintf(stderr,"Assertion failed: %s (%s:%d)\n",  \
+              __func__, __FILE__, __LINE__);            \
+      (cb)(__VA_ARGS__);                                \
+      op_stacktrace(stderr);                            \
+    }                                                   \
   } while(0)
 
 #else /* NDEBUG = 1 */

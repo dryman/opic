@@ -58,7 +58,8 @@
 
 OP_BEGIN_DECLS
 
-typedef enum BitMapState BitMapState;
+typedef enum SpanState SpanState;
+typedef enum QueueOperation QueueOperation;
 typedef struct UnarySpan UnarySpan;
 typedef struct HugePage HugePage;
 typedef struct UnarySpanQueue UnarySpanQueue;
@@ -74,16 +75,21 @@ typedef struct OPHeapCtx OPHeapCtx;
 
 // TODO: change to enqueued/dequeued
 // TODO: Rename to something more meaningful
-enum BitMapState
+// ENQUEUED, DEQUEUED, TOMBSTONE, NEW
+enum SpanState
   {
-    BM_NORMAL = 0,
-    BM_NEW = 1,
-    BM_FULL = 2,
-    BM_TOMBSTONE = 3,
+    SPAN_ENQUEUED = 0,
+    SPAN_DEQUEUED = 1,
   } __attribute__((packed));
 
-static_assert(sizeof(BitMapState) == 1, "sizeof(BitMapState)");
+static_assert(sizeof(SpanState) == 1, "sizeof(SpanState)");
 
+enum QueueOperation
+  {
+    QOP_SUCCESS = 0,
+    QOP_CONTINUE = 1,
+    QOP_RESTART = 3,
+  };
 
 struct UnarySpan
 {
@@ -94,7 +100,7 @@ struct UnarySpan
   uint8_t bitmap_hint;  // TODO: Document how this hints to search avail space.
   a_int16_t pcard;
   a_uint16_t obj_cnt;
-  _Atomic BitMapState state;
+  _Atomic SpanState state;
   const uint32_t struct_padding: 24;
   UnarySpan* next;
   // TODO: Document how bitmap is stored after this header
@@ -107,7 +113,7 @@ struct HugePage
 {
   Magic magic;
   a_int16_t pcard;
-  _Atomic BitMapState state;
+  _Atomic SpanState state;
   const int8_t struct_padding;
   HugePage* next;
   a_uint64_t occupy_bmap[8];
@@ -132,11 +138,6 @@ struct HugePageQueue
 
 static_assert(sizeof(HugePageQueue) == 10, "sizeof(HugePageQueue)");
 
-struct GenericContainer
-{
-  const Magic magic;
-};
-
 // Blob contained by HPage
 struct SmallBlob
 {
@@ -155,7 +156,6 @@ union SmallSpanPtr
 {
   uintptr_t uintptr;
   Magic* magic;
-  GenericContainer* generic;
   UnarySpan* uspan;
   SmallBlob* sblob;
 } __attribute__((__transparent_union__));
@@ -164,7 +164,6 @@ union HugeSpanPtr
 {
   uintptr_t uintptr;
   Magic* magic;
-  GenericContainer* generic;
   HugePage* hpage;
   HugeBlob* hblob;
 } __attribute__((__transparent_union__));
