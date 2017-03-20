@@ -88,120 +88,82 @@ DispatchHPageForUSpan(OPHeapCtx* ctx)
 QueueOperation
 USpanObtainAddr(OPHeapCtx* ctx, void** addr)
 {
-  if (!atomic_check_in(&self->pcard))
-    return QOP_CONTINUE;
-
   UnarySpan* uspan;
   uintptr_t uspan_base;
-  USpanState state;
-  a_uint64_t *bitmap_base, *bitmap;
-  ptrdiff_t bitmap_offset, item_offset;
   uint64_t old_bmap, new_bmap;
-  uint16_t obj_size, obj_cnt, obj_capacity;
-  UnarySpan** uspan_queue;
-  a_int16_t* uspan_queue_pcard;
+  uint16_t obj_size, obj_cnt_old, obj_cnt_new, obj_capacity;
+  a_uint64_t *bmap;
+  uint64_t bmidx, bmbit;
 
   uspan = ctx->sspan.uspan;
   uspan_base = ObtainSSpanBase(uspan);
-  state = atomic_load_explicit(&self->state,
-                               memory_order_relaxed);
 
-  // TODO: document the state machine.
-  // When state == BM_NEW, obj_cnt can change from 0 to 1;
-  // but when state is BM_NORMAL, obj_cnt == 0 is same as BM_TOMBSTONE
-  if (state == USPAN_ENQUEUED &&
-      atomic_load_explicit(&self->obj_cnt,
-                           memory_order_relaxed) == 0)
+  if (!atomic_check_in(&uspan->pcard))
+    return QOP_CONTINUE;
+
+  // FIXME: need a new utility function to determine this
+  obj_capacity = ((uint16_t)uspan->bitmap_cnt)*64 -
+    uspan->bitmap_headroom - uspan->bitmap_padding;
+  obj_cnt_old = atomic_load_explicit(&uspan->obj_cnt,
+                                     memory_order_relaxed);
+  do
     {
-      atomic_check_out(&self->pcard);
-      return false;
+      if (obj_cnt_old >= obj_capacity)
+        goto uspan_full;
+      obj_cnt_new = obj_cnt_old + 1;
     }
+  while (!atomic_compare_exchange_weak_explicit
+         (&uspan->obj_cnt, &obj_cnt_old, obj_cnt_new,
+          memory_order_acq_rel,
+          memory_order_relaxed));
 
-  if (state == USPAN_ENQUEUED_NEW)
-    atomic_store_explicit(&self->state, USPAN_ENQUEUED);
-
-  obj_cnt = atomic_fetch_add_explicit(&self->obj_cnt, 1,
-                                      memory_order_acquire);
-  // TODO capacity is different for uspan located at different place
-  obj_capacity = ((uint16_t)self->bitmap_cnt)*64 -
-    self->bitmap_headroom - self->bitmap_padding;
-
-  //
-  // Say the capacity is N, and the object count is n.  When n = N, we
-  // still insert the object into uspan, and since the insertion
-  // succeeded, we return true.  When n > N (n > N+1 when accessed by
-  // more than one thread), this uspan need to be removed from the
-  // queue and allocates a new uspan to hold the object. This uspan
-  // wasn't able to hold a new object, thus return false.
-  //
-  // Note that obj_cnt is (self->obj_cnt - 1). The logic below is
-  // equivalent to
-  // if (self->obj_cnt > obj_capacity) {...}
-  ///
-  if (obj_cnt >= obj_capacity)
-    {
-      goto uspan_full;
-    }
-
-  base = (uintptr_t)self;
-  obj_size = self->magic.typed_uspan.obj_size;
-  bitmap_base = (a_uint64_t *)(base + sizeof(UnarySpan));
-  bitmap_offset = (ptrdiff_t)self->bitmap_hint;
-  bitmap = bitmap_base + bitmap_offset;
+  obj_size = uspan->magic.typed_uspan.obj_size;
+  bmap = (a_uint64_t *)((uintptr_t)uspan + sizeof(UnarySpan));
+  bmidx = uspan->bitmap_hint;
 
   while (1)
     {
-      old_bmap = atomic_load_explicit(bitmap, memory_order_relaxed);
+      old_bmap = atomic_load_explicit(&bmap[bmidx], memory_order_relaxed);
       do
         {
           if (old_bmap == ~0UL) goto next_bmap;
           new_bmap = (old_bmap + 1);
-          item_offset = __builtin_ctzl(new_bmap);
+          bmbit = __builtin_ctzl(new_bmap);
           new_bmap |= old_bmap;
         }
       while(!atomic_compare_exchange_strong_explicit
-            (bitmap, &old_bmap, new_bmap,
+            (&bmap[bmidx], &old_bmap, new_bmap,
              memory_order_relaxed,
              memory_order_relaxed));
-      *addr = (void*)(base + (bitmap_offset * 64 + item_offset) * obj_size);
-      self->bitmap_hint = (uint8_t)bitmap_offset;
-      atomic_check_out(&self->pcard);
-      return true;
+      *addr = (void*)(uspan_base + (bmidx * 64UL + bmbit) * obj_size);
+      uspan->bitmap_hint = bmidx;
+      atomic_check_out(&uspan->pcard);
+      return QOP_SUCCESS;
 
     next_bmap:
-      bitmap_offset++;
-      bitmap_offset %= self->bitmap_cnt;
-      bitmap = bitmap_base + bitmap_offset;
+      bmidx++;
+      bmidx %= uspan->bitmap_cnt;
     }
 
  uspan_full:
-  // If we couldn't book, there were some other thread booked the critical
-  // section.  Retry and start over again.
-  if (!atomic_book_critical(&self->pcard))
+  if (atomic_load_explicit(&uspan->state,
+                           memory_order_acquire) == SPAN_DEQUEUED)
     {
-      atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
-      atomic_check_out(&self->pcard);
-      return false;
+      atomic_check_out(&uspan->pcard);
+      return QOP_RESTART;
     }
-  atomic_enter_critical(&self->pcard);
-
-  atomic_store_explicit(&self->state, BM_FULL, memory_order_relaxed);
-  atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
-
-  select_uspan_queue(self->magic.uspan_generic.pattern,
-                     get_opheap(self), &uspan_queue, &uspan_queue_pcard);
-  if (!atomic_book_critical(uspan_queue_pcard))
+  if (!atomic_book_critical(&ctx->uqueue->pcard))
     {
-      atomic_exit_critical(&self->pcard);
-      atomic_check_out(&self->pcard);
-      return false;
+      atomic_check_out(&uspan->pcard);
+      return QOP_RESTART;
     }
-  atomic_enter_critical(uspan_queue_pcard);
-  dequeue_uspan(uspan_queue, self);
-  atomic_exit_critical(uspan_queue_pcard);
-  atomic_exit_critical(&self->pcard);
-  atomic_check_out(&self->pcard);
-  return false;
+  atomic_enter_critical(&ctx->uqueue->pcard);
+  DequeueUSpan(ctx->uqueue, uspan);
+  atomic_store_explicit(&uspan->state, SPAN_DEQUEUED,
+                        memory_order_release);
+  atomic_exit_critical(&ctx->uqueue->pcard);
+  atomic_check_out(&uspan->pcard);
+  return QOP_RESTART;
 }
 
 QueueOperation
