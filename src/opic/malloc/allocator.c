@@ -101,8 +101,7 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
   if (!atomic_check_in(&uspan->pcard))
     return QOP_CONTINUE;
 
-  // FIXME: need a new utility function to determine this
-  obj_capacity = ((uint16_t)uspan->bitmap_cnt)*64 -
+  obj_capacity = uspan->bitmap_cnt * 64 -
     uspan->bitmap_headroom - uspan->bitmap_padding;
   obj_cnt_old = atomic_load_explicit(&uspan->obj_cnt,
                                      memory_order_relaxed);
@@ -226,7 +225,7 @@ HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
   if (!atomic_book_critical(&ctx->hqueue->pcard))
     {
       atomic_exit_check_out(&hpage->pcard);
-      return QOP_CONTINUE;
+      return QOP_RESTART;
     }
   atomic_enter_critical(&ctx->hqueue->pcard);
   DequeueHPage(ctx->hqueue, hpage);
