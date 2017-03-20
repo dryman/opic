@@ -48,9 +48,100 @@
 #include "opic/common/op_atomic.h"
 #include "opic/common/op_log.h"
 #include "deallocator.h"
+#include "inline_aux.h"
 #include "lookup_helper.h"
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.deallocator");
+
+void
+USpanReleaseAddr(UnarySpan* uspan, void* addr)
+{
+  UnarySpanQueue* uqueue;
+  HugePage* hpage;
+  while (!atomic_check_in(&uspan->pcard))
+    ;
+  // TODO: implement logic to free item, also validate the free addr is correct
+
+  uqueue = ObtainUSpanQueue(uspan);
+  hpage = ObtainHugeSpanPtr(uspan).hpage;
+
+  if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
+                                memory_order_acq_rel) == 1)
+    {
+      if (!atomic_book_critical(&uspan->pcard))
+        {
+          atomic_check_out(&uspan->pcard);
+          return;
+        }
+      atomic_enter_critical(&uspan->pcard);
+      if (atomic_load_explicit(&uspan->obj_cnt, memory_order_acquire) != 0)
+        {
+          atomic_exit_check_out(&uspan->pcard);
+          return;
+        }
+      while (1)
+        {
+          if (atomic_load_explicit(&uspan->state, memory_order_acquire)
+              == SPAN_DEQUEUED)
+            {
+              atomic_exit_check_out(&uspan->pcard);
+              HPageReleaseSSpan(hpage, uspan);
+              return;
+            }
+          if (atomic_check_in_book(&uqueue->pcard))
+            break;
+        }
+      atomic_enter_critical(&uqueue->pcard);
+      if (atomic_load_explicit(&uspan->state, memory_order_acquire)
+          == SPAN_DEQUEUED)
+        {
+          atomic_exit_check_out(&uqueue->pcard);
+          atomic_check_out(&uspan->pcard);
+          HPageReleaseSSpan(hpage, uspan);
+          return;
+        }
+      DequeueUSpan(uqueue, uspan);
+      atomic_exit_check_out(&uqueue->pcard);
+      HPageReleaseSSpan(hpage, uspan);
+      return;
+    }
+
+  while (1)
+    {
+      if (atomic_load_explicit(&uspan->state, memory_order_acquire)
+          == SPAN_ENQUEUED)
+        {
+          atomic_check_out(&uspan->pcard);
+          return;
+        }
+      if (atomic_is_booked(&uspan->pcard))
+        {
+          atomic_check_out(&uspan->pcard);
+          return;
+        }
+      if (!atomic_check_in_book(&uqueue->pcard))
+        continue;
+      atomic_enter_critical(&uqueue->pcard);
+      if (atomic_load_explicit(&uspan->state, memory_order_acquire)
+          == SPAN_ENQUEUED)
+        {
+          atomic_exit_check_out(&uqueue->pcard);
+          atomic_check_out(&uspan->pcard);
+          return;
+        }
+      EnqueueUSpan(uqueue, uspan);
+      atomic_store_explicit(&uspan->state, SPAN_ENQUEUED,
+                            memory_order_release);
+      atomic_exit_check_out(&uqueue->pcard);
+      atomic_check_out(&uspan->pcard);
+      return;
+    }
+}
+
+void
+HPageReleaseSSpan(HugePage* hpage, SmallSpanPtr sspan)
+{
+}
 
 void
 OPHeapReleaseHSpan(HugeSpanPtr hspan)

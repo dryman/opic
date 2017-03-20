@@ -53,6 +53,8 @@
 
 OP_BEGIN_DECLS
 
+void USpanReleaseAddr(UnarySpan* uspan, void* addr);
+void HPageReleaseSSpan(HugePage* hpage, SmallSpanPtr sspan);
 void OPHeapReleaseHSpan(HugeSpanPtr hspan);
 
 OP_END_DECLS
