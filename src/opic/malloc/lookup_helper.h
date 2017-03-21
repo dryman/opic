@@ -86,10 +86,17 @@ ObtainSSpanBase(SmallSpanPtr header)
   return header.uintptr & ~(SPAGE_SIZE - 1);
 }
 
-HugeSpanPtr ObtainHugeSpanPtr(void* addr);
-SmallSpanPtr HPageObtainSmallSpanPtr(HugePage* hpage, void* addr);
-UnarySpanQueue* ObtainUSpanQueue(UnarySpan* uspan);
-HugePageQueue* ObtainHPageQueue(HugePage* hpage);
+HugeSpanPtr ObtainHugeSpanPtr(void* addr)
+  __attribute__ ((visibility ("internal")));
+
+SmallSpanPtr HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
+  __attribute__ ((visibility ("internal")));
+
+UnarySpanQueue* ObtainUSpanQueue(UnarySpan* uspan)
+  __attribute__ ((visibility ("internal")));
+
+HugePageQueue* ObtainHPageQueue(HugePage* hpage)
+  __attribute__ ((visibility ("internal")));
 
 OP_END_DECLS
 

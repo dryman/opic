@@ -52,8 +52,11 @@
 
 OP_BEGIN_DECLS
 
-bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx);
-bool OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
+bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
+  __attribute__ ((visibility ("internal")));
+
+bool OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
+  __attribute__ ((visibility ("internal")));
 
 OP_END_DECLS
 

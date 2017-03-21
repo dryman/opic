@@ -62,13 +62,24 @@ union BmapPtr
 } __attribute__ ((__transparent_union__));
 
 bool OPHeapNew(OPHeap** heap_ref);
+
 void OPHeapDestroy(OPHeap* heap);
-void HPageInit(OPHeapCtx* ctx, Magic magic);
-void USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt);
-void OPHeapEmptiedBMaps(OPHeap* heap, BmapPtr occupy_bmap, BmapPtr header_bmap);
+
+void HPageInit(OPHeapCtx* ctx, Magic magic)
+  __attribute__ ((visibility ("internal")));
+
+void USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
+  __attribute__ ((visibility ("internal")));
+
+void OPHeapEmptiedBMaps(OPHeap* heap, BmapPtr occupy_bmap, BmapPtr header_bmap)
+  __attribute__ ((visibility ("internal")));
+
 void HPageEmptiedBMaps(HugePage* hpage, BmapPtr occupy_bmap,
-                       BmapPtr header_bmap);
-void USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap);
+                       BmapPtr header_bmap)
+  __attribute__ ((visibility ("internal")));
+
+void USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap)
+  __attribute__ ((visibility ("internal")));
 
 OP_END_DECLS
 
