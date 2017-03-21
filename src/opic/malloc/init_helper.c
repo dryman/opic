@@ -134,8 +134,8 @@ USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
   uspan = ctx->sspan.uspan;
   container_size = (size_t)spage_cnt * SPAGE_SIZE;
   uspan_base = ObtainSSpanBase(uspan);
-  obj_size = magic.typed_uspan.obj_size < 16 ?
-    16 : magic.typed_uspan.obj_size;
+  obj_size = magic.uspan_generic.obj_size < 16 ?
+    16 : magic.uspan_generic.obj_size;
   obj_cnt = container_size / obj_size;
   bitmap_cnt = round_up_div(obj_cnt, 64);
   bmap_projection = (size_t)bitmap_cnt * 64UL * obj_size;

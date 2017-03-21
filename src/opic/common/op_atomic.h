@@ -102,7 +102,8 @@ typedef _Atomic uint64_t a_uint64_t;
            a_int8_t*: atomic_is_booked_8,       \
            a_int16_t*: atomic_is_booked_16,     \
            a_int32_t*: atomic_is_booked_32,     \
-           a_int64_t*: atomic_is_booked_64)
+           a_int64_t*: atomic_is_booked_64)     \
+  (PUNCH_CARD)
 
 #define atomic_enter_critical(PUNCH_CARD)               \
   _Generic((PUNCH_CARD),                                \
@@ -331,19 +332,19 @@ atomic_is_booked_8(a_int8_t* punch_card)
 }
 
 static inline bool
-atomic_is_booked_16(a_int8_t* punch_card)
+atomic_is_booked_16(a_int16_t* punch_card)
 {
   return atomic_load_explicit(punch_card, memory_order_acquire) < 0;
 }
 
 static inline bool
-atomic_is_booked_32(a_int8_t* punch_card)
+atomic_is_booked_32(a_int32_t* punch_card)
 {
   return atomic_load_explicit(punch_card, memory_order_acquire) < 0;
 }
 
 static inline bool
-atomic_is_booked_64(a_int8_t* punch_card)
+atomic_is_booked_64(a_int64_t* punch_card)
 {
   return atomic_load_explicit(punch_card, memory_order_acquire) < 0;
 }

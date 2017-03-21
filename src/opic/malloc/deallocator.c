@@ -45,6 +45,7 @@
 
 /* Code: */
 
+#include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
 #include "opic/common/op_log.h"
 #include "deallocator.h"
@@ -56,17 +57,41 @@ OP_LOGGER_FACTORY(logger, "opic.malloc.deallocator");
 void
 USpanReleaseAddr(UnarySpan* uspan, void* addr)
 {
+  uint16_t obj_size;
+  uintptr_t uspan_base, addr_base, _addr, _addr_obj_size,
+    _addr_bmidx, _addr_bmbit;
+  uint64_t mask, old_bmap;
+  a_uint64_t* bmap;
   UnarySpanQueue* uqueue;
   HugePage* hpage;
+
   while (!atomic_check_in(&uspan->pcard))
     ;
-  // TODO: implement logic to free item, also validate the free addr is correct
-
+  uspan_base = ObtainSSpanBase(uspan);
+  addr_base = (uintptr_t)addr;
   uqueue = ObtainUSpanQueue(uspan);
   hpage = ObtainHugeSpanPtr(uspan).hpage;
+  bmap = (a_uint64_t*)((uintptr_t)uspan + sizeof(UnarySpan));
 
-  if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
-                                memory_order_acq_rel) == 1)
+  _addr = addr_base - uspan_base;
+  obj_size = uspan->magic.uspan_generic.obj_size;
+  _addr_obj_size = _addr / obj_size;
+  op_assert(_addr_obj_size > uspan->bitmap_headroom,
+            "Address %p mapped to bitmap_headroom", addr);
+  op_assert(_addr_obj_size < uspan->bitmap_cnt * 64UL + uspan->bitmap_headroom,
+            "Address %p mapped to bitmap_padding", addr);
+  _addr_bmidx = _addr_obj_size / 64;
+  _addr_bmbit = _addr_obj_size % 64;
+
+  mask = ~(1UL << _addr_bmbit);
+  old_bmap = atomic_fetch_and_explicit(&bmap[_addr_bmidx],
+                                       mask, memory_order_release);
+  if (op_unlikely((old_bmap & (1UL << _addr_bmbit)) == 0))
+    {
+      OP_LOG_ERROR(logger, "Double free address %p", addr);
+    }
+  else if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
+                                     memory_order_acq_rel) == 1)
     {
       if (!atomic_book_critical(&uspan->pcard))
         {
