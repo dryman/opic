@@ -60,7 +60,7 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
   uint16_t obj_size;
   uintptr_t uspan_base, addr_base, _addr, _addr_obj_size,
     _addr_bmidx, _addr_bmbit;
-  uint64_t mask;
+  uint64_t mask, old_bmap;
   a_uint64_t* bmap;
   UnarySpanQueue* uqueue;
   HugePage* hpage;
@@ -84,10 +84,14 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
   _addr_bmbit = _addr_obj_size % 64;
 
   mask = ~(1UL << _addr_bmbit);
-  atomic_fetch_and_explicit(&bmap[_addr_bmidx], mask, memory_order_release);
-
-  if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
-                                memory_order_acq_rel) == 1)
+  old_bmap = atomic_fetch_and_explicit(&bmap[_addr_bmidx],
+                                       mask, memory_order_release);
+  if (op_unlikely((old_bmap & (1UL << _addr_bmbit)) == 0))
+    {
+      OP_LOG_ERROR(logger, "Double free address %p", addr);
+    }
+  else if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
+                                     memory_order_acq_rel) == 1)
     {
       if (!atomic_book_critical(&uspan->pcard))
         {

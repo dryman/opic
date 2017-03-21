@@ -105,7 +105,7 @@ test_ObtainHPage(void** state)
 
   assert_ptr_equal
     (second_hpage,
-     ObtainHPage(((void*)heap_base + HPAGE_SIZE)));
+     ObtainHPage((void*)(heap_base + HPAGE_SIZE)));
   assert_ptr_equal
     (second_hpage,
      ObtainHPage((void*)(heap_base + HPAGE_SIZE + 10)));
