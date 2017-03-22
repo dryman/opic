@@ -45,11 +45,13 @@
 
 /* Code: */
 
+#include <string.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
 #include "opic/common/op_log.h"
 #include "deallocator.h"
 #include "inline_aux.h"
+#include "init_helper.h"
 #include "lookup_helper.h"
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.deallocator");
@@ -166,6 +168,127 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
 void
 HPageReleaseSSpan(HugePage* hpage, SmallSpanPtr sspan)
 {
+  uintptr_t hpage_base, _addr, _addr_spage, _addr_bmidx, _addr_bmbit, spages;
+  HugePageQueue* hqueue;
+  uint64_t mask, old_bmap;
+  uint64_t occupy_bmap[8], header_bmap[8];
+
+  hpage_base = ObtainHSpanBase(hpage);
+  hqueue = ObtainHPageQueue(hpage);
+  HPageEmptiedBMaps(hpage, occupy_bmap, header_bmap);
+
+  _addr = ObtainSSpanBase(sspan) - hpage_base;
+  _addr_spage = _addr / SPAGE_SIZE;
+  _addr_bmidx = _addr_spage / 64;
+  _addr_bmbit = _addr_spage % 64;
+
+  switch (sspan.magic->generic.pattern)
+    {
+    case TYPED_USPAN_PATTERN:
+    case RAW_USPAN_PATTERN:
+    case LARGE_USPAN_PATTERN:
+      spages = round_up_div
+        ((uintptr_t)sspan.magic->uspan_generic.obj_size *
+         (64UL * sspan.uspan->bitmap_cnt - sspan.uspan->bitmap_padding),
+         SPAGE_SIZE);
+      break;
+    case SMALL_BLOB_PATTERN:
+      spages = sspan.magic->small_blob.pages;
+      break;
+    default:
+      op_assert(0, "unknown small span pattern %d",
+                sspan.magic->generic.pattern);
+    }
+
+  if (_addr_bmbit + spages <= 64)
+    {
+      while (!atomic_check_in(&hpage->pcard))
+        ;
+      old_bmap = atomic_fetch_and_explicit(&hpage->header_bmap[_addr_bmidx],
+                                           ~(1UL << _addr_bmbit),
+                                           memory_order_release);
+      op_assert((old_bmap & (1UL << _addr_bmbit)) != 0,
+                "header bit didn't match");
+      mask = ~(((1UL << spages) - 1) << _addr_bmbit);
+      atomic_fetch_and_explicit(&hpage->occupy_bmap[_addr_bmidx],
+                                mask, memory_order_release);
+
+      if (memcmp(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap)) == 0)
+        {
+          if (!atomic_book_critical(&hpage->pcard))
+            {
+              atomic_check_out(&hpage->pcard);
+              return;
+            }
+          atomic_enter_critical(&hpage->pcard);
+          if (memcmp(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap)) != 0)
+            {
+              atomic_exit_check_out(&hpage->pcard);
+              return;
+            }
+          while (1)
+            {
+              if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+                  == SPAN_DEQUEUED)
+                {
+                  atomic_exit_check_out(&hpage->pcard);
+                  OPHeapReleaseHSpan(hpage);
+                  return;
+                }
+              if (atomic_check_in_book(&hqueue->pcard))
+                break;
+            }
+          atomic_enter_critical(&hqueue->pcard);
+          if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+              == SPAN_DEQUEUED)
+            {
+              atomic_exit_check_out(&hqueue->pcard);
+              atomic_check_out(&hpage->pcard);
+              OPHeapReleaseHSpan(hpage);
+              return;
+            }
+          DequeueHPage(hqueue, hpage);
+          atomic_exit_check_out(&hqueue->pcard);
+          OPHeapReleaseHSpan(hpage);
+          return;
+        }
+      else
+        {
+          while (1)
+            {
+              if (atomic_is_booked(&hpage->pcard))
+                {
+                  atomic_check_out(&hpage->pcard);
+                  return;
+                }
+              if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+                  == SPAN_ENQUEUED)
+                {
+                  atomic_check_out(&hpage->pcard);
+                  return;
+                }
+              if (atomic_check_in_book(&hqueue->pcard))
+                break;
+            }
+          atomic_enter_critical(&hqueue->pcard);
+          if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+              == SPAN_ENQUEUED)
+            {
+              atomic_exit_check_out(&hqueue->pcard);
+              atomic_check_out(&hpage->pcard);
+              return;
+            }
+          EnqueueHPage(hqueue, hpage);
+          atomic_exit_check_out(&hqueue->pcard);
+          atomic_check_out(&hpage->pcard);
+        }
+    }
+  else
+    {
+      while (!atomic_check_in_book(&hpage->pcard))
+        ;
+      atomic_enter_critical(&hpage->pcard);
+    }
 }
 
 void
