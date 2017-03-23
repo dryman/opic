@@ -55,6 +55,10 @@
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
+static
+QueueOperation
+HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt);
+
 static bool
 OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 static bool
@@ -163,6 +167,104 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
   atomic_exit_critical(&ctx->uqueue->pcard);
   atomic_check_out(&uspan->pcard);
   return QOP_RESTART;
+}
+
+QueueOperation
+HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
+{
+  HugePage* hpage;
+  uintptr_t hpage_base;
+  int sspan_bmidx, sspan_bmbit, bmidx, _spage_cnt;
+  uint64_t* occupy_bmap;
+
+  if (spage_cnt <= 32)
+    return HPageObtainUSpan(ctx, spage_cnt);
+
+  hpage = ctx->hspan.hpage;
+  hpage_base = ObtainHSpanBase(hpage);
+
+  if (!atomic_check_in_book(&hpage->pcard))
+    return QOP_CONTINUE;
+  atomic_enter_critical(&hpage->pcard);
+
+  occupy_bmap = (uint64_t*)(hpage->occupy_bmap);
+  sspan_bmidx = 0;
+
+  while (1)
+    {
+      if (sspan_bmidx > 8)
+        {
+          atomic_exit_check_out(&hpage->pcard);
+          return QOP_CONTINUE;
+        }
+      if (occupy_bmap[sspan_bmidx] & (1UL << 63))
+        {
+          sspan_bmidx++;
+          continue;
+        }
+      _spage_cnt = spage_cnt;
+      bmidx = sspan_bmidx;
+      sspan_bmbit = occupy_bmap[sspan_bmidx] == 0 ?
+        0 : 64 - __builtin_clzl(occupy_bmap[sspan_bmidx]);
+      if (_spage_cnt <= 64 - sspan_bmbit)
+        goto found;
+
+      _spage_cnt -= 64 - sspan_bmbit;
+      bmidx++;
+
+      while (1)
+        {
+          if (bmidx > 8)
+            {
+              atomic_exit_check_out(&hpage->pcard);
+              return QOP_CONTINUE;
+            }
+          if (_spage_cnt > 64)
+            {
+              if (occupy_bmap[bmidx] != 0UL)
+                {
+                  sspan_bmidx++;
+                  break;
+                }
+              bmidx++;
+              _spage_cnt -= 64;
+              continue;
+            }
+          else if (_spage_cnt == 64)
+            {
+              bmidx++;
+              _spage_cnt -= 64;
+              goto found;
+            }
+          else if (_spage_cnt < (occupy_bmap[bmidx] == 0 ?
+                                 64 : __builtin_ctzl(occupy_bmap[bmidx])))
+            {
+              goto found;
+            }
+          sspan_bmidx++;
+          break;
+        }
+    }
+ found:
+  ctx->sspan.uintptr = hpage_base +
+    (64 * sspan_bmidx + sspan_bmbit) * SPAGE_SIZE;
+  hpage->header_bmap[sspan_bmidx] |= 1UL << sspan_bmbit;
+  if (bmidx == sspan_bmidx)
+    {
+      occupy_bmap[sspan_bmidx] = ((1UL << _spage_cnt) - 1) << sspan_bmbit;
+    }
+  else
+    {
+      occupy_bmap[sspan_bmidx] |=
+        ~((1UL << sspan_bmbit) - 1) | (1UL << sspan_bmbit);
+      if (_spage_cnt)
+        occupy_bmap[bmidx] |= (1UL << _spage_cnt) - 1;
+      for (int idx = sspan_bmidx + 1; idx < bmidx; idx++)
+        occupy_bmap[idx] = ~0UL;
+    }
+  // TODO dequeue if full logic
+  atomic_exit_check_out(&hpage->pcard);
+  return QOP_SUCCESS;
 }
 
 QueueOperation
