@@ -57,6 +57,27 @@
 OP_LOGGER_FACTORY(logger, "opic.malloc.deallocator");
 
 void
+OPDealloc(void* addr)
+{
+  HugeSpanPtr hspan;
+  SmallSpanPtr sspan;
+
+  hspan = ObtainHugeSpanPtr(addr);
+  if (hspan.magic->generic.pattern == HUGE_BLOB_PATTERN)
+    {
+      OPHeapReleaseHSpan(hspan);
+      return;
+    }
+  sspan = HPageObtainSmallSpanPtr(hspan.hpage, addr);
+  if (sspan.magic->generic.pattern == SMALL_BLOB_PATTERN)
+    {
+      HPageReleaseSSpan(hspan.hpage, sspan);
+      return;
+    }
+  USpanReleaseAddr(sspan.uspan, addr);
+}
+
+void
 USpanReleaseAddr(UnarySpan* uspan, void* addr)
 {
   uint16_t obj_size;
@@ -288,6 +309,80 @@ HPageReleaseSSpan(HugePage* hpage, SmallSpanPtr sspan)
       while (!atomic_check_in_book(&hpage->pcard))
         ;
       atomic_enter_critical(&hpage->pcard);
+      atomic_fetch_and_explicit(&hpage->header_bmap[_addr_bmidx],
+                                ~(1UL << _addr_bmbit),
+                                memory_order_relaxed);
+      atomic_fetch_and_explicit(&hpage->occupy_bmap[_addr_bmidx],
+                                (1UL << _addr_bmbit) - 1,
+                                memory_order_relaxed);
+      spages -= (64 - _addr_bmbit);
+      _addr_bmidx++;
+      while (spages >= 64)
+        {
+          atomic_store_explicit(&hpage->occupy_bmap[_addr_bmidx++],
+                                0UL, memory_order_relaxed);
+          spages -= 64;
+        }
+      if (spages)
+        {
+          atomic_fetch_and_explicit(&hpage->occupy_bmap[_addr_bmidx],
+                                    ~((1UL << spages) - 1),
+                                    memory_order_relaxed);
+        }
+
+      if (memcmp(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap)) == 0)
+        {
+          while (1)
+            {
+              if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+                  == SPAN_DEQUEUED)
+                {
+                  atomic_exit_check_out(&hpage->pcard);
+                  OPHeapReleaseHSpan(hpage);
+                  return;
+                }
+              if (atomic_check_in_book(&hqueue->pcard))
+                break;
+            }
+          atomic_enter_critical(&hqueue->pcard);
+          if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+              == SPAN_DEQUEUED)
+            {
+              atomic_exit_check_out(&hqueue->pcard);
+              atomic_check_out(&hpage->pcard);
+              OPHeapReleaseHSpan(hpage);
+              return;
+            }
+          DequeueHPage(hqueue, hpage);
+          atomic_exit_check_out(&hqueue->pcard);
+          OPHeapReleaseHSpan(hpage);
+          return;
+        }
+      else
+        {
+          while (1)
+            {
+              if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+                  == SPAN_ENQUEUED)
+                {
+                  atomic_exit_check_out(&hpage->pcard);
+                  return;
+                }
+              if (atomic_check_in_book(&hqueue->pcard))
+                break;
+            }
+          atomic_enter_critical(&hqueue->pcard);
+          if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+              == SPAN_ENQUEUED)
+            {
+              atomic_exit_check_out(&hqueue->pcard);
+              atomic_exit_check_out(&hpage->pcard);
+              return;
+            }
+          EnqueueHPage(hqueue, hpage);
+          atomic_exit_check_out(&hqueue->pcard);
+          atomic_exit_check_out(&hpage->pcard);
+        }
     }
 }
 
@@ -345,6 +440,7 @@ OPHeapReleaseHSpan(HugeSpanPtr hspan)
 
   while (!atomic_check_in_book(&heap->pcard))
     ;
+  atomic_enter_critical(&heap->pcard);
   atomic_fetch_and_explicit(&heap->header_bmap[_addr_bmidx],
                             ~(1UL << _addr_bmbit),
                             memory_order_relaxed);
