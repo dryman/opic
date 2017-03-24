@@ -46,12 +46,16 @@
 /* Code: */
 
 #include <string.h>
+#include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
 #include "opic/common/op_log.h"
 #include "opic/common/op_utils.h"
 #include "allocator.h"
 #include "init_helper.h"
 #include "lookup_helper.h"
+
+static __thread int thread_id = -1;
+static a_uint32_t round_robin = 0;
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
@@ -64,11 +68,80 @@ OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 static bool
 OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 
+void*
+OPMallocRaw(OPHeap* heap, size_t size)
+{
+  if (thread_id == -1)
+    thread_id = atomic_fetch_add_explicit
+      (&round_robin, 1, memory_order_acquire) % 16;
+
+  return OPMallocRawAdviced(heap, size, thread_id);
+}
+
+void*
+OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
+{
+  OPHeapCtx ctx;
+  void* addr;
+  Magic magic;
+  unsigned int size_class;
+
+  op_assert(size > 0, "malloc size must greater than 0");
+
+  hint %= 16;
+
+  ctx.hqueue = &heap->raw_type.hpage_queue;
+  if (size <= 256)
+    {
+      size_class = round_up_div(size, 16);
+      magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
+      magic.raw_uspan.obj_size = size_class * 16;
+      magic.raw_uspan.thread_id = hint;
+      ctx.uqueue = &heap->raw_type.uspan_queue[size_class][hint];
+      DispatchUSpanForAddr(&ctx, magic, &addr);
+      return addr;
+    }
+  else if (size <= 2048)
+    {
+      magic.large_uspan.pattern = LARGE_USPAN_PATTERN;
+      if (size <= 512)
+        {
+          ctx.uqueue = &heap->raw_type.large_uspan_queue[0];
+          magic.large_uspan.obj_size = 512;
+        }
+      else if (size <= 1024)
+        {
+          ctx.uqueue = &heap->raw_type.large_uspan_queue[1];
+          magic.large_uspan.obj_size = 1024;
+        }
+      else
+        {
+          ctx.uqueue = &heap->raw_type.large_uspan_queue[2];
+          magic.large_uspan.obj_size = 2048;
+        }
+      DispatchUSpanForAddr(&ctx, magic, &addr);
+      return addr;
+    }
+  else if (size <= HPAGE_SIZE / 2)
+    {
+      // FIXME
+      int cnt = round_up_div(size + sizeof(UnarySpan), SPAGE_SIZE);
+      magic.small_blob.pattern = SMALL_BLOB_PATTERN;
+      magic.small_blob.pages = cnt;
+      // FIXME but I also need the magic for huge page..
+      DispatchHPageForSSpan(&ctx, magic, cnt);
+    }
+  else
+    {
+    }
+  return NULL;
+}
+
 void
-DispatchUSpanForAddr(OPHeapCtx* ctx, Magic magic, void** addr)
+DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
 {
   unsigned int spage_cnt;
-  Magic hpage_magic;
+  Magic hpage_magic = {};
 
  retry:
   while (!atomic_check_in(&ctx->uqueue->pcard))
@@ -95,12 +168,25 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic magic, void** addr)
       goto retry;
     }
   atomic_enter_critical(&ctx->uqueue->pcard);
+
+  switch (uspan_magic.generic.pattern)
+    {
+    case TYPED_USPAN_PATTERN:
+      hpage_magic.typed_hpage.pattern = TYPED_HPAGE_PATTERN;
+      hpage_magic.typed_hpage.type_alias = uspan_magic.typed_uspan.type_alias;
+      break;
+    case RAW_USPAN_PATTERN:
+    case LARGE_USPAN_PATTERN:
+      hpage_magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
+      break;
+    default:
+      op_assert(false, "Unknown uspan pattern %d", uspan_magic.generic.pattern);
+    }
   // base on magic.uspan_generic.obj_size to decide how many spage do we
   // want to allocate for each kind of uspan..
-  hpage_magic = magic; // FIXME
   spage_cnt = 1; // FIXME
   DispatchHPageForSSpan(ctx, hpage_magic, spage_cnt);
-  USpanInit(ctx, magic, spage_cnt);
+  USpanInit(ctx, uspan_magic, spage_cnt);
   EnqueueUSpan(ctx->uqueue, ctx->sspan.uspan);
   atomic_exit_check_out(&ctx->uqueue->pcard);
   goto retry;
@@ -644,311 +730,5 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
                hpage_cnt);
   return false;
 }
-/*
-
-extern void enqueue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
-extern void dequeue_uspan(UnarySpan** uspan_queue, UnarySpan* uspan);
-
-static void select_uspan_queue(uint8_t pattern,
-                               OPHeap* heap,
-                               UnarySpan*** uspan_queue,
-                               a_int16_t** uspan_queue_pcard);
-
-void USpanInit(UnarySpan* self, Magic magic, size_t span_size)
-{
-  op_assert(magic.uspan_generic.obj_size, "uspan object size cannot be 0\n");
-  op_assert(span_size, "span_size must greater than 0\n");
-
-  unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
-  uintptr_t bitmap_base;
-  uint64_t* bmap;
-
-  obj_size = magic.typed_uspan.obj_size;
-  // Number of objects fits into the span, regardless of header.  Note
-  // this is different to the capcity of object that can stored in this
-  // span.  The capacity should be calculated as
-  // bitmap_cnt * 64 - headroom - padding.
-  ///
-  obj_cnt = span_size / obj_size;
-  bitmap_cnt = round_up_div(obj_cnt, 64);
-  padding = (bitmap_cnt << 6) - obj_cnt;
-  headroom = (sizeof(UnarySpan) + bitmap_cnt*8 + obj_size - 1)/obj_size;
-
-  op_assert(headroom < 64,
-            "headroom should be less equal to 64, but were %d\n", headroom);
-
-  self->magic = magic;
-  self->bitmap_cnt = bitmap_cnt;
-  self->bitmap_headroom = headroom;
-  self->bitmap_padding = padding;
-  self->bitmap_hint = 0;
-  self->pcard = 0;
-  self->obj_cnt = 0;
-  self->state = BM_NEW;
-  self->struct_padding = 0;
-  self->next = NULL;
-
-  bitmap_base = (uintptr_t)self + sizeof(UnarySpan);
-  // Set all bitmap to 0
-  memset((void*)bitmap_base, 0, bitmap_cnt << 3);
-  // Mark the headroom bits
-  bmap = (uint64_t*)bitmap_base;
-  *bmap |= (1UL << headroom) - 1;
-
-  // Mark the padding bits
-  if (padding)
-    {
-      bmap = (uint64_t*)(bitmap_base + (bitmap_cnt - 1) * 8);
-      *bmap |=  ~((1UL << (64-padding))-1);
-    }
-}
-
-bool USpanMalloc(UnarySpan* self, void** addr)
-{
-  if (!atomic_check_in(&self->pcard))
-    return false;
-
-  BitMapState state;
-  a_uint64_t *bitmap_base, *bitmap;
-  uintptr_t base;
-  ptrdiff_t bitmap_offset, item_offset;
-  uint64_t old_bmap, new_bmap;
-  uint16_t obj_size, obj_cnt, obj_capacity;
-  UnarySpan** uspan_queue;
-  a_int16_t* uspan_queue_pcard;
-
-  state = atomic_load_explicit(&self->state,
-                               memory_order_relaxed);
-
-  // TODO: document the state machine.
-  // When state == BM_NEW, obj_cnt can change from 0 to 1;
-  // but when state is BM_NORMAL, obj_cnt == 0 is same as BM_TOMBSTONE
-  if (state == BM_NORMAL &&
-      atomic_load_explicit(&self->obj_cnt,
-                           memory_order_relaxed) == 0)
-    {
-      atomic_check_out(&self->pcard);
-      return false;
-    }
-
-  if (state == BM_NEW)
-    atomic_store_explicit(&self->state, BM_NORMAL);
-
-  obj_cnt = atomic_fetch_add_explicit(&self->obj_cnt, 1,
-                                      memory_order_acquire);
-  obj_capacity = ((uint16_t)self->bitmap_cnt)*64 -
-    self->bitmap_headroom - self->bitmap_padding;
-
-  //
-  // Say the capacity is N, and the object count is n.  When n = N, we
-  // still insert the object into uspan, and since the insertion
-  // succeeded, we return true.  When n > N (n > N+1 when accessed by
-  // more than one thread), this uspan need to be removed from the
-  // queue and allocates a new uspan to hold the object. This uspan
-  // wasn't able to hold a new object, thus return false.
-  //
-  // Note that obj_cnt is (self->obj_cnt - 1). The logic below is
-  // equivalent to
-  // if (self->obj_cnt > obj_capacity) {...}
-  ///
-  if (obj_cnt >= obj_capacity)
-    {
-      goto uspan_full;
-    }
-
-  base = (uintptr_t)self;
-  obj_size = self->magic.typed_uspan.obj_size;
-  bitmap_base = (a_uint64_t *)(base + sizeof(UnarySpan));
-  bitmap_offset = (ptrdiff_t)self->bitmap_hint;
-  bitmap = bitmap_base + bitmap_offset;
-
-  while (1)
-    {
-      old_bmap = atomic_load_explicit(bitmap, memory_order_relaxed);
-      do
-        {
-          if (old_bmap == ~0UL) goto next_bmap;
-          new_bmap = (old_bmap + 1);
-          item_offset = __builtin_ctzl(new_bmap);
-          new_bmap |= old_bmap;
-        }
-      while(!atomic_compare_exchange_strong_explicit
-            (bitmap, &old_bmap, new_bmap,
-             memory_order_relaxed,
-             memory_order_relaxed));
-      *addr = (void*)(base + (bitmap_offset * 64 + item_offset) * obj_size);
-      self->bitmap_hint = (uint8_t)bitmap_offset;
-      atomic_check_out(&self->pcard);
-      return true;
-
-    next_bmap:
-      bitmap_offset++;
-      bitmap_offset %= self->bitmap_cnt;
-      bitmap = bitmap_base + bitmap_offset;
-    }
-
- uspan_full:
-  // If we couldn't book, there were some other thread booked the critical
-  // section.  Retry and start over again.
-  if (!atomic_book_critical(&self->pcard))
-    {
-      atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
-      atomic_check_out(&self->pcard);
-      return false;
-    }
-  atomic_enter_critical(&self->pcard);
-
-  atomic_store_explicit(&self->state, BM_FULL, memory_order_relaxed);
-  atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
-
-  select_uspan_queue(self->magic.uspan_generic.pattern,
-                     get_opheap(self), &uspan_queue, &uspan_queue_pcard);
-  if (!atomic_book_critical(uspan_queue_pcard))
-    {
-      atomic_exit_critical(&self->pcard);
-      atomic_check_out(&self->pcard);
-      return false;
-    }
-  atomic_enter_critical(uspan_queue_pcard);
-  dequeue_uspan(uspan_queue, self);
-  atomic_exit_critical(uspan_queue_pcard);
-  atomic_exit_critical(&self->pcard);
-  atomic_check_out(&self->pcard);
-  return false;
-}
-
-BitMapState USpanFree(UnarySpan* self, void* addr)
-{
-  uintptr_t base, iaddr, bound;
-  int obj_size, addr_idx, bmap_idx, item_idx;
-  a_uint64_t* bitmap;
-  OPHeap* heap;
-  uint16_t obj_cnt;
-  BitMapState state;
-  UnarySpan** uspan_queue;
-  a_int16_t* uspan_queue_pcard;
-
-  // Locate the bitmap and item index, and validate its correctness
-  base = (uintptr_t)self;
-  iaddr = (uintptr_t)addr;
-  obj_size = self->magic.uspan_generic->obj_size;
-  bound = base + obj_size * (64 * self->bitmap_cnt - self->bitmap_padding);
-  bitmap = (a_uint64_t *)(base + sizeof(UnarySpan));
-  addr_idx = (iaddr - base) / obj_size;
-  bmap_idx = addr_idx / 64;
-  item_idx = addr_idx - bmap_idx * 64;
-  heap = get_opheap(self);
-
-  op_assert(iaddr > base && iaddr < bound,
-            "Free address %p should within span from %p and %p",
-            addr, (void*)base, (void*)bound);
-
-  op_assert(addr_idx * obj_size + base == iaddr,
-            "Free address %p should align with obj_size %d\n",
-            addr, obj_size);
-
-  if (bmap_idx == 0)
-    {
-      op_assert(item_idx >= self->bitmap_headroom,
-                "Free address %p cannot overlap span %p headroom\n",
-                addr, self);
-    }
-
-  atomic_fetch_and_explicit(&bitmap[bmap_idx],
-                            ~(1UL << item_idx),
-                            memory_order_relaxed);
-  atomic_fetch_sub_explicit(&self->obj_cnt, 1, memory_order_relaxed);
-
-  while (atomic_load_explicit(&self->state, memory_order_acquire) == BM_FULL)
-    {
-      if (!atomic_check_in_book(&self->pcard))
-        continue;
-      atomic_enter_critical(&self->pcard);
-      select_uspan_queue(self->magic.uspan_generic.pattern,
-                         heap, &uspan_queue, &uspan_queue_pcard);
-      if (!atomic_check_in_book(uspan_queue_pcard))
-        {
-          atomic_exit_critical(&self->pcard);
-          atomic_check_out(&self->pcard);
-          continue;
-        }
-      atomic_enter_critical(uspan_queue_pcard);
-      enqueue_uspan(uspan_queue, self);
-      atomic_store_explicit(&self->state, BM_NORMAL, memory_order_relaxed);
-      atomic_exit_critical(&self->pcard);
-      atomic_check_out(uspan_queue_pcard);
-      atomic_check_out(&self->pcard);
-      return BM_NORMAL;
-    }
-
-
-  if (atomic_load_explicit(&self->obj_cnt) != 0)
-    return BM_NORMAL;
-  if (!atomic_check_in_book(&self->pcard))
-    return BM_NORMAL;
-  atomic_enter_critical(&self->pcard);
-  if (atomic_load_explicit(&self->obj_cnt) != 0)
-    {
-      atomic_exit_critical(&self->pcard);
-      atomic_check_out(&self->pcard);
-      return BM_NORMAL;
-    }
-  select_uspan_queue(self->magic.uspan_generic.pattern,
-                     heap, &uspan_queue, &uspan_queue_pcard);
-  while (1)
-    {
-      if (!atomic_check_in(uspan_queue_pcard))
-        continue;
-      if (atomic_book_critical(uspan_queue_pcard))
-        break;
-      atomic_check_out(uspan_queue_pcard);
-    }
-  atomic_enter_critical(uspan_queue_pcard);
-  dequeue_uspan(uspan_queue, self);
-  atomic_exit_critical(uspan_queue_pcard);
-  atomic_check_out(uspan_queue_pcard);
-  // TODO why not delete the span here?
-  atomic_exit_critical(&self->pcard);
-  atomic_check_out(&self->pcard);
-  return BM_TOMBSTONE;
-}
-
-static inline void select_uspan_queue(uint8_t pattern,
-                                      OPHeap* heap,
-                                      UnarySpan*** uspan_queue,
-                                      a_int16_t** uspan_queue_pcard)
-{
-  switch (pattern)
-    {
-    case TYPED_USPAN_PATTERN:
-      {
-        TypeAlias* ta = &heap->type_alias[self->magic.typed_uspan.type_alias];
-        int tid = self->magic.typed_uspan.thread_id;
-        &uspan_queue_pcard = &ta->uspan_pcard[tid];
-        &uspan_queue = &ta->uspan[tid];
-        break;
-      }
-    case RAW_USPAN_PATTERN:
-      {
-        uint16_t size_class = self->magic.raw_uspan.obj_size / 16;
-        int tid = self->magic.raw_uspan.thread_id;
-        &uspan_queue_pcard = &heap->raw_type.uspan_pcard[size_class][tid];
-        &uspan_queue = &heap->raw_type.uspan[size_class][tid];
-        break;
-      }
-    case LARGE_USPAN_PATTERN:
-      {
-        uint16_t obj_size = self->magic.large_uspan.obj_size;
-        int uid =
-          obj_size == 512 ? 0 :
-          obj_size == 1024 ? 1 : 2;
-        &uspan_queue_pcard = &heap->raw_type.large_uspan_pcard[uid];
-        &uspan_queue = &heap->raw_type.large_uspan[uid];
-        break;
-      }
-    }
-}
-
-*/
 
 /* op_pspan.c ends here */

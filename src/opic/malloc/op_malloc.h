@@ -51,7 +51,16 @@
 
 typedef struct OPHeap OPHeap;
 
-void OPDealloc(void* addr);
+void*
+OPMallocRaw(OPHeap* heap, size_t size)
+  __attribute__ ((malloc));
+
+void*
+OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
+  __attribute__ ((malloc));
+
+void
+OPDealloc(void* addr);
 
 #endif /* OP_MALLOC_H */
 
