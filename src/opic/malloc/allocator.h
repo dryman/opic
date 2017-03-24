@@ -52,6 +52,18 @@
 
 OP_BEGIN_DECLS
 
+void
+DispatchUSpanForAddr(OPHeapCtx* ctx, Magic magic, void** addr)
+  __attribute__ ((visibility ("internal")));
+
+void
+DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
+  __attribute__ ((visibility ("internal")));
+
+QueueOperation
+USpanObtainAddr(OPHeapCtx* ctx, void** addr)
+  __attribute__ ((visibility ("internal")));
+
 bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
   __attribute__ ((visibility ("internal")));
 

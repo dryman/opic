@@ -64,29 +64,81 @@ OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 static bool
 OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
 
-// dispatch hpage for uspan, or other stuff..?
-bool
-DispatchHPageForUSpan(OPHeapCtx* ctx)
+void
+DispatchUSpanForAddr(OPHeapCtx* ctx, Magic magic, void** addr)
 {
-  /*
-    goal: dispatch an initialized hpage to callee
-    if no hpage in queue, create a new one and init
-    if no hpage to create, return false
+  unsigned int spage_cnt;
+  Magic hpage_magic;
 
-    problem: fail conditions..
-   */
-
-  /*
-  while (!atomic_check_in(&ctx->hqueue.pcard))
+ retry:
+  while (!atomic_check_in(&ctx->uqueue->pcard))
     ;
-  HugePage** it = &ctx->hqueue->hpage;
-  if (*it)
+
+  UnarySpan** it = &ctx->uqueue->uspan;
+  while (*it)
     {
-      // HPageObtainUSpan(ctx, other op)
+      switch(USpanObtainAddr(ctx, addr))
+        {
+        case QOP_SUCCESS:
+          atomic_check_out(&ctx->uqueue->pcard);
+          return;
+        case QOP_RESTART:
+          atomic_check_out(&ctx->uqueue->pcard);
+          goto retry;
+        case QOP_CONTINUE:
+          *it = (*it)->next;
+        }
     }
-  else
-  */
-  return true;
+  if (!atomic_book_critical(&ctx->uqueue->pcard))
+    {
+      atomic_check_out(&ctx->uqueue->pcard);
+      goto retry;
+    }
+  atomic_enter_critical(&ctx->uqueue->pcard);
+  // base on magic.uspan_generic.obj_size to decide how many spage do we
+  // want to allocate for each kind of uspan..
+  hpage_magic = magic; // FIXME
+  spage_cnt = 1; // FIXME
+  DispatchHPageForSSpan(ctx, hpage_magic, spage_cnt);
+  USpanInit(ctx, magic, spage_cnt);
+  EnqueueUSpan(ctx->uqueue, ctx->sspan.uspan);
+  atomic_exit_check_out(&ctx->uqueue->pcard);
+  goto retry;
+}
+
+void
+DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
+{
+ retry:
+  while (!atomic_check_in(&ctx->hqueue->pcard))
+    ;
+
+  HugePage** it = &ctx->hqueue->hpage;
+  while (*it)
+    {
+      switch(HPageObtainUSpan(ctx, spage_cnt))
+        {
+        case QOP_SUCCESS:
+          atomic_check_out(&ctx->hqueue->pcard);
+          return;
+        case QOP_RESTART:
+          atomic_check_out(&ctx->hqueue->pcard);
+          goto retry;
+        case QOP_CONTINUE:
+          *it = (*it)->next;
+        }
+    }
+  if (!atomic_book_critical(&ctx->hqueue->pcard))
+    {
+      atomic_check_out(&ctx->hqueue->pcard);
+      goto retry;
+    }
+  atomic_enter_critical(&ctx->hqueue->pcard);
+  OPHeapObtainHPage(ObtainOPHeap(ctx->hqueue), ctx);
+  HPageInit(ctx, magic);
+  EnqueueHPage(ctx->hqueue, ctx->hspan.hpage);
+  atomic_exit_check_out(&ctx->hqueue->pcard);
+  goto retry;
 }
 
 QueueOperation
@@ -262,7 +314,36 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
       for (int idx = sspan_bmidx + 1; idx < bmidx; idx++)
         occupy_bmap[idx] = ~0UL;
     }
-  // TODO dequeue if full logic
+
+  for (int idx = 0; idx < 8; idx++)
+    {
+      if (occupy_bmap[idx] != ~0UL)
+        {
+          atomic_exit_check_out(&hpage->pcard);
+          return QOP_SUCCESS;
+        }
+    }
+  while (1)
+    {
+      if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+          == SPAN_DEQUEUED)
+        {
+          atomic_exit_check_out(&hpage->pcard);
+          return QOP_SUCCESS;
+        }
+      if (atomic_book_critical(&ctx->hqueue->pcard))
+        break;
+    }
+  atomic_enter_critical(&ctx->hqueue->pcard);
+  if (atomic_load_explicit(&hpage->state, memory_order_acquire)
+      == SPAN_DEQUEUED)
+    {
+      atomic_exit_critical(&ctx->hqueue->pcard);
+      atomic_exit_check_out(&hpage->pcard);
+      return QOP_SUCCESS;
+    }
+  DequeueHPage(ctx->hqueue, hpage);
+  atomic_exit_critical(&ctx->hqueue->pcard);
   atomic_exit_check_out(&hpage->pcard);
   return QOP_SUCCESS;
 }
