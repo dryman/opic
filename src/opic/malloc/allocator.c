@@ -54,6 +54,8 @@
 #include "init_helper.h"
 #include "lookup_helper.h"
 
+#define DISPATCH_ATTEMPT 1024
+
 static __thread int thread_id = -1;
 static a_uint32_t round_robin = 0;
 
@@ -97,8 +99,10 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
       magic.raw_uspan.obj_size = size_class * 16;
       magic.raw_uspan.thread_id = hint;
       ctx.uqueue = &heap->raw_type.uspan_queue[size_class][hint];
-      DispatchUSpanForAddr(&ctx, magic, &addr);
-      return addr;
+      if (DispatchUSpanForAddr(&ctx, magic, &addr))
+        return addr;
+      else
+        return NULL;
     }
   else if (size <= 2048)
     {
@@ -118,14 +122,17 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
           ctx.uqueue = &heap->raw_type.large_uspan_queue[2];
           magic.large_uspan.obj_size = 2048;
         }
-      DispatchUSpanForAddr(&ctx, magic, &addr);
-      return addr;
+      if (DispatchUSpanForAddr(&ctx, magic, &addr))
+        return addr;
+      else
+        return NULL;
     }
   else if (size <= HPAGE_SIZE - SPAGE_SIZE)
     {
       page_cnt = round_up_div(size + sizeof(Magic), SPAGE_SIZE);
       magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
-      DispatchHPageForSSpan(&ctx, magic, page_cnt, true);
+      if (!DispatchHPageForSSpan(&ctx, magic, page_cnt, true))
+        return NULL;
       ctx.sspan.magic->int_value = 0;
       ctx.sspan.magic->small_blob.pattern = SMALL_BLOB_PATTERN;
       ctx.sspan.magic->small_blob.pages = page_cnt;
@@ -135,7 +142,8 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
   else
     {
       page_cnt = round_up_div(size + sizeof(Magic), HPAGE_SIZE);
-      OPHeapObtainHBlob(heap, &ctx, page_cnt);
+      if (!OPHeapObtainHBlob(heap, &ctx, page_cnt))
+        return NULL;
       ctx.hspan.magic->int_value = 0;
       ctx.hspan.magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
       ctx.hspan.magic->huge_blob.huge_pages = page_cnt;
@@ -144,13 +152,17 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
     }
 }
 
-void
+bool
 DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
 {
   unsigned int spage_cnt;
   Magic hpage_magic = {};
+  int attempt;
+  attempt = 0;
 
  retry:
+  if (attempt++ > DISPATCH_ATTEMPT)
+    return false;
   while (!atomic_check_in(&ctx->uqueue->pcard))
     ;
 
@@ -161,7 +173,7 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
         {
         case QOP_SUCCESS:
           atomic_check_out(&ctx->uqueue->pcard);
-          return;
+          return true;
         case QOP_RESTART:
           atomic_check_out(&ctx->uqueue->pcard);
           goto retry;
@@ -189,21 +201,36 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
     default:
       op_assert(false, "Unknown uspan pattern %d", uspan_magic.generic.pattern);
     }
-  // base on magic.uspan_generic.obj_size to decide how many spage do we
-  // want to allocate for each kind of uspan..
-  spage_cnt = 1; // FIXME
-  DispatchHPageForSSpan(ctx, hpage_magic, spage_cnt, false);
+  if (uspan_magic.uspan_generic.obj_size <= 32)
+    spage_cnt = 1;
+  else if (uspan_magic.uspan_generic.obj_size <= 64)
+    spage_cnt = 8;
+  else if (uspan_magic.uspan_generic.obj_size <= 256)
+    spage_cnt = 16;
+  else if (uspan_magic.uspan_generic.obj_size < 1024)
+    spage_cnt = 32;
+  else
+    spage_cnt = 128;
+  if (!DispatchHPageForSSpan(ctx, hpage_magic, spage_cnt, false))
+    {
+      atomic_exit_check_out(&ctx->uqueue->pcard);
+      return false;
+    }
   USpanInit(ctx, uspan_magic, spage_cnt);
   EnqueueUSpan(ctx->uqueue, ctx->sspan.uspan);
   atomic_exit_check_out(&ctx->uqueue->pcard);
   goto retry;
 }
 
-void
+bool
 DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
                       bool use_full_span)
 {
+  int attempt;
+  attempt = 0;
  retry:
+  if (attempt++ > DISPATCH_ATTEMPT)
+    return false;
   while (!atomic_check_in(&ctx->hqueue->pcard))
     ;
 
@@ -214,7 +241,7 @@ DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
         {
         case QOP_SUCCESS:
           atomic_check_out(&ctx->hqueue->pcard);
-          return;
+          return true;
         case QOP_RESTART:
           atomic_check_out(&ctx->hqueue->pcard);
           goto retry;
@@ -228,7 +255,11 @@ DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
       goto retry;
     }
   atomic_enter_critical(&ctx->hqueue->pcard);
-  OPHeapObtainHPage(ObtainOPHeap(ctx->hqueue), ctx);
+  if (!OPHeapObtainHPage(ObtainOPHeap(ctx->hqueue), ctx))
+    {
+      atomic_exit_check_out(&ctx->hqueue->pcard);
+      return false;
+    }
   HPageInit(ctx, magic);
   EnqueueHPage(ctx->hqueue, ctx->hspan.hpage);
   atomic_exit_check_out(&ctx->hqueue->pcard);

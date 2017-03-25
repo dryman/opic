@@ -52,11 +52,11 @@
 
 OP_BEGIN_DECLS
 
-void
+bool
 DispatchUSpanForAddr(OPHeapCtx* ctx, Magic magic, void** addr)
   __attribute__ ((visibility ("internal")));
 
-void
+bool
 DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
                       bool use_full_span)
   __attribute__ ((visibility ("internal")));
