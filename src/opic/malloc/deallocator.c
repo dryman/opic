@@ -178,8 +178,6 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
           return;
         }
       EnqueueUSpan(uqueue, uspan);
-      atomic_store_explicit(&uspan->state, SPAN_ENQUEUED,
-                            memory_order_release);
       atomic_exit_check_out(&uqueue->pcard);
       atomic_check_out(&uspan->pcard);
       return;

@@ -83,7 +83,7 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
   OPHeapCtx ctx;
   void* addr;
   Magic magic;
-  unsigned int size_class;
+  unsigned int size_class, page_cnt;
 
   op_assert(size > 0, "malloc size must greater than 0");
 
@@ -121,19 +121,27 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
       DispatchUSpanForAddr(&ctx, magic, &addr);
       return addr;
     }
-  else if (size <= HPAGE_SIZE / 2)
+  else if (size <= HPAGE_SIZE - SPAGE_SIZE)
     {
-      // FIXME
-      int cnt = round_up_div(size + sizeof(UnarySpan), SPAGE_SIZE);
-      magic.small_blob.pattern = SMALL_BLOB_PATTERN;
-      magic.small_blob.pages = cnt;
-      // FIXME but I also need the magic for huge page..
-      DispatchHPageForSSpan(&ctx, magic, cnt, true);
+      page_cnt = round_up_div(size + sizeof(Magic), SPAGE_SIZE);
+      magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
+      DispatchHPageForSSpan(&ctx, magic, page_cnt, true);
+      ctx.sspan.magic->int_value = 0;
+      ctx.sspan.magic->small_blob.pattern = SMALL_BLOB_PATTERN;
+      ctx.sspan.magic->small_blob.pages = page_cnt;
+      addr = (void*)(ctx.sspan.uintptr + sizeof(Magic));
+      return addr;
     }
   else
     {
+      page_cnt = round_up_div(size + sizeof(Magic), HPAGE_SIZE);
+      OPHeapObtainHBlob(heap, &ctx, page_cnt);
+      ctx.hspan.magic->int_value = 0;
+      ctx.hspan.magic->huge_blob.pattern = HUGE_BLOB_PATTERN;
+      ctx.hspan.magic->huge_blob.huge_pages = page_cnt;
+      addr = (void*)(ctx.hspan.uintptr + sizeof(Magic));
+      return addr;
     }
-  return NULL;
 }
 
 void
@@ -300,8 +308,6 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
     }
   atomic_enter_critical(&ctx->uqueue->pcard);
   DequeueUSpan(ctx->uqueue, uspan);
-  atomic_store_explicit(&uspan->state, SPAN_DEQUEUED,
-                        memory_order_release);
   atomic_exit_critical(&ctx->uqueue->pcard);
   atomic_check_out(&uspan->pcard);
   return QOP_RESTART;
