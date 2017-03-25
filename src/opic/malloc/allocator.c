@@ -289,7 +289,8 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
           memory_order_acq_rel,
           memory_order_relaxed));
 
-  obj_size = uspan->magic.typed_uspan.obj_size;
+  obj_size = uspan->magic.typed_uspan.obj_size < 16 ?
+    16 : uspan->magic.typed_uspan.obj_size;
   bmap = (a_uint64_t *)((uintptr_t)uspan + sizeof(UnarySpan));
   bmidx = uspan->bitmap_hint;
 
