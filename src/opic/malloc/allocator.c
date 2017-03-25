@@ -502,6 +502,8 @@ HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
               atomic_check_out(&hpage->pcard);
               ctx->sspan.uintptr = hpage_base +
                 (64 * sspan_bmidx + sspan_bmbit) * SPAGE_SIZE;
+              if (sspan_bmidx == 0 && sspan_bmbit == 0)
+                ctx->sspan.uintptr += sizeof(HugePage);
               return QOP_SUCCESS;
             }
         }

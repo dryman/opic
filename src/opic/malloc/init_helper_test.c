@@ -79,17 +79,17 @@ test_HPageInit(void** context)
 
   assert_int_equal(magic.int_value, hpage->magic.int_value);
   assert_int_equal(0, hpage->pcard);
-  // TODO: skip state test for now
 
   /*
-   * sizeof(OPHeap) = 391872
+   * sizeof(OPHeap) = 391936
    * sizeof(HugePage) = 144
-   * (391872 + 144) = 4096 * 95 + 2896
+   * (391936 + 144) = 4096 * 95 + 2960
    * => 96 bit spaces to occupy
    * 96 = 64 + 32
    */
-  occupy_bmap[0] = ~0UL;
-  occupy_bmap[1] = (1UL << 32) - 1;
+  //                 7654321076543210
+  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFFUL;
+  occupy_bmap[1] = 0x00000000FFFFFFFFUL;
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, 8 * sizeof(uint64_t));
   assert_memory_equal(header_bmap, hpage->header_bmap, 8 * sizeof(uint64_t));
 
