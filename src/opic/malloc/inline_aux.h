@@ -51,6 +51,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "opic/common/op_atomic.h"
 #include "opic/common/op_macros.h"
 #include "magic.h"
 #include "objdef.h"
@@ -73,6 +74,8 @@ EnqueueUSpan(UnarySpanQueue* uspan_queue, UnarySpan* uspan)
     uspan->next = *it;
 
   *it = uspan;
+
+  atomic_store_explicit(&uspan->state, SPAN_ENQUEUED, memory_order_release);
 }
 
 static inline void
@@ -84,6 +87,8 @@ DequeueUSpan(UnarySpanQueue* uspan_queue, UnarySpan* uspan)
     it = &(*it)->next;
 
   *it = (*it)->next;
+
+  atomic_store_explicit(&uspan->state, SPAN_DEQUEUED, memory_order_release);
 }
 
 static inline void
@@ -98,6 +103,8 @@ EnqueueHPage(HugePageQueue* hpage_queue, HugePage* hpage)
     hpage->next = *it;
 
   *it = hpage;
+
+  atomic_store_explicit(&hpage->state, SPAN_ENQUEUED, memory_order_release);
 }
 
 static inline void
@@ -109,6 +116,8 @@ DequeueHPage(HugePageQueue* hpage_queue, HugePage* hpage)
     it = &(*it)->next;
 
   *it = (*it)->next;
+
+  atomic_store_explicit(&hpage->state, SPAN_DEQUEUED, memory_order_release);
 }
 
 OP_END_DECLS

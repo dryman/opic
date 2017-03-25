@@ -88,7 +88,7 @@ enum QueueOperation
   {
     QOP_SUCCESS = 0,
     QOP_CONTINUE = 1,
-    QOP_RESTART = 3,
+    QOP_RESTART = 2,
   };
 
 struct UnarySpan
@@ -170,6 +170,7 @@ union HugeSpanPtr
 
 /************** OPHeap Layout ******************/
 
+// NOTE: bookmark may be a better name for XXQueue
 struct RawType
 {
   // Thread local physical spans. In total of 16 size classes to serve
@@ -200,6 +201,7 @@ struct OPHeap
   uint32_t version;
   a_int16_t pcard;
   uint16_t hpage_num;
+  void* root_ptrs[8];
   a_uint64_t occupy_bmap[HPAGE_BMAP_NUM];
   a_uint64_t header_bmap[HPAGE_BMAP_NUM];
   RawType raw_type;
@@ -207,7 +209,7 @@ struct OPHeap
   HugePage hpage;
 };
 
-static_assert(sizeof(OPHeap) == 391872, "sizeof(OPHeap)");
+static_assert(sizeof(OPHeap) == 391936, "sizeof(OPHeap)");
 
 struct OPHeapCtx
 {
