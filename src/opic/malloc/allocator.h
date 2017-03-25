@@ -69,10 +69,22 @@ QueueOperation
 HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
   __attribute__ ((visibility ("internal")));
 
+QueueOperation
+HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
+  __attribute__ ((visibility ("internal")));
+
 bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
   __attribute__ ((visibility ("internal")));
 
 bool OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
+  __attribute__ ((visibility ("internal")));
+
+bool
+OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
+  __attribute__ ((visibility ("internal")));
+
+bool
+OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   __attribute__ ((visibility ("internal")));
 
 OP_END_DECLS

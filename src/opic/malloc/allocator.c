@@ -56,18 +56,10 @@
 
 #define DISPATCH_ATTEMPT 1024
 
-static __thread int thread_id = -1;
-static a_uint32_t round_robin = 0;
-
 OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
-static QueueOperation
-HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span);
-
-static bool
-OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
-static bool
-OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
+static __thread int thread_id = -1;
+static a_uint32_t round_robin = 0;
 
 void*
 OPMallocRaw(OPHeap* heap, size_t size)
@@ -476,8 +468,6 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
 QueueOperation
 HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
 {
-  // what is our limitation for uspan size?
-  // when do we move hpage out of queue?
   HugePage* hpage;
   uintptr_t hpage_base;
   int sspan_bmidx, sspan_bmbit;
@@ -628,7 +618,7 @@ OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   return result;
 }
 
-static bool
+bool
 OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
 {
   int hblob_bmidx, hblob_bmbit;
@@ -685,7 +675,7 @@ OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   return result;
 }
 
-static bool
+bool
 OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
 {
   int bmidx_head, bmidx_iter, _hpage_cnt, bmbit_head;
