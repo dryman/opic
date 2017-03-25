@@ -359,11 +359,8 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
 
   while (1)
     {
-      if (sspan_bmidx > 8)
-        {
-          atomic_exit_check_out(&hpage->pcard);
-          return QOP_CONTINUE;
-        }
+      if (sspan_bmidx >= 8)
+        goto check_full;
       if (occupy_bmap[sspan_bmidx] & (1UL << 63))
         {
           sspan_bmidx++;
@@ -383,11 +380,8 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
 
       while (1)
         {
-          if (bmidx > 8)
-            {
-              atomic_exit_check_out(&hpage->pcard);
-              return QOP_CONTINUE;
-            }
+          if (bmidx >= 8)
+            goto check_full;
           if (_spage_cnt > 64)
             {
               if (occupy_bmap[bmidx] != 0UL)
@@ -414,9 +408,12 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
           break;
         }
     }
+
  found:
   ctx->sspan.uintptr = hpage_base +
     (64 * sspan_bmidx + sspan_bmbit) * SPAGE_SIZE;
+  if (sspan_bmidx == 0 && sspan_bmbit == 0)
+    ctx->sspan.uintptr += sizeof(HugePage);
   hpage->header_bmap[sspan_bmidx] |= 1UL << sspan_bmbit;
   if (bmidx == sspan_bmidx)
     {
@@ -432,12 +429,16 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
         occupy_bmap[idx] = ~0UL;
     }
 
+  atomic_exit_check_out(&hpage->pcard);
+  return QOP_SUCCESS;
+
+ check_full:
   for (int idx = 0; idx < 8; idx++)
     {
       if (occupy_bmap[idx] != ~0UL)
         {
           atomic_exit_check_out(&hpage->pcard);
-          return QOP_SUCCESS;
+          return QOP_CONTINUE;
         }
     }
   while (1)
@@ -446,7 +447,7 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
           == SPAN_DEQUEUED)
         {
           atomic_exit_check_out(&hpage->pcard);
-          return QOP_SUCCESS;
+          return QOP_RESTART;
         }
       if (atomic_book_critical(&ctx->hqueue->pcard))
         break;
@@ -457,12 +458,12 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
     {
       atomic_exit_critical(&ctx->hqueue->pcard);
       atomic_exit_check_out(&hpage->pcard);
-      return QOP_SUCCESS;
+      return QOP_RESTART;
     }
   DequeueHPage(ctx->hqueue, hpage);
   atomic_exit_critical(&ctx->hqueue->pcard);
   atomic_exit_check_out(&hpage->pcard);
-  return QOP_SUCCESS;
+  return QOP_RESTART;
 }
 
 QueueOperation

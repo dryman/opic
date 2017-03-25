@@ -441,6 +441,102 @@ test_HPageObtainUSpan(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_HPageObtainSSpan(void** context)
+{
+  OPHeap* heap;
+  OPHeapCtx ctx;
+  HugePage* hpage;
+  uintptr_t heap_base, uspan_addr;
+  Magic magic = {};
+  uint64_t occupy_bmap[8] = {0};
+  uint64_t header_bmap[8] = {0};
+
+  assert_true(OPHeapNew(&heap));
+  heap_base = (uintptr_t)heap;
+
+  assert_true(OPHeapObtainHPage(heap, &ctx));
+  ctx.hqueue = &heap->raw_type.hpage_queue;
+  magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
+  HPageInit(&ctx, magic);
+  hpage = ctx.hspan.hpage;
+  EnqueueHPage(ctx.hqueue, hpage);
+  assert_ptr_equal(hpage, ctx.hqueue->hpage);
+  assert_int_equal(SPAN_ENQUEUED, hpage->state);
+
+  hpage->pcard = -1;
+  assert_int_equal(QOP_CONTINUE, HPageObtainSSpan(&ctx, 64, true));
+  hpage->pcard = 0;
+
+  atomic_check_in(&ctx.hqueue->pcard);
+  assert_int_equal(1, ctx.hqueue->pcard);
+
+  //                 7654321076543210
+  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFFUL;
+  occupy_bmap[1] = 0x00000000FFFFFFFFUL;
+  assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
+
+  //                 7654321076543210
+  occupy_bmap[1] = 0xFFFFFFFFFFFFFFFFUL;
+  header_bmap[1] = 0x0000000100000000UL;
+  occupy_bmap[2] = 0x00000000FFFFFFFFUL;
+  uspan_addr = heap_base + 96 * SPAGE_SIZE;
+  assert_int_equal(QOP_SUCCESS, HPageObtainSSpan(&ctx, 64, true));
+  assert_int_equal(uspan_addr, ctx.sspan.uintptr);
+  assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
+
+  //                 7654321076543210
+  header_bmap[2] = 0x0000000100000000UL;
+  memset(occupy_bmap, 0xFF, sizeof(occupy_bmap));
+  uspan_addr = heap_base + 160 * SPAGE_SIZE;
+  assert_int_equal(QOP_SUCCESS, HPageObtainSSpan(&ctx, 352, true));
+  assert_int_equal(uspan_addr, ctx.sspan.uintptr);
+  assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
+
+  assert_int_equal(QOP_RESTART, HPageObtainSSpan(&ctx, 64, true));
+  assert_ptr_equal(NULL, ctx.hqueue->hpage);
+  assert_int_equal(SPAN_DEQUEUED, hpage->state);
+
+  // Second HPage
+  assert_true(OPHeapObtainHPage(heap, &ctx));
+  HPageInit(&ctx, magic);
+  hpage = ctx.hspan.hpage;
+  EnqueueHPage(ctx.hqueue, hpage);
+  assert_ptr_equal(hpage, ctx.hqueue->hpage);
+  assert_int_equal(SPAN_ENQUEUED, hpage->state);
+  assert_int_equal(1, ctx.hqueue->pcard);
+
+  memset(occupy_bmap, 0, sizeof(occupy_bmap));
+  memset(header_bmap, 0, sizeof(header_bmap));
+  //                 7654321076543210
+  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFFUL;
+  occupy_bmap[1] = 0xFFFFFFFFFFFFFFFFUL;
+  header_bmap[0] = 1UL;
+  uspan_addr = heap_base + 512 * SPAGE_SIZE + sizeof(HugePage);
+  assert_int_equal(QOP_SUCCESS, HPageObtainSSpan(&ctx, 128, false));
+  assert_int_equal(uspan_addr, ctx.sspan.uintptr);
+  assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
+
+  hpage->occupy_bmap[0] = 0;
+  hpage->occupy_bmap[1] = 0;
+  hpage->header_bmap[0] = 0;
+  //                 7654321076543210
+  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFEUL;
+  occupy_bmap[1] = 0x0000000000000001UL;
+  header_bmap[0] = 2UL;
+  uspan_addr = heap_base + 513 * SPAGE_SIZE;
+  assert_int_equal(QOP_SUCCESS, HPageObtainSSpan(&ctx, 64, true));
+  assert_int_equal(uspan_addr, ctx.sspan.uintptr);
+  assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
+  assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
+
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -451,6 +547,7 @@ main (void)
       cmocka_unit_test(test_OPHeapObtainHBlob_Small),
       cmocka_unit_test(test_OPHeapObtainHBlob_Large),
       cmocka_unit_test(test_HPageObtainUSpan),
+      cmocka_unit_test(test_HPageObtainSSpan),
     };
 
   return cmocka_run_group_tests(allocator_tests, NULL, NULL);
