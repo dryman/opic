@@ -546,6 +546,7 @@ test_USpanObtainAddr(void** context)
   uintptr_t heap_base, u_addr;
   void* addr;
   Magic umagic = {};
+  int count;
 
   assert_true(OPHeapNew(&heap));
   heap_base = (uintptr_t)heap;
@@ -557,7 +558,7 @@ test_USpanObtainAddr(void** context)
    * 4 bitmaps takes 8 * 4 = 32 bytes
    * headroom size in bytes: sizeof(UnarySpan) + 32 = 24 + 32 = 56 bytes
    * headroom in object/bits: 56 = 16 * 3 + 8 => 4 bits
-   * padding: 0 bytes;
+   * padding: 0 bytes
    * number of objects: 256 - 4 = 252
    */
   umagic.raw_uspan.pattern = RAW_USPAN_PATTERN;
@@ -571,14 +572,15 @@ test_USpanObtainAddr(void** context)
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
   atomic_check_in(&ctx.uqueue->pcard);
-  for (u_addr = heap_base + HPAGE_SIZE +
+  for (count = 0, u_addr = heap_base + HPAGE_SIZE +
          SPAGE_SIZE + 16 * uspan->bitmap_headroom;
        u_addr < heap_base + HPAGE_SIZE + 2 * SPAGE_SIZE;
-       u_addr += 16)
+       u_addr += 16, count++)
     {
       assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr));
       assert_ptr_equal(u_addr, addr);
     }
+  assert_int_equal(252, count);
   assert_int_equal(QOP_RESTART, USpanObtainAddr(&ctx, &addr));
   assert_int_equal(SPAN_DEQUEUED, uspan->state);
   assert_ptr_equal(NULL, ctx.uqueue->uspan);
@@ -591,7 +593,8 @@ test_USpanObtainAddr(void** context)
    * headroom size in bytes: sizeof(HugePage) + sizeof(UnarySpan) + 32
    *   = 144 + 24 + 32 = 200 bytes
    * headroom in object/bits: 200 = 16 * 12 + 8 => 13 bits
-   * padding: 0 bytes;
+   * padding: 0 bytes
+   * number of objects: 256 - 13 = 243
    */
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
   USpanInit(&ctx, umagic, 1);
@@ -599,13 +602,14 @@ test_USpanObtainAddr(void** context)
   EnqueueUSpan(ctx.uqueue, uspan);
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
-  for (u_addr = heap_base + HPAGE_SIZE + 16 * uspan->bitmap_headroom;
+  for (count = 0, u_addr = heap_base + HPAGE_SIZE + 16 * uspan->bitmap_headroom;
        u_addr < heap_base + HPAGE_SIZE + SPAGE_SIZE;
-       u_addr += 16)
+       u_addr += 16, count++)
     {
       assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr));
       assert_ptr_equal(u_addr, addr);
     }
+  assert_int_equal(243, count);
   assert_int_equal(QOP_RESTART, USpanObtainAddr(&ctx, &addr));
   assert_int_equal(SPAN_DEQUEUED, uspan->state);
   assert_ptr_equal(NULL, ctx.uqueue->uspan);
@@ -619,6 +623,7 @@ test_USpanObtainAddr(void** context)
    * headroom in object/bits: 48 = 24 * 2 => 2 bits
    * padding size in bytes: 3 * 64 * 24 - 4096 = 512 bytes
    * padding in object/bits: 512 = 24 * 21 + 8 => 22 bits
+   * number of objects: 3 * 64 - 2 - 22 = 168
    */
   umagic.raw_uspan.obj_size = 24;
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + 2 * SPAGE_SIZE;
@@ -627,14 +632,15 @@ test_USpanObtainAddr(void** context)
   EnqueueUSpan(ctx.uqueue, uspan);
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
-  for (u_addr = heap_base + HPAGE_SIZE +
+  for (count = 0, u_addr = heap_base + HPAGE_SIZE +
          2 * SPAGE_SIZE + 24 * uspan->bitmap_headroom;
        u_addr < heap_base + HPAGE_SIZE + 2 * SPAGE_SIZE + 24 * 170;
-       u_addr += 24)
+       u_addr += 24, count++)
     {
       assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr));
       assert_ptr_equal(u_addr, addr);
     }
+  assert_int_equal(168, count);
   assert_int_equal(QOP_RESTART, USpanObtainAddr(&ctx, &addr));
   assert_int_equal(SPAN_DEQUEUED, uspan->state);
   assert_ptr_equal(NULL, ctx.uqueue->uspan);
@@ -647,6 +653,7 @@ test_USpanObtainAddr(void** context)
    * headroom size in bytes: sizeof(UnarySpan) + 8 * 4 = 24 + 32 = 56 bytes
    * headroom in object/bits: 56 = 16 * 3 + 8 => 4 bits
    * padding: 0 bytes
+   * number of objects: 256 - 4 = 252
    */
   umagic.typed_uspan.pattern = TYPED_USPAN_PATTERN;
   umagic.typed_uspan.obj_size = 2;
@@ -661,14 +668,94 @@ test_USpanObtainAddr(void** context)
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
   atomic_check_in(&ctx.uqueue->pcard);
-  for (u_addr = heap_base + HPAGE_SIZE +
+  for (count = 0, u_addr = heap_base + HPAGE_SIZE +
          3 * SPAGE_SIZE + 16 * uspan->bitmap_headroom;
        u_addr < heap_base + HPAGE_SIZE + 4 * SPAGE_SIZE;
-       u_addr += 16)
+       u_addr += 16, count++)
     {
       assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr));
       assert_ptr_equal(u_addr, addr);
     }
+  assert_int_equal(252, count);
+  assert_int_equal(QOP_RESTART, USpanObtainAddr(&ctx, &addr));
+  assert_int_equal(SPAN_DEQUEUED, uspan->state);
+  assert_ptr_equal(NULL, ctx.uqueue->uspan);
+
+  OPHeapDestroy(heap);
+}
+
+static void
+test_USpanObtainAddr_Large(void** context)
+{
+  OPHeap* heap;
+  OPHeapCtx ctx;
+  UnarySpan* uspan;
+  uintptr_t heap_base, u_addr;
+  void* addr;
+  Magic umagic = {};
+  int count;
+
+  assert_true(OPHeapNew(&heap));
+  heap_base = (uintptr_t)heap;
+
+  /*
+   * Object size: 1024 bytes
+   * 16 Page count => 65536 bytes
+   * Bitmap: 65536 / 1024 = 64 bits to map the space = 1 bitmaps
+   * headroom size in bytes: sizeof(UnarySpan) + 8 = 24 + 8 = 32 bytes
+   * headroom in object/bits: 1
+   * padding: 0 bytes
+   * number of objects: 64 - 1 = 63
+   */
+  umagic.large_uspan.pattern = LARGE_USPAN_PATTERN;
+  umagic.large_uspan.obj_size = 1024;
+  ctx.uqueue = &heap->raw_type.large_uspan_queue[0];
+  ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
+  USpanInit(&ctx, umagic, 16);
+  uspan = ctx.sspan.uspan;
+  EnqueueUSpan(ctx.uqueue, uspan);
+  assert_ptr_equal(uspan, ctx.uqueue->uspan);
+  assert_int_equal(SPAN_ENQUEUED, uspan->state);
+  atomic_check_in(&ctx.uqueue->pcard);
+  for (count = 0, u_addr = heap_base + HPAGE_SIZE +
+         SPAGE_SIZE + 1024 * uspan->bitmap_headroom;
+       u_addr < heap_base + HPAGE_SIZE + 17 * SPAGE_SIZE;
+       u_addr += 1024, count++)
+    {
+      assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr));
+      assert_ptr_equal(u_addr, addr);
+    }
+  assert_int_equal(63, count);
+  assert_int_equal(QOP_RESTART, USpanObtainAddr(&ctx, &addr));
+  assert_int_equal(SPAN_DEQUEUED, uspan->state);
+  assert_ptr_equal(NULL, ctx.uqueue->uspan);
+
+  /*
+   * Object size: 2048 bytes
+   * 32 Page count => 131072 bytes
+   * Bitmap: 131072 / 2048 = 64 bits to map the space = 1 bitmaps
+   * headroom size in bytes: sizeof(UnarySpan) + 8 = 24 + 8 = 32 bytes
+   * headroom in object/bits: 1
+   * padding: 0 bytes
+   * number of objects: 64 - 1 = 63
+   */
+  umagic.large_uspan.obj_size = 2048;
+  ctx.uqueue = &heap->raw_type.large_uspan_queue[0];
+  ctx.sspan.uintptr = heap_base + HPAGE_SIZE + 32 * SPAGE_SIZE;
+  USpanInit(&ctx, umagic, 32);
+  uspan = ctx.sspan.uspan;
+  EnqueueUSpan(ctx.uqueue, uspan);
+  assert_ptr_equal(uspan, ctx.uqueue->uspan);
+  assert_int_equal(SPAN_ENQUEUED, uspan->state);
+  for (count = 0, u_addr = heap_base + HPAGE_SIZE +
+         32 * SPAGE_SIZE + 2048 * uspan->bitmap_headroom;
+       u_addr < heap_base + HPAGE_SIZE + 64 * SPAGE_SIZE;
+       u_addr += 2048, count++)
+    {
+      assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr));
+      assert_ptr_equal(u_addr, addr);
+    }
+  assert_int_equal(63, count);
   assert_int_equal(QOP_RESTART, USpanObtainAddr(&ctx, &addr));
   assert_int_equal(SPAN_DEQUEUED, uspan->state);
   assert_ptr_equal(NULL, ctx.uqueue->uspan);
@@ -688,6 +775,7 @@ main (void)
       cmocka_unit_test(test_HPageObtainUSpan),
       cmocka_unit_test(test_HPageObtainSSpan),
       cmocka_unit_test(test_USpanObtainAddr),
+      cmocka_unit_test(test_USpanObtainAddr_Large),
     };
 
   return cmocka_run_group_tests(allocator_tests, NULL, NULL);

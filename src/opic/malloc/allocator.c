@@ -196,13 +196,13 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
   if (uspan_magic.uspan_generic.obj_size <= 32)
     spage_cnt = 1;
   else if (uspan_magic.uspan_generic.obj_size <= 64)
-    spage_cnt = 8;
+    spage_cnt = 4;
   else if (uspan_magic.uspan_generic.obj_size <= 256)
-    spage_cnt = 16;
+    spage_cnt = 8;
   else if (uspan_magic.uspan_generic.obj_size < 1024)
-    spage_cnt = 32;
+    spage_cnt = 16;
   else
-    spage_cnt = 128;
+    spage_cnt = 32;
   if (!DispatchHPageForSSpan(ctx, hpage_magic, spage_cnt, false))
     {
       atomic_exit_check_out(&ctx->uqueue->pcard);
