@@ -59,9 +59,8 @@ static a_uint32_t round_robin = 0;
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
-static
-QueueOperation
-HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt);
+static QueueOperation
+HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span);
 
 static bool
 OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt);
@@ -129,7 +128,7 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
       magic.small_blob.pattern = SMALL_BLOB_PATTERN;
       magic.small_blob.pages = cnt;
       // FIXME but I also need the magic for huge page..
-      DispatchHPageForSSpan(&ctx, magic, cnt);
+      DispatchHPageForSSpan(&ctx, magic, cnt, true);
     }
   else
     {
@@ -185,7 +184,7 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
   // base on magic.uspan_generic.obj_size to decide how many spage do we
   // want to allocate for each kind of uspan..
   spage_cnt = 1; // FIXME
-  DispatchHPageForSSpan(ctx, hpage_magic, spage_cnt);
+  DispatchHPageForSSpan(ctx, hpage_magic, spage_cnt, false);
   USpanInit(ctx, uspan_magic, spage_cnt);
   EnqueueUSpan(ctx->uqueue, ctx->sspan.uspan);
   atomic_exit_check_out(&ctx->uqueue->pcard);
@@ -193,7 +192,8 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
 }
 
 void
-DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
+DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
+                      bool use_full_span)
 {
  retry:
   while (!atomic_check_in(&ctx->hqueue->pcard))
@@ -202,7 +202,7 @@ DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
   HugePage** it = &ctx->hqueue->hpage;
   while (*it)
     {
-      switch(HPageObtainUSpan(ctx, spage_cnt))
+      switch(HPageObtainSSpan(ctx, spage_cnt, use_full_span))
         {
         case QOP_SUCCESS:
           atomic_check_out(&ctx->hqueue->pcard);
@@ -308,7 +308,7 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
 }
 
 QueueOperation
-HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
+HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
 {
   HugePage* hpage;
   uintptr_t hpage_base;
@@ -316,7 +316,7 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
   uint64_t* occupy_bmap;
 
   if (spage_cnt <= 32)
-    return HPageObtainUSpan(ctx, spage_cnt);
+    return HPageObtainUSpan(ctx, spage_cnt, use_full_span);
 
   hpage = ctx->hspan.hpage;
   hpage_base = ObtainHSpanBase(hpage);
@@ -344,6 +344,8 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
       bmidx = sspan_bmidx;
       sspan_bmbit = occupy_bmap[sspan_bmidx] == 0 ?
         0 : 64 - __builtin_clzl(occupy_bmap[sspan_bmidx]);
+      if (use_full_span && sspan_bmidx == 0 && sspan_bmbit == 0)
+        sspan_bmbit = 1;
       if (_spage_cnt <= 64 - sspan_bmbit)
         goto found;
 
@@ -435,7 +437,7 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
 }
 
 QueueOperation
-HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
+HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
 {
   // what is our limitation for uspan size?
   // when do we move hpage out of queue?
@@ -456,7 +458,9 @@ HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt)
       while (1)
         {
           if (old_bmap == ~0UL) break;
-          sspan_bmbit = fftstr0l(old_bmap, spage_cnt);
+          new_bmap = sspan_bmidx == 0 && use_full_span ?
+            old_bmap | 0x01 : old_bmap;
+          sspan_bmbit = fftstr0l(new_bmap, spage_cnt);
           if (sspan_bmbit == -1) break;
           new_bmap = old_bmap | ((1UL<< spage_cnt) - 1) << sspan_bmbit;
 

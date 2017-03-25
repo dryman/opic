@@ -57,11 +57,16 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic magic, void** addr)
   __attribute__ ((visibility ("internal")));
 
 void
-DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
+DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
+                      bool use_full_span)
   __attribute__ ((visibility ("internal")));
 
 QueueOperation
 USpanObtainAddr(OPHeapCtx* ctx, void** addr)
+  __attribute__ ((visibility ("internal")));
+
+QueueOperation
+HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
   __attribute__ ((visibility ("internal")));
 
 bool OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
