@@ -96,14 +96,10 @@ test_OPHeapReleaseHSpan_1Page(void** context)
   hspan[5].uintptr = heap_base + 65 * HPAGE_SIZE;
   hspan[6].uintptr = heap_base + 66 * HPAGE_SIZE;
   hspan[7].uintptr = heap_base + 67 * HPAGE_SIZE;
-  ctx.hspan = hspan[0];
-  HPageInit(&ctx, raw_hpage_magic);
-  ctx.hspan = hspan[1];
-  HPageInit(&ctx, raw_hpage_magic);
-  ctx.hspan = hspan[2];
-  HPageInit(&ctx, typed_hpage_magic);
-  ctx.hspan = hspan[3];
-  HPageInit(&ctx, typed_hpage_magic);
+  HPageInit(hspan[0].hpage, raw_hpage_magic);
+  HPageInit(hspan[1].hpage, raw_hpage_magic);
+  HPageInit(hspan[2].hpage, typed_hpage_magic);
+  HPageInit(hspan[3].hpage, typed_hpage_magic);
   *hspan[4].magic = hblob_magic;
   *hspan[5].magic = hblob_magic;
   *hspan[6].magic = hblob_magic;
@@ -349,8 +345,8 @@ test_HPageReleaseSSpan(void** context)
   hmagic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
   ctx.hqueue = &heap->raw_type.hpage_queue;
   ctx.hspan.uintptr = heap_base + HPAGE_SIZE;
-  HPageInit(&ctx, hmagic);
   hpage2 = ctx.hspan.hpage;
+  HPageInit(hpage2, hmagic);
   hqueue = ctx.hqueue;
 
   memset(hpage2->occupy_bmap, 0xFF, 8 * sizeof(uint64_t));
@@ -361,8 +357,8 @@ test_HPageReleaseSSpan(void** context)
   umagic.raw_uspan.obj_size = 24;
   umagic.raw_uspan.thread_id = 0;
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
-  USpanInit(&ctx, umagic, 1);
   uspan = ctx.sspan.uspan;
+  USpanInit(uspan, umagic, 1);
 
   // Enqueue hpage if it were dequeued
   memset(occupy_bmap, 0xFF, sizeof(occupy_bmap));
@@ -380,8 +376,8 @@ test_HPageReleaseSSpan(void** context)
 
   // Enqueue another hpage which precedes previous one.
   ctx.hspan.hpage = &heap->hpage;
-  HPageInit(&ctx, hmagic);
   hpage1 = ctx.hspan.hpage;
+  HPageInit(hpage1, hmagic);
   hpage1->state = SPAN_DEQUEUED;
   hpage1->occupy_bmap[2] = 0x01UL;
   hpage1->header_bmap[2] = 0x01UL;
@@ -406,8 +402,8 @@ test_HPageReleaseSSpan(void** context)
 
   // Setup third hpage and test releasing it
   ctx.hspan.uintptr = heap_base + 2 * HPAGE_SIZE;
-  HPageInit(&ctx, hmagic);
   hpage3 = ctx.hspan.hpage;
+  HPageInit(hpage3, hmagic);
   EnqueueHPage(ctx.hqueue, hpage3);
   assert_ptr_equal(hpage1, hqueue->hpage);
   assert_ptr_equal(hpage2, hqueue->hpage->next);
@@ -415,8 +411,8 @@ test_HPageReleaseSSpan(void** context)
   umagic.large_uspan.pattern = LARGE_USPAN_PATTERN;
   umagic.large_uspan.obj_size = 2048;
   ctx.sspan.uintptr = heap_base + 2 * HPAGE_SIZE + sizeof(HugePage);
-  USpanInit(&ctx, umagic, 128);
   uspan = ctx.sspan.uspan;
+  USpanInit(uspan, umagic, 128);
   hpage3->occupy_bmap[0] = ~0UL;
   hpage3->occupy_bmap[1] = ~0UL;
   hpage3->header_bmap[0] = 1UL;
@@ -436,13 +432,38 @@ test_HPageReleaseSSpan(void** context)
   umagic.typed_uspan.obj_size = 2;
   umagic.typed_uspan.thread_id = 0;
   ctx.sspan.uintptr = heap_base + 128 * SPAGE_SIZE;
-  USpanInit(&ctx, umagic, 1);
   uspan = ctx.sspan.uspan;
+  USpanInit(uspan, umagic, 1);
   HPageReleaseSSpan(hpage1, uspan);
   assert_int_equal(0x02UL, heap->occupy_bmap[0]);
   assert_int_equal(0x02UL, heap->header_bmap[0]);
 
   OPHeapDestroy(heap);
+}
+
+static void
+test_USpanReleaseAddr(void** context)
+{
+  OPHeap* heap;
+  SmallSpanPtr sspan1, sspan2, sspan3;
+  UnarySpanQueue* uqueue;
+  HugePage *hpage;
+  uintptr_t heap_base;
+  OPHeapCtx ctx;
+  Magic hmagic = {};
+  Magic umagic = {};
+  uint64_t occupy_bmap[8] = {0};
+  uint64_t header_bmap[8] = {0};
+
+  assert_ture(OPHeapNew(&heap));
+  heap_base = (uintptr_t)heap;
+
+  ctx.hspan.uintptr = heap_base + HPAGE_SIZE;
+  hmagic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
+  hpage = ctx.hspan.hpage;
+  HPageInit(hpage, hmagic);
+  hpage->occupy_bmap[0] = 0x0F;
+  hpage->header_bmap[0] = 0x0F;
 }
 
 int

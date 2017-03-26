@@ -101,10 +101,8 @@ OPHeapDestroy(OPHeap* heap)
 }
 
 void
-HPageInit(OPHeapCtx* ctx, Magic magic)
+HPageInit(HugePage* hpage, Magic magic)
 {
-  HugePage* hpage;
-  hpage = ctx->hspan.hpage;
   hpage->magic = magic;
   hpage->pcard = 0;
   HPageEmptiedBMaps(hpage,
@@ -123,15 +121,13 @@ HPageInit(OPHeapCtx* ctx, Magic magic)
    *   = 144 + 24 + 256 = 424 bytes
    */
 void
-USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
+USpanInit(UnarySpan* uspan, Magic magic, unsigned int spage_cnt)
 {
-  UnarySpan* uspan;
   uintptr_t uspan_base;
   unsigned int obj_size, obj_cnt, bitmap_cnt, padding, headroom;
   size_t container_size, bmap_projection;
   uint64_t* bmap;
 
-  uspan = ctx->sspan.uspan;
   container_size = (size_t)spage_cnt * SPAGE_SIZE;
   uspan_base = ObtainSSpanBase(uspan);
   obj_size = magic.uspan_generic.obj_size < 16 ?
@@ -154,7 +150,7 @@ USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
   uspan->obj_cnt = 0;
   uspan->next = NULL;
 
-  bmap = (uint64_t*)(ctx->sspan.uintptr + sizeof(UnarySpan));
+  bmap = (uint64_t*)((uintptr_t)uspan + sizeof(UnarySpan));
   USpanEmptiedBMap(uspan, bmap);
 }
 

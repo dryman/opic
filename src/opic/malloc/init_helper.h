@@ -65,10 +65,10 @@ bool OPHeapNew(OPHeap** heap_ref);
 
 void OPHeapDestroy(OPHeap* heap);
 
-void HPageInit(OPHeapCtx* ctx, Magic magic)
+void HPageInit(HugePage* hpage, Magic magic)
   __attribute__ ((visibility ("internal")));
 
-void USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
+void USpanInit(UnarySpan* uspan, Magic magic, unsigned int spage_cnt)
   __attribute__ ((visibility ("internal")));
 
 void OPHeapEmptiedBMaps(OPHeap* heap, BmapPtr occupy_bmap, BmapPtr header_bmap)

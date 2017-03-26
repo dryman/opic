@@ -208,7 +208,7 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
       atomic_exit_check_out(&ctx->uqueue->pcard);
       return false;
     }
-  USpanInit(ctx, uspan_magic, spage_cnt);
+  USpanInit(ctx->sspan.uspan, uspan_magic, spage_cnt);
   EnqueueUSpan(ctx->uqueue, ctx->sspan.uspan);
   atomic_exit_check_out(&ctx->uqueue->pcard);
   goto retry;
@@ -252,7 +252,7 @@ DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
       atomic_exit_check_out(&ctx->hqueue->pcard);
       return false;
     }
-  HPageInit(ctx, magic);
+  HPageInit(ctx->hspan.hpage, magic);
   EnqueueHPage(ctx->hqueue, ctx->hspan.hpage);
   atomic_exit_check_out(&ctx->hqueue->pcard);
   goto retry;

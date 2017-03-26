@@ -74,8 +74,8 @@ test_HPageInit(void** context)
   magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
   ctx.hspan.hpage = &heap->hpage;
 
-  HPageInit(&ctx, magic);
   hpage = ctx.hspan.hpage;
+  HPageInit(hpage, magic);
 
   assert_int_equal(magic.int_value, hpage->magic.int_value);
   assert_int_equal(0, hpage->pcard);
@@ -94,8 +94,8 @@ test_HPageInit(void** context)
   assert_memory_equal(header_bmap, hpage->header_bmap, 8 * sizeof(uint64_t));
 
   ctx.hspan.uintptr = heap_base + HPAGE_SIZE;
-  HPageInit(&ctx, magic);
   hpage = ctx.hspan.hpage;
+  HPageInit(hpage, magic);
   assert_int_equal(magic.int_value, hpage->magic.int_value);
   assert_int_equal(0, hpage->pcard);
 
@@ -134,7 +134,7 @@ test_USpanInit_RawTypeSmall(void** context)
    */
   magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
   magic.raw_uspan.obj_size = 16;
-  USpanInit(&ctx, magic, 1);
+  USpanInit(uspan, magic, 1);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(4, uspan->bitmap_cnt);
   assert_int_equal(4, uspan->bitmap_headroom);
@@ -159,7 +159,7 @@ test_USpanInit_RawTypeSmall(void** context)
    */
   magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
   magic.raw_uspan.obj_size = 24;
-  USpanInit(&ctx, magic, 1);
+  USpanInit(uspan, magic, 1);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(3, uspan->bitmap_cnt);
   assert_int_equal(2, uspan->bitmap_headroom);
@@ -205,7 +205,7 @@ test_USpanInit_RawTypeSmall_FstPage(void** context)
    */
   magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
   magic.raw_uspan.obj_size = 16;
-  USpanInit(&ctx, magic, 1);
+  USpanInit(uspan, magic, 1);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(4, uspan->bitmap_cnt);
   assert_int_equal(13, uspan->bitmap_headroom);
@@ -231,7 +231,7 @@ test_USpanInit_RawTypeSmall_FstPage(void** context)
    */
   magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
   magic.raw_uspan.obj_size = 24;
-  USpanInit(&ctx, magic, 1);
+  USpanInit(uspan, magic, 1);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(3, uspan->bitmap_cnt);
   assert_int_equal(8, uspan->bitmap_headroom);
@@ -276,7 +276,7 @@ test_USpanInit_RawTypeLarge(void** context)
    */
   magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
   magic.raw_uspan.obj_size = 1024;
-  USpanInit(&ctx, magic, 16);
+  USpanInit(uspan, magic, 16);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(1, uspan->bitmap_cnt);
   assert_int_equal(1, uspan->bitmap_headroom);
@@ -303,7 +303,7 @@ test_USpanInit_RawTypeLarge(void** context)
    */
   magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
   magic.raw_uspan.obj_size = 2048;
-  USpanInit(&ctx, magic, 16);
+  USpanInit(uspan, magic, 16);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(1, uspan->bitmap_cnt);
   assert_int_equal(1, uspan->bitmap_headroom);
@@ -351,7 +351,7 @@ test_USpanInit_OtherSizes(void** context)
   magic.typed_uspan.pattern = TYPED_USPAN_PATTERN;
   magic.typed_uspan.obj_size = 2;
   magic.typed_uspan.type_alias = 3;
-  USpanInit(&ctx, magic, 1);
+  USpanInit(uspan, magic, 1);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(4, uspan->bitmap_cnt);
   assert_int_equal(4, uspan->bitmap_headroom);
@@ -379,7 +379,7 @@ test_USpanInit_OtherSizes(void** context)
   magic.typed_uspan.pattern = TYPED_USPAN_PATTERN;
   magic.typed_uspan.obj_size = 2;
   magic.typed_uspan.type_alias = 3;
-  USpanInit(&ctx, magic, 1);
+  USpanInit(uspan, magic, 1);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(4, uspan->bitmap_cnt);
   assert_int_equal(13, uspan->bitmap_headroom);
@@ -404,7 +404,7 @@ test_USpanInit_OtherSizes(void** context)
    */
   magic.typed_uspan.pattern = TYPED_USPAN_PATTERN;
   magic.typed_uspan.obj_size = 100;
-  USpanInit(&ctx, magic, 1);
+  USpanInit(uspan, magic, 1);
   assert_int_equal(magic.int_value, uspan->magic.int_value);
   assert_int_equal(1, uspan->bitmap_cnt);
   assert_int_equal(2, uspan->bitmap_headroom);
