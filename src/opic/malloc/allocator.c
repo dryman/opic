@@ -56,7 +56,6 @@
 
 #define DISPATCH_ATTEMPT 1024
 
-OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
 static __thread int thread_id = -1;
 static a_uint32_t round_robin = 0;
@@ -585,9 +584,6 @@ OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
         }
     }
 
-  OP_LOG_WARN(logger,
-              "Running out of available hpages. Lock to check remaining");
-
   if (!atomic_book_critical(&heap->pcard))
     {
       atomic_check_out(&heap->pcard);
@@ -603,7 +599,6 @@ OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
   if (cmp_result)
     goto retry;
 
-  OP_LOG_ERROR(logger, "No available hpage.");
   return false;
 }
 
@@ -664,9 +659,6 @@ OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
         }
     }
 
-  OP_LOG_WARN(logger,
-              "Running out of available hpages. Lock to check remaining");
-
   if (!atomic_book_critical(&heap->pcard))
     {
       atomic_check_out(&heap->pcard);
@@ -692,7 +684,8 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
 
   while (1)
     {
-      if (bmidx_head > HPAGE_BMAP_NUM) goto fail;
+      if (bmidx_head > HPAGE_BMAP_NUM)
+        return false;
       if (occupy_bmap[bmidx_head] & (1UL << 63))
         {
           bmidx_head++;
@@ -713,7 +706,7 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
       while (1)
         {
           if (bmidx_iter > HPAGE_BMAP_NUM)
-            goto fail;
+            return false;
           if (_hpage_cnt > 64)
             {
               if (occupy_bmap[bmidx_iter] != 0UL)
@@ -758,12 +751,6 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
         occupy_bmap[bmidx] = ~0UL;
     }
   return true;
-
- fail:
-  OP_LOG_ERROR(logger,
-               "No available contiguous hpages for huge page count %d",
-               hpage_cnt);
-  return false;
 }
 
 /* op_pspan.c ends here */

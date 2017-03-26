@@ -51,7 +51,6 @@
 #include "init_helper.h"
 #include "opic/common/op_log.h"
 
-OP_LOGGER_FACTORY(logger, "opic.malloc.init_helper");
 
 bool
 OPHeapNew(OPHeap** heap_ref)
@@ -61,18 +60,12 @@ OPHeapNew(OPHeap** heap_ref)
   map_addr = MAP_FAILED;
   for (int i = 0; i < (1<<15); i++)
     {
-      OP_LOG_INFO(logger,
-                  "Attempt to create OPHeap on %p",
-                  addr);
       map_addr = mmap(addr, OPHEAP_SIZE,
                       PROT_READ | PROT_WRITE,
                       MAP_ANON | MAP_PRIVATE | MAP_FIXED,
                       -1, 0);
       if (map_addr != MAP_FAILED)
         {
-          OP_LOG_INFO(logger,
-                      "Successfully created OPHeap on %p",
-                      map_addr);
           *heap_ref = map_addr;
           memset(*heap_ref, 0, sizeof(OPHeap));
           (*heap_ref)->version = OPHEAP_VERSION;
@@ -82,14 +75,12 @@ OPHeapNew(OPHeap** heap_ref)
       else
         addr += OPHEAP_SIZE;
     }
-  OP_LOG_ERROR(logger, "Cannot allocate OPHeap, reached address limit");
   return false;
 }
 
 bool
 OPHeapNewFromFile(OPHeap** heap_ref, FILE fd)
 {
-  OP_LOG_ERROR(logger, "Not implemented yet");
   return false;
 }
 
@@ -97,7 +88,6 @@ void
 OPHeapDestroy(OPHeap* heap)
 {
   munmap(heap, OPHEAP_SIZE);
-  OP_LOG_INFO(logger, "Successfully destroyed OPHeap on %p", heap);
 }
 
 void
