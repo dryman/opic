@@ -1,7 +1,7 @@
 # TODO: Can we put Makefile.am in subdir?
 # https://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html
 
-SUBDIRS = opic/malloc
+SUBDIRS = opic
 
 # AUTOMAKE_OPTIONS = subdir-objects
 # 

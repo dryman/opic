@@ -1,11 +1,11 @@
-/* init_helper.h ---
+/* demomalloc.h ---
  *
- * Filename: init_helper.h
+ * Filename: demomalloc.h
  * Description:
  * Author: Felix Chern
  * Maintainer:
- * Copyright: (c) 2016 Felix Chern
- * Created: Sun Mar  5 16:41:20 2017 (-0800)
+ * Copyright: (c) 2017 Felix Chern
+ * Created: Sun Mar 26 12:07:34 2017 (-0700)
  * Version:
  * Package-Requires: ()
  * Last-Updated:
@@ -45,40 +45,40 @@
 
 /* Code: */
 
-#ifndef OPIC_MALLOC_INIT_HELPER_H
-#define OPIC_MALLOC_INIT_HELPER_H 1
+#ifndef OPIC_DEMOMALLOC_H
+#define OPIC_DEMOMALLOC_H 1
 
-#include "objdef.h"
-#include "inline_aux.h"
+#include "opic/common/op_macros.h"
+#include "opic/op_malloc.h"
 
 OP_BEGIN_DECLS
 
-typedef union BmapPtr BmapPtr;
+void* OPDemoMalloc(size_t size)
+  __attribute__((malloc));
 
-union BmapPtr
-{
-  uint64_t* uint64;
-  a_uint64_t* a_uint64;
-} __attribute__ ((__transparent_union__));
+void* OPDemoCalloc(size_t num, size_t size)
+  __attribute__((malloc));
 
-void HPageInit(HugePage* hpage, Magic magic)
-  __attribute__ ((visibility ("internal")));
+void* OPDemoRealloc(void* addr, size_t size)
+  __attribute__((malloc));
 
-void USpanInit(UnarySpan* uspan, Magic magic, unsigned int spage_cnt)
-  __attribute__ ((visibility ("internal")));
+void OPDemoFree(void* addr);
 
-void OPHeapEmptiedBMaps(OPHeap* heap, BmapPtr occupy_bmap, BmapPtr header_bmap)
-  __attribute__ ((visibility ("internal")));
 
-void HPageEmptiedBMaps(HugePage* hpage, BmapPtr occupy_bmap,
-                       BmapPtr header_bmap)
-  __attribute__ ((visibility ("internal")));
+void* malloc(size_t size)
+  __attribute__((weak, alias("OPDemoMalloc"))) __attribute__((malloc));
 
-void USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap)
-  __attribute__ ((visibility ("internal")));
+void* calloc(size_t num, size_t size)
+  __attribute__((weak, alias("OPDemoCalloc"))) __attribute__((malloc));
+
+void* realloc(void* addr, size_t size)
+  __attribute__((weak, alias("OPDemoRealloc"))) __attribute__((malloc));
+
+void free(void* addr)
+  __attribute__((weak, alias("OPDemoFree")));
 
 OP_END_DECLS
 
 #endif
 
-/* init_helper.h ends here */
+/* demomalloc.h ends here */

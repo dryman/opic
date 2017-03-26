@@ -48,7 +48,6 @@
 #include <string.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
-#include "opic/common/op_log.h"
 #include "opic/common/op_utils.h"
 #include "allocator.h"
 #include "init_helper.h"
@@ -71,13 +70,13 @@ OPMallocRaw(OPHeap* heap, size_t size)
 }
 
 void*
-OPCallocRaw(OPHeap* heap, size_t size)
+OPCallocRaw(OPHeap* heap, size_t num, size_t size)
 {
   if (thread_id == -1)
     thread_id = atomic_fetch_add_explicit
       (&round_robin, 1, memory_order_acquire) % 16;
 
-  return OPCallocRawAdviced(heap, size, thread_id);
+  return OPCallocRawAdviced(heap, num, size, thread_id);
 }
 
 void*
@@ -154,13 +153,16 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int advice)
 }
 
 void*
-OPCallocRawAdviced(OPHeap* heap, size_t size, int advice)
+OPCallocRawAdviced(OPHeap* heap, size_t num, size_t size, int advice)
 {
   void* addr;
+  size_t _size;
 
-  addr = OPMallocRawAdviced(heap, size, thread_id);
+  _size = num * size;
+  addr = OPMallocRawAdviced(heap, _size, thread_id);
+
   if (addr)
-    memset(addr, 0x00, size);
+    memset(addr, 0x00, _size);
 
   return addr;
 }

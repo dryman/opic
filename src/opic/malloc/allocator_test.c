@@ -767,10 +767,8 @@ static void
 test_DispatchHPageForSSpan(void** context)
 {
   OPHeap* heap;
-  uintptr_t heap_base;
 
   assert_true(OPHeapNew(&heap));
-  heap_base = (uintptr_t)heap;
 
   // TODO: configure different kind of init state
   // run dispatch and see if the end state is expected

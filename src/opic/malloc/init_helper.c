@@ -46,11 +46,10 @@
 /* Code: */
 
 #include <sys/mman.h>
+#include <stdio.h>
 #include <string.h>
 #include "lookup_helper.h"
 #include "init_helper.h"
-#include "opic/common/op_log.h"
-
 
 bool
 OPHeapNew(OPHeap** heap_ref)

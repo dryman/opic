@@ -49,27 +49,47 @@
 #ifndef OP_MALLOC_H
 #define OP_MALLOC_H 1
 
+#include <stdint.h>
+#include "opic/common/op_macros.h"
+
+OP_BEGIN_DECLS
+
+#define OPHEAP_BITS 36
+#define OPHEAP_SIZE (1UL << OPHEAP_BITS)
+
 typedef struct OPHeap OPHeap;
+
+bool OPHeapNew(OPHeap** heap_ref);
+
+void OPHeapDestroy(OPHeap* heap);
+
+static inline OPHeap*
+ObtainOPHeap(void* addr)
+{
+  return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE - 1));
+}
 
 void*
 OPMallocRaw(OPHeap* heap, size_t size)
   __attribute__ ((malloc));
 
 void*
-OPCallocRaw(OPHeap* heap, size_t size)
+OPCallocRaw(OPHeap* heap, size_t num, size_t size)
   __attribute__ ((malloc));
 
 void*
-OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
+OPMallocRawAdviced(OPHeap* heap, size_t size, int advice)
   __attribute__ ((malloc));
 
 void*
-OPCallocRawAdviced(OPHeap* heap, size_t size, int advice)
+OPCallocRawAdviced(OPHeap* heap, size_t num, size_t size, int advice)
   __attribute__ ((malloc));
 
 void
 OPDealloc(void* addr);
 
-#endif /* OP_MALLOC_H */
+OP_END_DECLS
+
+#endif
 
 /* op_malloc.h ends here */

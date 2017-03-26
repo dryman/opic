@@ -52,12 +52,6 @@
 
 OP_BEGIN_DECLS
 
-static inline OPHeap*
-ObtainOPHeap(void* addr)
-{
-  return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE - 1));
-}
-
 static inline HugePage*
 ObtainHPage(void* addr)
 {

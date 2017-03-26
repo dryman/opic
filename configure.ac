@@ -47,6 +47,7 @@ PKG_CHECK_MODULES([cmocka], [cmocka >= 1.0.1])
 AC_CONFIG_FILES([
   Makefile
   src/Makefile
+  src/opic/Makefile
   src/opic/malloc/Makefile
 ])
 
