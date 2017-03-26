@@ -68,7 +68,6 @@ test_OPHeapReleaseHSpan_1Page(void** context)
   uint64_t occupy_bmap[HPAGE_BMAP_NUM] = {};
   uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
   HugeSpanPtr hspan[8];
-  OPHeapCtx ctx;
   Magic raw_hpage_magic = {}, typed_hpage_magic = {}, hblob_magic = {};
 
   assert_true(OPHeapNew(&heap));
@@ -446,24 +445,93 @@ test_USpanReleaseAddr(void** context)
 {
   OPHeap* heap;
   SmallSpanPtr sspan1, sspan2, sspan3;
-  UnarySpanQueue* uqueue;
+  UnarySpanQueue* uqueue1;
+  UnarySpanQueue* uqueue2;
+  UnarySpanQueue* uqueue3;
   HugePage *hpage;
   uintptr_t heap_base;
-  OPHeapCtx ctx;
   Magic hmagic = {};
-  Magic umagic = {};
-  uint64_t occupy_bmap[8] = {0};
-  uint64_t header_bmap[8] = {0};
+  Magic umagic1 = {};
+  Magic umagic2 = {};
+  Magic umagic3 = {};
+  void* addr1;
+  void* addr2;
+  OPHeapCtx ctx;
 
-  assert_ture(OPHeapNew(&heap));
+  assert_true(OPHeapNew(&heap));
   heap_base = (uintptr_t)heap;
+  heap->occupy_bmap[0] = 0x02UL;
+  heap->header_bmap[0] = 0x02UL;
 
-  ctx.hspan.uintptr = heap_base + HPAGE_SIZE;
   hmagic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
-  hpage = ctx.hspan.hpage;
+  hpage = (HugePage*)(heap_base + HPAGE_SIZE);
   HPageInit(hpage, hmagic);
-  hpage->occupy_bmap[0] = 0x0F;
-  hpage->header_bmap[0] = 0x0F;
+  hpage->occupy_bmap[0] = ~0UL;
+  hpage->header_bmap[0] = 0x07;
+  hpage->occupy_bmap[1] = 0x07;
+  hpage->header_bmap[1] = 0x04;
+
+  sspan1.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
+  sspan2.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
+  sspan3.uintptr = heap_base + HPAGE_SIZE + 2 * SPAGE_SIZE;
+  umagic1.raw_uspan.pattern = RAW_USPAN_PATTERN;
+  umagic2.typed_uspan.pattern = TYPED_USPAN_PATTERN;
+  umagic3.large_uspan.pattern = LARGE_USPAN_PATTERN;
+  umagic1.raw_uspan.obj_size = 48;
+  umagic2.typed_uspan.obj_size = 2;
+  umagic3.large_uspan.obj_size = 2048;
+  USpanInit(sspan1.uspan, umagic1, 1);
+  USpanInit(sspan2.uspan, umagic2, 1);
+  USpanInit(sspan3.uspan, umagic3, 64);
+
+  uqueue1 = &heap->raw_type.uspan_queue[2][0];
+  uqueue2 = &heap->type_alias[0].uspan_queue[0];
+  uqueue3 = &heap->raw_type.large_uspan_queue[2];
+
+  ctx.uqueue = uqueue1;
+  ctx.sspan = sspan1;
+  assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr1));
+  assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr2));
+  sspan1.uspan->state = SPAN_DEQUEUED;
+  USpanReleaseAddr(sspan1.uspan, addr1);
+  assert_ptr_equal(sspan1.uspan, uqueue1->uspan);
+  assert_int_equal(SPAN_ENQUEUED, sspan1.uspan->state);
+  USpanReleaseAddr(sspan1.uspan, addr2);
+  assert_ptr_equal(NULL, uqueue1->uspan);
+  //                 7654321076543210
+  assert_int_equal(0xFFFFFFFFFFFFFFFEUL, hpage->occupy_bmap[0]);
+  assert_int_equal(0x06UL, hpage->header_bmap[0]);
+
+  ctx.uqueue = uqueue2;
+  ctx.sspan = sspan2;
+  assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr1));
+  assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr2));
+  sspan2.uspan->state = SPAN_DEQUEUED;
+  USpanReleaseAddr(sspan2.uspan, addr1);
+  assert_ptr_equal(sspan2.uspan, uqueue2->uspan);
+  assert_int_equal(SPAN_ENQUEUED, sspan2.uspan->state);
+  USpanReleaseAddr(sspan2.uspan, addr2);
+  assert_ptr_equal(NULL, uqueue2->uspan);
+  //                 7654321076543210
+  assert_int_equal(0xFFFFFFFFFFFFFFFCUL, hpage->occupy_bmap[0]);
+  assert_int_equal(0x04UL, hpage->header_bmap[0]);
+
+  ctx.uqueue = uqueue3;
+  ctx.sspan = sspan3;
+  assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr1));
+  assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr2));
+  sspan3.uspan->state = SPAN_DEQUEUED;
+  USpanReleaseAddr(sspan3.uspan, addr1);
+  assert_ptr_equal(sspan3.uspan, uqueue3->uspan);
+  assert_int_equal(SPAN_ENQUEUED, sspan3.uspan->state);
+  USpanReleaseAddr(sspan3.uspan, addr2);
+  assert_ptr_equal(NULL, uqueue3->uspan);
+  assert_int_equal(0UL, hpage->occupy_bmap[0]);
+  assert_int_equal(0UL, hpage->header_bmap[0]);
+  assert_int_equal(0x04UL, hpage->occupy_bmap[1]);
+  assert_int_equal(0x04UL, hpage->header_bmap[1]);
+
+  OPHeapDestroy(heap);
 }
 
 int
@@ -475,6 +543,7 @@ main (void)
       cmocka_unit_test(test_OPHeapReleaseHSpan_smallHBlob),
       cmocka_unit_test(test_OPHeapReleaseHSpan_lageHBlob),
       cmocka_unit_test(test_HPageReleaseSSpan),
+      cmocka_unit_test(test_USpanReleaseAddr),
     };
 
   return cmocka_run_group_tests(deallocator_tests, NULL, NULL);

@@ -101,10 +101,10 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
   if (obj_size < 16)
     obj_size = 16;
   _addr_obj_size = _addr / obj_size;
-  op_assert(_addr_obj_size > uspan->bitmap_headroom,
-            "Address %p mapped to bitmap_headroom", addr);
-  op_assert(_addr_obj_size < uspan->bitmap_cnt * 64UL + uspan->bitmap_headroom,
-            "Address %p mapped to bitmap_padding", addr);
+  op_assert(_addr_obj_size >= uspan->bitmap_headroom,
+            "Address %p mapped to bitmap_headroom\n", addr);
+  op_assert(_addr_obj_size < uspan->bitmap_cnt * 64UL - uspan->bitmap_padding,
+            "Address %p mapped to bitmap_padding\n", addr);
   _addr_bmidx = _addr_obj_size / 64;
   _addr_bmbit = _addr_obj_size % 64;
 
