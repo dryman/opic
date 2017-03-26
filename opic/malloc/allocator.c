@@ -48,7 +48,6 @@
 #include <string.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
-#include "opic/common/op_log.h"
 #include "opic/common/op_utils.h"
 #include "allocator.h"
 #include "init_helper.h"
@@ -56,7 +55,6 @@
 
 #define DISPATCH_ATTEMPT 1024
 
-OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
 static __thread int thread_id = -1;
 static a_uint32_t round_robin = 0;
@@ -72,7 +70,17 @@ OPMallocRaw(OPHeap* heap, size_t size)
 }
 
 void*
-OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
+OPCallocRaw(OPHeap* heap, size_t num, size_t size)
+{
+  if (thread_id == -1)
+    thread_id = atomic_fetch_add_explicit
+      (&round_robin, 1, memory_order_acquire) % 16;
+
+  return OPCallocRawAdviced(heap, num, size, thread_id);
+}
+
+void*
+OPMallocRawAdviced(OPHeap* heap, size_t size, int advice)
 {
   OPHeapCtx ctx;
   void* addr;
@@ -81,7 +89,7 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
 
   op_assert(size > 0, "malloc size must greater than 0");
 
-  hint %= 16;
+  advice %= 16;
 
   ctx.hqueue = &heap->raw_type.hpage_queue;
   if (size <= 256)
@@ -89,8 +97,8 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
       size_class = round_up_div(size, 16);
       magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
       magic.raw_uspan.obj_size = size_class * 16;
-      magic.raw_uspan.thread_id = hint;
-      ctx.uqueue = &heap->raw_type.uspan_queue[size_class][hint];
+      magic.raw_uspan.thread_id = advice;
+      ctx.uqueue = &heap->raw_type.uspan_queue[size_class][advice];
       if (DispatchUSpanForAddr(&ctx, magic, &addr))
         return addr;
       else
@@ -142,6 +150,21 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
       addr = (void*)(ctx.hspan.uintptr + sizeof(Magic));
       return addr;
     }
+}
+
+void*
+OPCallocRawAdviced(OPHeap* heap, size_t num, size_t size, int advice)
+{
+  void* addr;
+  size_t _size;
+
+  _size = num * size;
+  addr = OPMallocRawAdviced(heap, _size, thread_id);
+
+  if (addr)
+    memset(addr, 0x00, _size);
+
+  return addr;
 }
 
 bool
@@ -208,7 +231,7 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
       atomic_exit_check_out(&ctx->uqueue->pcard);
       return false;
     }
-  USpanInit(ctx, uspan_magic, spage_cnt);
+  USpanInit(ctx->sspan.uspan, uspan_magic, spage_cnt);
   EnqueueUSpan(ctx->uqueue, ctx->sspan.uspan);
   atomic_exit_check_out(&ctx->uqueue->pcard);
   goto retry;
@@ -252,7 +275,7 @@ DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
       atomic_exit_check_out(&ctx->hqueue->pcard);
       return false;
     }
-  HPageInit(ctx, magic);
+  HPageInit(ctx->hspan.hpage, magic);
   EnqueueHPage(ctx->hqueue, ctx->hspan.hpage);
   atomic_exit_check_out(&ctx->hqueue->pcard);
   goto retry;
@@ -585,9 +608,6 @@ OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
         }
     }
 
-  OP_LOG_WARN(logger,
-              "Running out of available hpages. Lock to check remaining");
-
   if (!atomic_book_critical(&heap->pcard))
     {
       atomic_check_out(&heap->pcard);
@@ -603,7 +623,6 @@ OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
   if (cmp_result)
     goto retry;
 
-  OP_LOG_ERROR(logger, "No available hpage.");
   return false;
 }
 
@@ -664,9 +683,6 @@ OPHeapObtainSmallHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
         }
     }
 
-  OP_LOG_WARN(logger,
-              "Running out of available hpages. Lock to check remaining");
-
   if (!atomic_book_critical(&heap->pcard))
     {
       atomic_check_out(&heap->pcard);
@@ -692,7 +708,8 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
 
   while (1)
     {
-      if (bmidx_head > HPAGE_BMAP_NUM) goto fail;
+      if (bmidx_head > HPAGE_BMAP_NUM)
+        return false;
       if (occupy_bmap[bmidx_head] & (1UL << 63))
         {
           bmidx_head++;
@@ -713,7 +730,7 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
       while (1)
         {
           if (bmidx_iter > HPAGE_BMAP_NUM)
-            goto fail;
+            return false;
           if (_hpage_cnt > 64)
             {
               if (occupy_bmap[bmidx_iter] != 0UL)
@@ -758,12 +775,6 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
         occupy_bmap[bmidx] = ~0UL;
     }
   return true;
-
- fail:
-  OP_LOG_ERROR(logger,
-               "No available contiguous hpages for huge page count %d",
-               hpage_cnt);
-  return false;
 }
 
 /* op_pspan.c ends here */

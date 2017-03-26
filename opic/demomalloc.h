@@ -1,11 +1,11 @@
-/* huge_page.h ---
+/* demomalloc.h ---
  *
- * Filename: huge_page.h
+ * Filename: demomalloc.h
  * Description:
  * Author: Felix Chern
  * Maintainer:
- * Copyright: (c) 2016 Felix Chern
- * Created: Sat Oct 22, 2016
+ * Copyright: (c) 2017 Felix Chern
+ * Created: Sun Mar 26 12:07:34 2017 (-0700)
  * Version:
  * Package-Requires: ()
  * Last-Updated:
@@ -45,35 +45,46 @@
 
 /* Code: */
 
-#ifndef HUGE_PAGE_H
-#define HUGE_PAGE_H 1
+#ifndef OPIC_DEMOMALLOC_H
+#define OPIC_DEMOMALLOC_H 1
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdatomic.h>
 #include "opic/common/op_macros.h"
-#include "opic/common/op_assert.h"
-#include "opic/common/op_log.h"
-#include "malloc_internal.h"
-#include <assert.h>
+#include "opic/op_malloc.h"
 
 OP_BEGIN_DECLS
 
+void* OPDemoMalloc(size_t size)
+  __attribute__((malloc));
 
-HugePage* HugePageInit(void* addr, Magic magic)
-  __attribute__((nonnull));
+void* OPDemoCalloc(size_t num, size_t size)
+  __attribute__((malloc));
 
-UnarySpan* ObtainUSpan(HugePage* self,
-                       Magic magic,
-                       unsigned int span_cnt)
-  __attribute__((nonnull));
+void* OPDemoRealloc(void* addr, size_t size)
+  __attribute__((malloc));
 
-FreeStatus HugePageFree(HugePage* self, void* addr)
-  __attribute__((nonnull));
+void OPDemoFree(void* addr);
 
+/*
+ * Somehow I cannot compile the code below on OSX.
+ * Since replacing malloc is not the major goal, I'll just leave it here.
+ */
+
+/*
+void* malloc(size_t size)
+  __attribute__((weak, alias("OPDemoMalloc"))) __attribute__((malloc));
+
+void* calloc(size_t num, size_t size)
+  __attribute__((weak, alias("OPDemoCalloc"))) __attribute__((malloc));
+
+void* realloc(void* addr, size_t size)
+  __attribute__((weak, alias("OPDemoRealloc"))) __attribute__((malloc));
+
+void free(void* addr)
+  __attribute__((weak, alias("OPDemoFree")));
+*/
 
 OP_END_DECLS
 
 #endif
 
-/* huge_page.h ends here */
+/* demomalloc.h ends here */

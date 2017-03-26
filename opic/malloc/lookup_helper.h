@@ -1,11 +1,11 @@
-/* init_helper.h ---
+/* lookup_helper.h ---
  *
- * Filename: init_helper.h
+ * Filename: lookup_helper.h
  * Description:
  * Author: Felix Chern
  * Maintainer:
  * Copyright: (c) 2016 Felix Chern
- * Created: Sun Mar  5 16:41:20 2017 (-0800)
+ * Created: Sun Mar  5 15:40:03 2017 (-0800)
  * Version:
  * Package-Requires: ()
  * Last-Updated:
@@ -45,44 +45,55 @@
 
 /* Code: */
 
-#ifndef OPIC_MALLOC_INIT_HELPER_H
-#define OPIC_MALLOC_INIT_HELPER_H 1
+#ifndef OPIC_MALLOC_LOOKUP_HELPER_H
+#define OPIC_MALLOC_LOOKUP_HELPER_H 1
 
 #include "objdef.h"
-#include "inline_aux.h"
 
 OP_BEGIN_DECLS
 
-typedef union BmapPtr BmapPtr;
-
-union BmapPtr
+static inline HugePage*
+ObtainHPage(void* addr)
 {
-  uint64_t* uint64;
-  a_uint64_t* a_uint64;
-} __attribute__ ((__transparent_union__));
+  OPHeap* heap;
+  uintptr_t heap_base, addr_base;
 
-bool OPHeapNew(OPHeap** heap_ref);
+  heap = ObtainOPHeap(addr);
+  heap_base = (uintptr_t)heap;
+  addr_base = (uintptr_t)addr;
 
-void OPHeapDestroy(OPHeap* heap);
+  if (addr_base - heap_base < HPAGE_SIZE)
+    return &heap->hpage;
 
-void HPageInit(OPHeapCtx* ctx, Magic magic)
+  return (HugePage*)(addr_base & ~(HPAGE_SIZE - 1));
+}
+
+static inline uintptr_t
+ObtainHSpanBase(HugeSpanPtr header)
+{
+  return header.uintptr & ~(HPAGE_SIZE - 1);
+}
+
+static inline uintptr_t
+ObtainSSpanBase(SmallSpanPtr header)
+{
+  return header.uintptr & ~(SPAGE_SIZE - 1);
+}
+
+HugeSpanPtr ObtainHugeSpanPtr(void* addr)
   __attribute__ ((visibility ("internal")));
 
-void USpanInit(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt)
+SmallSpanPtr HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
   __attribute__ ((visibility ("internal")));
 
-void OPHeapEmptiedBMaps(OPHeap* heap, BmapPtr occupy_bmap, BmapPtr header_bmap)
+UnarySpanQueue* ObtainUSpanQueue(UnarySpan* uspan)
   __attribute__ ((visibility ("internal")));
 
-void HPageEmptiedBMaps(HugePage* hpage, BmapPtr occupy_bmap,
-                       BmapPtr header_bmap)
-  __attribute__ ((visibility ("internal")));
-
-void USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap)
+HugePageQueue* ObtainHPageQueue(HugePage* hpage)
   __attribute__ ((visibility ("internal")));
 
 OP_END_DECLS
 
 #endif
 
-/* init_helper.h ends here */
+/* lookup_helper.h ends here */

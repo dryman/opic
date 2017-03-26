@@ -328,8 +328,8 @@ test_HPageObtainUSpan(void** context)
   assert_true(OPHeapObtainHPage(heap, &ctx));
   ctx.hqueue = &heap->raw_type.hpage_queue;
   magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
-  HPageInit(&ctx, magic);
   hpage = ctx.hspan.hpage;
+  HPageInit(hpage, magic);
   EnqueueHPage(ctx.hqueue, hpage);
   assert_ptr_equal(hpage, ctx.hqueue->hpage);
   assert_int_equal(SPAN_ENQUEUED, hpage->state);
@@ -406,8 +406,8 @@ test_HPageObtainUSpan(void** context)
   // get second hpage to test uspan offset
   // The offset should be sizeof(HugePage)
   assert_true(OPHeapObtainHPage(heap, &ctx));
-  HPageInit(&ctx, magic);
   hpage = ctx.hspan.hpage;
+  HPageInit(hpage, magic);
   EnqueueHPage(ctx.hqueue, hpage);
   assert_ptr_equal(hpage, ctx.hqueue->hpage);
   assert_int_equal(SPAN_ENQUEUED, hpage->state);
@@ -424,8 +424,8 @@ test_HPageObtainUSpan(void** context)
 
   // get third hpage to test use_full_span logic
   assert_true(OPHeapObtainHPage(heap, &ctx));
-  HPageInit(&ctx, magic);
   hpage = ctx.hspan.hpage;
+  HPageInit(hpage, magic);
   EnqueueHPage(ctx.hqueue, hpage);
   assert_int_equal(SPAN_ENQUEUED, hpage->state);
   assert_ptr_equal(hpage, ctx.hqueue->hpage->next);
@@ -458,8 +458,8 @@ test_HPageObtainSSpan(void** context)
   assert_true(OPHeapObtainHPage(heap, &ctx));
   ctx.hqueue = &heap->raw_type.hpage_queue;
   magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
-  HPageInit(&ctx, magic);
   hpage = ctx.hspan.hpage;
+  HPageInit(hpage, magic);
   EnqueueHPage(ctx.hqueue, hpage);
   assert_ptr_equal(hpage, ctx.hqueue->hpage);
   assert_int_equal(SPAN_ENQUEUED, hpage->state);
@@ -502,8 +502,8 @@ test_HPageObtainSSpan(void** context)
 
   // Second HPage
   assert_true(OPHeapObtainHPage(heap, &ctx));
-  HPageInit(&ctx, magic);
   hpage = ctx.hspan.hpage;
+  HPageInit(hpage, magic);
   EnqueueHPage(ctx.hqueue, hpage);
   assert_ptr_equal(hpage, ctx.hqueue->hpage);
   assert_int_equal(SPAN_ENQUEUED, hpage->state);
@@ -566,8 +566,8 @@ test_USpanObtainAddr(void** context)
   umagic.raw_uspan.thread_id = 0;
   ctx.uqueue = &heap->raw_type.uspan_queue[0][0];
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
-  USpanInit(&ctx, umagic, 1);
   uspan = ctx.sspan.uspan;
+  USpanInit(uspan, umagic, 1);
   EnqueueUSpan(ctx.uqueue, uspan);
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
@@ -597,8 +597,8 @@ test_USpanObtainAddr(void** context)
    * number of objects: 256 - 13 = 243
    */
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
-  USpanInit(&ctx, umagic, 1);
   uspan = ctx.sspan.uspan;
+  USpanInit(uspan, umagic, 1);
   EnqueueUSpan(ctx.uqueue, uspan);
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
@@ -627,8 +627,8 @@ test_USpanObtainAddr(void** context)
    */
   umagic.raw_uspan.obj_size = 24;
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + 2 * SPAGE_SIZE;
-  USpanInit(&ctx, umagic, 1);
   uspan = ctx.sspan.uspan;
+  USpanInit(uspan, umagic, 1);
   EnqueueUSpan(ctx.uqueue, uspan);
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
@@ -661,7 +661,7 @@ test_USpanObtainAddr(void** context)
   umagic.typed_uspan.type_alias = 0;
   ctx.uqueue = &heap->type_alias[0].uspan_queue[0];
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + 3 * SPAGE_SIZE;
-  USpanInit(&ctx, umagic, 1);
+  USpanInit(ctx.sspan.uspan, umagic, 1);
 
   uspan = ctx.sspan.uspan;
   EnqueueUSpan(ctx.uqueue, uspan);
@@ -711,8 +711,8 @@ test_USpanObtainAddr_Large(void** context)
   umagic.large_uspan.obj_size = 1024;
   ctx.uqueue = &heap->raw_type.large_uspan_queue[0];
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
-  USpanInit(&ctx, umagic, 16);
   uspan = ctx.sspan.uspan;
+  USpanInit(uspan, umagic, 16);
   EnqueueUSpan(ctx.uqueue, uspan);
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
@@ -742,8 +742,8 @@ test_USpanObtainAddr_Large(void** context)
   umagic.large_uspan.obj_size = 2048;
   ctx.uqueue = &heap->raw_type.large_uspan_queue[0];
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + 32 * SPAGE_SIZE;
-  USpanInit(&ctx, umagic, 32);
   uspan = ctx.sspan.uspan;
+  USpanInit(uspan, umagic, 32);
   EnqueueUSpan(ctx.uqueue, uspan);
   assert_ptr_equal(uspan, ctx.uqueue->uspan);
   assert_int_equal(SPAN_ENQUEUED, uspan->state);
@@ -767,10 +767,8 @@ static void
 test_DispatchHPageForSSpan(void** context)
 {
   OPHeap* heap;
-  uintptr_t heap_base;
 
   assert_true(OPHeapNew(&heap));
-  heap_base = (uintptr_t)heap;
 
   // TODO: configure different kind of init state
   // run dispatch and see if the end state is expected

@@ -54,7 +54,7 @@
 #include "opic/common/op_atomic.h"
 #include "opic/common/op_macros.h"
 #include "magic.h"
-#include "op_malloc.h"
+#include "opic/op_malloc.h"
 
 OP_BEGIN_DECLS
 

@@ -1,11 +1,11 @@
-/* lookup_helper.h ---
+/* init_helper.h ---
  *
- * Filename: lookup_helper.h
+ * Filename: init_helper.h
  * Description:
  * Author: Felix Chern
  * Maintainer:
  * Copyright: (c) 2016 Felix Chern
- * Created: Sun Mar  5 15:40:03 2017 (-0800)
+ * Created: Sun Mar  5 16:41:20 2017 (-0800)
  * Version:
  * Package-Requires: ()
  * Last-Updated:
@@ -45,61 +45,40 @@
 
 /* Code: */
 
-#ifndef OPIC_MALLOC_LOOKUP_HELPER_H
-#define OPIC_MALLOC_LOOKUP_HELPER_H 1
+#ifndef OPIC_MALLOC_INIT_HELPER_H
+#define OPIC_MALLOC_INIT_HELPER_H 1
 
 #include "objdef.h"
+#include "inline_aux.h"
 
 OP_BEGIN_DECLS
 
-static inline OPHeap*
-ObtainOPHeap(void* addr)
+typedef union BmapPtr BmapPtr;
+
+union BmapPtr
 {
-  return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE - 1));
-}
+  uint64_t* uint64;
+  a_uint64_t* a_uint64;
+} __attribute__ ((__transparent_union__));
 
-static inline HugePage*
-ObtainHPage(void* addr)
-{
-  OPHeap* heap;
-  uintptr_t heap_base, addr_base;
-
-  heap = ObtainOPHeap(addr);
-  heap_base = (uintptr_t)heap;
-  addr_base = (uintptr_t)addr;
-
-  if (addr_base - heap_base < HPAGE_SIZE)
-    return &heap->hpage;
-
-  return (HugePage*)(addr_base & ~(HPAGE_SIZE - 1));
-}
-
-static inline uintptr_t
-ObtainHSpanBase(HugeSpanPtr header)
-{
-  return header.uintptr & ~(HPAGE_SIZE - 1);
-}
-
-static inline uintptr_t
-ObtainSSpanBase(SmallSpanPtr header)
-{
-  return header.uintptr & ~(SPAGE_SIZE - 1);
-}
-
-HugeSpanPtr ObtainHugeSpanPtr(void* addr)
+void HPageInit(HugePage* hpage, Magic magic)
   __attribute__ ((visibility ("internal")));
 
-SmallSpanPtr HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
+void USpanInit(UnarySpan* uspan, Magic magic, unsigned int spage_cnt)
   __attribute__ ((visibility ("internal")));
 
-UnarySpanQueue* ObtainUSpanQueue(UnarySpan* uspan)
+void OPHeapEmptiedBMaps(OPHeap* heap, BmapPtr occupy_bmap, BmapPtr header_bmap)
   __attribute__ ((visibility ("internal")));
 
-HugePageQueue* ObtainHPageQueue(HugePage* hpage)
+void HPageEmptiedBMaps(HugePage* hpage, BmapPtr occupy_bmap,
+                       BmapPtr header_bmap)
+  __attribute__ ((visibility ("internal")));
+
+void USpanEmptiedBMap(UnarySpan* uspan, BmapPtr bmap)
   __attribute__ ((visibility ("internal")));
 
 OP_END_DECLS
 
 #endif
 
-/* lookup_helper.h ends here */
+/* init_helper.h ends here */

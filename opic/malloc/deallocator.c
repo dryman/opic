@@ -48,13 +48,11 @@
 #include <string.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
-#include "opic/common/op_log.h"
 #include "deallocator.h"
 #include "inline_aux.h"
 #include "init_helper.h"
 #include "lookup_helper.h"
 
-OP_LOGGER_FACTORY(logger, "opic.malloc.deallocator");
 
 void
 OPDealloc(void* addr)
@@ -101,21 +99,19 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
   if (obj_size < 16)
     obj_size = 16;
   _addr_obj_size = _addr / obj_size;
-  op_assert(_addr_obj_size > uspan->bitmap_headroom,
-            "Address %p mapped to bitmap_headroom", addr);
-  op_assert(_addr_obj_size < uspan->bitmap_cnt * 64UL + uspan->bitmap_headroom,
-            "Address %p mapped to bitmap_padding", addr);
+  op_assert(_addr_obj_size >= uspan->bitmap_headroom,
+            "Address %p mapped to bitmap_headroom\n", addr);
+  op_assert(_addr_obj_size < uspan->bitmap_cnt * 64UL - uspan->bitmap_padding,
+            "Address %p mapped to bitmap_padding\n", addr);
   _addr_bmidx = _addr_obj_size / 64;
   _addr_bmbit = _addr_obj_size % 64;
 
   mask = ~(1UL << _addr_bmbit);
   old_bmap = atomic_fetch_and_explicit(&bmap[_addr_bmidx],
                                        mask, memory_order_release);
-  if (op_unlikely((old_bmap & (1UL << _addr_bmbit)) == 0))
-    {
-      OP_LOG_ERROR(logger, "Double free address %p", addr);
-    }
-  else if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
+  op_assert(old_bmap & (1UL << _addr_bmbit),
+            "Double free address %p\n", addr);
+  if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
                                      memory_order_acq_rel) == 1)
     {
       if (!atomic_book_critical(&uspan->pcard))
