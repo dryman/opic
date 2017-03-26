@@ -71,7 +71,17 @@ OPMallocRaw(OPHeap* heap, size_t size)
 }
 
 void*
-OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
+OPCallocRaw(OPHeap* heap, size_t size)
+{
+  if (thread_id == -1)
+    thread_id = atomic_fetch_add_explicit
+      (&round_robin, 1, memory_order_acquire) % 16;
+
+  return OPCallocRawAdviced(heap, size, thread_id);
+}
+
+void*
+OPMallocRawAdviced(OPHeap* heap, size_t size, int advice)
 {
   OPHeapCtx ctx;
   void* addr;
@@ -80,7 +90,7 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
 
   op_assert(size > 0, "malloc size must greater than 0");
 
-  hint %= 16;
+  advice %= 16;
 
   ctx.hqueue = &heap->raw_type.hpage_queue;
   if (size <= 256)
@@ -88,8 +98,8 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
       size_class = round_up_div(size, 16);
       magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
       magic.raw_uspan.obj_size = size_class * 16;
-      magic.raw_uspan.thread_id = hint;
-      ctx.uqueue = &heap->raw_type.uspan_queue[size_class][hint];
+      magic.raw_uspan.thread_id = advice;
+      ctx.uqueue = &heap->raw_type.uspan_queue[size_class][advice];
       if (DispatchUSpanForAddr(&ctx, magic, &addr))
         return addr;
       else
@@ -141,6 +151,18 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
       addr = (void*)(ctx.hspan.uintptr + sizeof(Magic));
       return addr;
     }
+}
+
+void*
+OPCallocRawAdviced(OPHeap* heap, size_t size, int advice)
+{
+  void* addr;
+
+  addr = OPMallocRawAdviced(heap, size, thread_id);
+  if (addr)
+    memset(addr, 0x00, size);
+
+  return addr;
 }
 
 bool

@@ -56,7 +56,15 @@ OPMallocRaw(OPHeap* heap, size_t size)
   __attribute__ ((malloc));
 
 void*
+OPCallocRaw(OPHeap* heap, size_t size)
+  __attribute__ ((malloc));
+
+void*
 OPMallocRawAdviced(OPHeap* heap, size_t size, int hint)
+  __attribute__ ((malloc));
+
+void*
+OPCallocRawAdviced(OPHeap* heap, size_t size, int advice)
   __attribute__ ((malloc));
 
 void
