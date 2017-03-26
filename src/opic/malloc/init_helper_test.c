@@ -272,7 +272,7 @@ test_USpanInit_RawTypeLarge(void** context)
    * Bitmap: 65536 / 1024 = 64 bits to map the space = 1 bitmaps
    * headroom size in bytes: sizeof(UnarySpan) + 8 = 24 + 8 = 32 bytes
    * headroom in object/bits: 1
-   * padding: 0 bytes;
+   * padding: 0 bytes
    */
   magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
   magic.raw_uspan.obj_size = 1024;
@@ -290,6 +290,9 @@ test_USpanInit_RawTypeLarge(void** context)
   assert_memory_equal(test_bmap, bmap, 1 * sizeof(uint64_t));
 
   /*
+   * In actual setup we use 32 pages instead of 16.
+   * Here we want to test the initializer robustness for bitmap
+   * that is half full.
    * Object size: 2048 bytes
    * 16 Page count => 65536 bytes
    * Bitmap: 65536 / 2048 = 32 bits to map the space = 1 bitmaps

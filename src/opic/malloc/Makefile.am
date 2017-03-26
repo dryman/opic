@@ -40,6 +40,7 @@ allocator_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
 allocator_test_LDFLAGS = -static
 
 deallocator_test_SOURCES = \
+  allocator.c \
   deallocator.c \
   deallocator_test.c \
   init_helper.c \
