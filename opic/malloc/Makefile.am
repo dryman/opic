@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)
 AM_CFLAGS = @cmocka_CFLAGS@
 
 TESTS = lookup_helper_test init_helper_test allocator_test \

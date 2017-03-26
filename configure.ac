@@ -3,7 +3,7 @@ AC_INIT([OPIC],[0.3])
 AC_CONFIG_SRCDIR([README.md])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
-AM_CONFIG_HEADER([src/config.h])
+AM_CONFIG_HEADER([config.h])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AM_PROG_AR
@@ -46,9 +46,8 @@ PKG_CHECK_MODULES([cmocka], [cmocka >= 1.0.1])
 
 AC_CONFIG_FILES([
   Makefile
-  src/Makefile
-  src/opic/Makefile
-  src/opic/malloc/Makefile
+  opic/Makefile
+  opic/malloc/Makefile
 ])
 
 AC_OUTPUT

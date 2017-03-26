@@ -64,7 +64,12 @@ void* OPDemoRealloc(void* addr, size_t size)
 
 void OPDemoFree(void* addr);
 
+/*
+ * Somehow I cannot compile the code below on OSX.
+ * Since replacing malloc is not the major goal, I'll just leave it here.
+ */
 
+/*
 void* malloc(size_t size)
   __attribute__((weak, alias("OPDemoMalloc"))) __attribute__((malloc));
 
@@ -76,6 +81,7 @@ void* realloc(void* addr, size_t size)
 
 void free(void* addr)
   __attribute__((weak, alias("OPDemoFree")));
+*/
 
 OP_END_DECLS
 
