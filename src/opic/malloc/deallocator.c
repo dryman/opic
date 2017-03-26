@@ -98,6 +98,8 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
 
   _addr = addr_base - uspan_base;
   obj_size = uspan->magic.uspan_generic.obj_size;
+  if (obj_size < 16)
+    obj_size = 16;
   _addr_obj_size = _addr / obj_size;
   op_assert(_addr_obj_size > uspan->bitmap_headroom,
             "Address %p mapped to bitmap_headroom", addr);
@@ -187,7 +189,8 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
 void
 HPageReleaseSSpan(HugePage* hpage, SmallSpanPtr sspan)
 {
-  uintptr_t hpage_base, _addr, _addr_spage, _addr_bmidx, _addr_bmbit, spages;
+  uintptr_t hpage_base, _addr, _addr_spage, _addr_bmidx, _addr_bmbit, spages,
+    obj_size, bitmap_cnt, bitmap_padding;
   HugePageQueue* hqueue;
   uint64_t mask, old_bmap;
   uint64_t occupy_bmap[8], header_bmap[8];
@@ -206,10 +209,13 @@ HPageReleaseSSpan(HugePage* hpage, SmallSpanPtr sspan)
     case TYPED_USPAN_PATTERN:
     case RAW_USPAN_PATTERN:
     case LARGE_USPAN_PATTERN:
-      spages = round_up_div
-        ((uintptr_t)sspan.magic->uspan_generic.obj_size *
-         (64UL * sspan.uspan->bitmap_cnt - sspan.uspan->bitmap_padding),
-         SPAGE_SIZE);
+      obj_size = sspan.magic->uspan_generic.obj_size;
+      if (obj_size < 16)
+        obj_size = 16;
+      bitmap_cnt = sspan.uspan->bitmap_cnt;
+      bitmap_padding = sspan.uspan->bitmap_padding;
+      spages = round_up_div(obj_size * (64 * bitmap_cnt - bitmap_padding),
+                            SPAGE_SIZE);
       break;
     case SMALL_BLOB_PATTERN:
       spages = sspan.magic->small_blob.pages;
