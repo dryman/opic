@@ -328,6 +328,32 @@ test_OPHeapReleaseHSpan_lageHBlob(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_HPageReleaseSSpan(void** context)
+{
+  OPHeap* heap;
+  HugePage* hpage;
+  HugePageQueue* hqueue;
+  uintptr_t heap_base;
+  OPHeapCtx ctx;
+  Magic hmagic = {};
+  Magic umagic = {};
+  uint64_t occupy_bmap[8] = {0};
+  uint64_t header_bmap[8] = {0};
+
+  assert_true(OPHeapNew(&heap));
+  heap_base = (uintptr_t)heap;
+  heap->occupy_bmap[0] = 0x02;
+  heap->header_bmap[0] = 0x02;
+  hmagic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
+  ctx.hqueue = &heap->raw_type.hpage_queue;
+  ctx.hspan.uintptr = heap_base + HPAGE_SIZE;
+  HPageInit(&ctx, hmagic);
+  hpage = ctx.hspan.hpage;
+
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -336,6 +362,7 @@ main (void)
       cmocka_unit_test(test_OPHeapReleaseHSpan_1Page),
       cmocka_unit_test(test_OPHeapReleaseHSpan_smallHBlob),
       cmocka_unit_test(test_OPHeapReleaseHSpan_lageHBlob),
+      cmocka_unit_test(test_HPageReleaseSSpan),
     };
 
   return cmocka_run_group_tests(deallocator_tests, NULL, NULL);
