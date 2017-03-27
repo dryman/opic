@@ -1,4 +1,4 @@
-SUBDIRS = opic
+SUBDIRS = opic benchmark
 
 nobase_include_HEADERS = \
   opic/op_malloc.h \
