@@ -94,6 +94,7 @@ HPageInit(HugePage* hpage, Magic magic)
 {
   hpage->magic = magic;
   hpage->pcard = 0;
+  hpage->next = NULL;
   HPageEmptiedBMaps(hpage,
                     hpage->occupy_bmap,
                     hpage->header_bmap);

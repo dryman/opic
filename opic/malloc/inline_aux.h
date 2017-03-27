@@ -83,10 +83,11 @@ DequeueUSpan(UnarySpanQueue* uspan_queue, UnarySpan* uspan)
 {
   UnarySpan** it = &uspan_queue->uspan;
 
-  while (*it != uspan)
+  while (*it != uspan && *it)
     it = &(*it)->next;
 
-  *it = (*it)->next;
+  if (*it)
+    *it = (*it)->next;
 
   atomic_store_explicit(&uspan->state, SPAN_DEQUEUED, memory_order_release);
 }
@@ -99,10 +100,13 @@ EnqueueHPage(HugePageQueue* hpage_queue, HugePage* hpage)
   while (*it && (*it) < hpage)
     it = &(*it)->next;
 
-  if (*it > hpage)
-    hpage->next = *it;
+  if (*it != hpage)
+    {
+      if (*it > hpage)
+        hpage->next = *it;
 
-  *it = hpage;
+      *it = hpage;
+    }
 
   atomic_store_explicit(&hpage->state, SPAN_ENQUEUED, memory_order_release);
 }

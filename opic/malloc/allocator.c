@@ -184,6 +184,7 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
   UnarySpan** it = &ctx->uqueue->uspan;
   while (*it)
     {
+      ctx->sspan.uspan = *it;
       switch(USpanObtainAddr(ctx, addr))
         {
         case QOP_SUCCESS:
@@ -252,6 +253,7 @@ DispatchHPageForSSpan(OPHeapCtx* ctx, Magic magic, unsigned int spage_cnt,
   HugePage** it = &ctx->hqueue->hpage;
   while (*it)
     {
+      ctx->hspan.hpage = *it;
       switch(HPageObtainSSpan(ctx, spage_cnt, use_full_span))
         {
         case QOP_SUCCESS:

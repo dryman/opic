@@ -48,6 +48,7 @@ AC_CONFIG_FILES([
   Makefile
   opic/Makefile
   opic/malloc/Makefile
+  benchmark/Makefile
 ])
 
 AC_OUTPUT
