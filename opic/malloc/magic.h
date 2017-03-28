@@ -65,13 +65,11 @@ typedef enum MagicPattern MagicPattern;
 
 enum MagicPattern
   {
-    TYPED_USPAN_PATTERN = 0,
-    RAW_USPAN_PATTERN = 1,
-    LARGE_USPAN_PATTERN = 2,
-    SMALL_BLOB_PATTERN = 3,
-    TYPED_HPAGE_PATTERN = 4,
-    RAW_HPAGE_PATTERN = 5,
-    HUGE_BLOB_PATTERN = 6,
+    RAW_USPAN_PATTERN = 0,
+    LARGE_USPAN_PATTERN = 1,
+    SMALL_BLOB_PATTERN = 2,
+    RAW_HPAGE_PATTERN = 3,
+    HUGE_BLOB_PATTERN = 4,
   } __attribute__((packed));
 
 static_assert(sizeof(MagicPattern) == 1, "MagicPattern is 1 byte");
@@ -93,13 +91,6 @@ union Magic
   struct
   {
     MagicPattern pattern : 4;
-    uint16_t obj_size : 12;
-    uint8_t thread_id : 4;
-    uint16_t type_alias : 12;
-  } typed_uspan;
-  struct
-  {
-    MagicPattern pattern : 4;
     uint16_t obj_size : 12; // obj_size is size_class
     uint8_t thread_id : 4;
     uint16_t padding : 12;
@@ -116,12 +107,6 @@ union Magic
     uint16_t pages : 12;
     uint16_t reserved;
   } small_blob;
-  struct
-  {
-    MagicPattern pattern : 4;
-    uint16_t type_alias : 12;
-    uint16_t reserved;
-  } typed_hpage;
   struct
   {
     MagicPattern pattern : 4;

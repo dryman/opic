@@ -81,15 +81,11 @@ test_HPageInit(void** context)
   assert_int_equal(0, hpage->pcard);
 
   /*
-   * sizeof(OPHeap) = 391936
-   * sizeof(HugePage) = 144
-   * (391936 + 144) = 4096 * 95 + 2960
-   * => 96 bit spaces to occupy
-   * 96 = 64 + 32
+   * sizeof(OPHeap) = 11008 = 4096 * 2 + 2816
+   * => 3 bit spaces to occupy
    */
   //                 7654321076543210
-  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFFUL;
-  occupy_bmap[1] = 0x00000000FFFFFFFFUL;
+  occupy_bmap[0] = 0x07UL;
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, 8 * sizeof(uint64_t));
   assert_memory_equal(header_bmap, hpage->header_bmap, 8 * sizeof(uint64_t));
 
@@ -99,7 +95,7 @@ test_HPageInit(void** context)
   assert_int_equal(magic.int_value, hpage->magic.int_value);
   assert_int_equal(0, hpage->pcard);
 
-  occupy_bmap[0] = occupy_bmap[1] = 0UL;
+  occupy_bmap[0] = 0UL;
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, 8 * sizeof(uint64_t));
   assert_memory_equal(header_bmap, hpage->header_bmap, 8 * sizeof(uint64_t));
 
@@ -321,106 +317,6 @@ test_USpanInit_RawTypeLarge(void** context)
 }
 
 static void
-test_USpanInit_OtherSizes(void** context)
-{
-  OPHeap* heap;
-  uintptr_t heap_base;
-  OPHeapCtx ctx;
-  UnarySpan* uspan;
-  Magic magic = {};
-  uint64_t* bmap;
-  uint64_t test_bmap[4] = {0};
-
-  assert_true(OPHeapNew(&heap));
-  heap_base = (uintptr_t)heap;
-  ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
-  uspan = ctx.sspan.uspan;
-  bmap = (uint64_t*)(ctx.sspan.uintptr + sizeof(UnarySpan));
-
-  /*
-   * Sadly, we can't do alloc that is too small.
-   * The headroom size will be larger than 256.
-   * For now we align it to 16 bytes. We can shoot for 4 bytes align in future.
-   * Object size: 2 bytes => align to 16
-   * 1 Page count => 4096 bytes
-   * Bitmap: 4096 / 16 = 256 bits to map the space = 4 bitmaps
-   * headroom size in bytes: sizeof(UnarySpan) + 8 * 4 = 24 + 32 = 56 bytes
-   * headroom in object/bits: 56 = 16 * 3 + 8 => 4 bits
-   * padding: 0 bytes
-   */
-  magic.typed_uspan.pattern = TYPED_USPAN_PATTERN;
-  magic.typed_uspan.obj_size = 2;
-  magic.typed_uspan.type_alias = 3;
-  USpanInit(uspan, magic, 1);
-  assert_int_equal(magic.int_value, uspan->magic.int_value);
-  assert_int_equal(4, uspan->bitmap_cnt);
-  assert_int_equal(4, uspan->bitmap_headroom);
-  assert_int_equal(0, uspan->bitmap_padding);
-  assert_int_equal(0, uspan->bitmap_hint);
-  assert_int_equal(0, uspan->pcard);
-  assert_int_equal(0, uspan->obj_cnt);
-  assert_null(uspan->next);
-  memset(test_bmap, 0, 4 * sizeof(uint64_t));
-  test_bmap[0] = 0x0F;
-  assert_memory_equal(test_bmap, bmap, 4 * sizeof(uint64_t));
-
-  /*
-   * Object size: 2 bytes => align to 16 bytes
-   * 1 Page count => 4096 bytes
-   * Bitmap: 4096 / 16 = 256 bits to map the space = 4 bitmaps
-   * headroom size in bytes: sizeof(HugePage) + sizeof(UnarySpan) + 4 * 8
-   *   = 144 + 24 + 32 = 200 bytes
-   * headroom in object/bits: 200 = 16 * 12 + 8 => 13 bits
-   * padding: 0 bytes;
-   */
-  ctx.sspan.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
-  uspan = ctx.sspan.uspan;
-  bmap = (uint64_t*)(ctx.sspan.uintptr + sizeof(UnarySpan));
-  magic.typed_uspan.pattern = TYPED_USPAN_PATTERN;
-  magic.typed_uspan.obj_size = 2;
-  magic.typed_uspan.type_alias = 3;
-  USpanInit(uspan, magic, 1);
-  assert_int_equal(magic.int_value, uspan->magic.int_value);
-  assert_int_equal(4, uspan->bitmap_cnt);
-  assert_int_equal(13, uspan->bitmap_headroom);
-  assert_int_equal(0, uspan->bitmap_padding);
-  assert_int_equal(0, uspan->bitmap_hint);
-  assert_int_equal(0, uspan->pcard);
-  assert_int_equal(0, uspan->obj_cnt);
-  assert_null(uspan->next);
-  memset(test_bmap, 0, 4 * sizeof(uint64_t));
-  test_bmap[0] = 0x1FFF;
-  assert_memory_equal(test_bmap, bmap, 4 * sizeof(uint64_t));
-
-  /*
-   * Object size: 100 bytes
-   * 1 Page count => 4096 bytes
-   * Bitmap: 4096 / 100 = 40 bits to map the space = 1 bitmap
-   * headroom size in bytes: sizeof(HugePage) + sizeof(UnarySpan) + 8
-   *   = 144 + 24 + 8 = 176 bytes
-   * headroom in object/bits: 176 = 100 + 76 => 2 bits
-   * padding size in bytes: 64 * 100 - 4096 = 2304 bytes
-   * padding in object/bits: 2304 = 100 * 23 + 4 => 24 bits
-   */
-  magic.typed_uspan.pattern = TYPED_USPAN_PATTERN;
-  magic.typed_uspan.obj_size = 100;
-  USpanInit(uspan, magic, 1);
-  assert_int_equal(magic.int_value, uspan->magic.int_value);
-  assert_int_equal(1, uspan->bitmap_cnt);
-  assert_int_equal(2, uspan->bitmap_headroom);
-  assert_int_equal(24, uspan->bitmap_padding);
-  assert_int_equal(0, uspan->bitmap_hint);
-  assert_int_equal(0, uspan->pcard);
-  assert_int_equal(0, uspan->obj_cnt);
-  assert_null(uspan->next);
-  memset(test_bmap, 0, sizeof(uint64_t));
-  //               7654321076543210
-  test_bmap[0] = 0xFFFFFF0000000003UL;
-  assert_memory_equal(test_bmap, bmap, sizeof(uint64_t));
-  OPHeapDestroy(heap);
-}
-
-static void
 test_OPHeapEmptiedBMaps(void** context)
 {
   OPHeap* heap;
@@ -458,7 +354,6 @@ main (void)
       cmocka_unit_test(test_USpanInit_RawTypeSmall),
       cmocka_unit_test(test_USpanInit_RawTypeSmall_FstPage),
       cmocka_unit_test(test_USpanInit_RawTypeLarge),
-      cmocka_unit_test(test_USpanInit_OtherSizes),
       cmocka_unit_test(test_OPHeapEmptiedBMaps),
     };
 

@@ -121,7 +121,7 @@ test_ObtainHPage(void** state)
 }
 
 static void
-test_ObtainHugeSpanPtr_fristBMap(void** state)
+test_ObtainHugeSpanPtr_firstBMap(void** state)
 {
   OPHeap* heap;
   uintptr_t heap_base, first_hpage, second_hpage, isolated_hpage, hblob;
@@ -409,13 +409,6 @@ test_ObtainUSpanQueue(void** state)
   assert_ptr_equal(&heap->raw_type.large_uspan_queue[2],
                    ObtainUSpanQueue(uspan));
 
-  magic->typed_uspan.pattern = TYPED_USPAN_PATTERN;
-  magic->typed_uspan.obj_size = 30;
-  magic->typed_uspan.thread_id = 6;
-  magic->typed_uspan.type_alias = 5;
-  assert_ptr_equal(&heap->type_alias[5].uspan_queue[6],
-                   ObtainUSpanQueue(uspan));
-
   OPHeapDestroy(heap);
 }
 
@@ -433,11 +426,6 @@ test_ObtainHPageQueue(void** state)
   magic = (Magic*)hpage_base;
   hpage = (HugePage*)hpage_base;
 
-  magic->typed_hpage.pattern = TYPED_HPAGE_PATTERN;
-  magic->typed_hpage.type_alias = 8;
-  assert_ptr_equal(&heap->type_alias[8].hpage_queue,
-                   ObtainHPageQueue(hpage));
-
   magic->raw_hpage.pattern = RAW_HPAGE_PATTERN;
   assert_ptr_equal(&heap->raw_type.hpage_queue,
                    ObtainHPageQueue(hpage));
@@ -451,7 +439,7 @@ main (void)
     {
       cmocka_unit_test(test_ObtainOPHeap),
       cmocka_unit_test(test_ObtainHPage),
-      cmocka_unit_test(test_ObtainHugeSpanPtr_fristBMap),
+      cmocka_unit_test(test_ObtainHugeSpanPtr_firstBMap),
       cmocka_unit_test(test_ObtainHugeSpanPtr_crossBMap),
       cmocka_unit_test(test_HPageObtainSmallSpanPtr),
       cmocka_unit_test(test_HPageObtainSmallSpanPtr_firstHPage),

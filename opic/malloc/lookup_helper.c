@@ -197,16 +197,11 @@ UnarySpanQueue*
 ObtainUSpanQueue(UnarySpan* uspan)
 {
   OPHeap* heap;
-  TypeAlias* ta;
   int tid, size_class, obj_size, uspan_id;
 
   heap = ObtainOPHeap(uspan);
   switch (uspan->magic.generic.pattern)
     {
-    case TYPED_USPAN_PATTERN:
-      ta = &heap->type_alias[uspan->magic.typed_uspan.type_alias];
-      tid = uspan->magic.typed_uspan.thread_id;
-      return &ta->uspan_queue[tid];
     case RAW_USPAN_PATTERN:
       size_class = round_up_div(uspan->magic.raw_uspan.obj_size, 16) - 1;
       tid = uspan->magic.raw_uspan.thread_id;
@@ -229,18 +224,9 @@ ObtainHPageQueue(HugePage* hpage)
 {
   OPHeap* heap;
   heap = ObtainOPHeap(hpage);
-  switch (hpage->magic.generic.pattern)
-    {
-    case TYPED_HPAGE_PATTERN:
-      return &heap->type_alias[hpage->magic.typed_hpage.type_alias]
-        .hpage_queue;
-    case RAW_HPAGE_PATTERN:
-      return &heap->raw_type.hpage_queue;
-    default:
-      op_assert(0, "Unknown HPage pattern %d\n",
-                hpage->magic.generic.pattern);
-      return NULL;
-    }
+  op_assert(hpage->magic.generic.pattern == RAW_HPAGE_PATTERN,
+            "Unknown magic pattern %d\n", hpage->magic.generic.pattern);
+  return &heap->raw_type.hpage_queue;
 }
 
 /* lookup_helper.c ends here */

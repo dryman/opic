@@ -206,10 +206,6 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
 
   switch (uspan_magic.generic.pattern)
     {
-    case TYPED_USPAN_PATTERN:
-      hpage_magic.typed_hpage.pattern = TYPED_HPAGE_PATTERN;
-      hpage_magic.typed_hpage.type_alias = uspan_magic.typed_uspan.type_alias;
-      break;
     case RAW_USPAN_PATTERN:
     case LARGE_USPAN_PATTERN:
       hpage_magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
@@ -314,8 +310,7 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
           memory_order_acq_rel,
           memory_order_relaxed));
 
-  obj_size = uspan->magic.typed_uspan.obj_size < 16 ?
-    16 : uspan->magic.typed_uspan.obj_size;
+  obj_size = uspan->magic.uspan_generic.obj_size;
   bmap = (a_uint64_t *)((uintptr_t)uspan + sizeof(UnarySpan));
   bmidx = uspan->bitmap_hint;
 

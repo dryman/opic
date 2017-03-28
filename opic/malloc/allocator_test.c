@@ -341,52 +341,43 @@ test_HPageObtainUSpan(void** context)
   atomic_check_in(&ctx.hqueue->pcard);
   assert_int_equal(1, ctx.hqueue->pcard);
 
-  /*
-   * sizeof(OPHeap) = 391936
-   * sizeof(HugePage) = 144
-   * (391936 + 144) = 4096 * 95 + 2960
-   * => 96 bit spaces to occupy
-   * 96 = 64 + 32
-   */
-  //                 7654321076543210
-  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFFUL;
-  occupy_bmap[1] = 0x00000000FFFFFFFFUL;
+  occupy_bmap[0] = 0x07UL;
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
   //                 7654321076543210
-  occupy_bmap[1] = 0x0000000FFFFFFFFFUL;
-  header_bmap[1] = 0x0000000100000000UL;
-  uspan_addr = heap_base + 96 * SPAGE_SIZE;
-  assert_int_equal(QOP_SUCCESS, HPageObtainUSpan(&ctx, 4, false));
+  occupy_bmap[0] = 0x000000000000000FUL;
+  header_bmap[0] = 0x0000000000000008UL;
+  uspan_addr = heap_base + 3 * SPAGE_SIZE;
+  assert_int_equal(QOP_SUCCESS, HPageObtainUSpan(&ctx, 1, false));
   assert_int_equal(uspan_addr, ctx.sspan.uintptr);
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
   //                 7654321076543210
-  occupy_bmap[2] = 0x00000000FFFFFFFFUL;
-  header_bmap[2] = 0x0000000000000001UL;
-  uspan_addr = heap_base + 128 * SPAGE_SIZE;
+  occupy_bmap[0] = 0x0000000FFFFFFFFFUL;
+  header_bmap[0] = 0x0000000000000018UL;
+  uspan_addr = heap_base + 4 * SPAGE_SIZE;
   assert_int_equal(QOP_SUCCESS, HPageObtainUSpan(&ctx, 32, false));
   assert_int_equal(uspan_addr, ctx.sspan.uintptr);
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
   //                 7654321076543210
-  occupy_bmap[1] = 0xFFFFFFFFFFFFFFFFUL;
-  header_bmap[1] = 0x0000001100000000UL;
-  uspan_addr = heap_base + 100 * SPAGE_SIZE;
+  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFFUL;
+  header_bmap[0] = 0x0000001000000018UL;
+  uspan_addr = heap_base + 36 * SPAGE_SIZE;
   assert_int_equal(QOP_SUCCESS, HPageObtainUSpan(&ctx, 28, false));
   assert_int_equal(uspan_addr, ctx.sspan.uintptr);
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
-  for (int i = 2; i < 8; i++)
+  for (int i = 1; i < 8; i++)
     { //                 7654321076543210
       occupy_bmap[i] = 0xFFFFFFFFFFFFFFFFUL;
       header_bmap[i] = 0x0000000100000001UL;
     }
-  for (uspan_addr = heap_base + 160 * SPAGE_SIZE;
+  for (uspan_addr = heap_base + 64 * SPAGE_SIZE;
        uspan_addr < heap_base + 512 * SPAGE_SIZE;
        uspan_addr += 32 * SPAGE_SIZE)
     {
@@ -472,26 +463,25 @@ test_HPageObtainSSpan(void** context)
   assert_int_equal(1, ctx.hqueue->pcard);
 
   //                 7654321076543210
-  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFFUL;
-  occupy_bmap[1] = 0x00000000FFFFFFFFUL;
+  occupy_bmap[0] = 0x0000000000000007UL;
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
   //                 7654321076543210
-  occupy_bmap[1] = 0xFFFFFFFFFFFFFFFFUL;
-  header_bmap[1] = 0x0000000100000000UL;
-  occupy_bmap[2] = 0x00000000FFFFFFFFUL;
-  uspan_addr = heap_base + 96 * SPAGE_SIZE;
-  assert_int_equal(QOP_SUCCESS, HPageObtainSSpan(&ctx, 64, true));
+  occupy_bmap[0] = 0xFFFFFFFFFFFFFFFFUL;
+  occupy_bmap[1] = 0x00000000FFFFFFFFUL;
+  header_bmap[0] = 0x0000000000000008UL;
+  uspan_addr = heap_base + 3 * SPAGE_SIZE;
+  assert_int_equal(QOP_SUCCESS, HPageObtainSSpan(&ctx, 93, true));
   assert_int_equal(uspan_addr, ctx.sspan.uintptr);
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
   //                 7654321076543210
-  header_bmap[2] = 0x0000000100000000UL;
+  header_bmap[1] = 0x0000000100000000UL;
   memset(occupy_bmap, 0xFF, sizeof(occupy_bmap));
-  uspan_addr = heap_base + 160 * SPAGE_SIZE;
-  assert_int_equal(QOP_SUCCESS, HPageObtainSSpan(&ctx, 352, true));
+  uspan_addr = heap_base + 96 * SPAGE_SIZE;
+  assert_int_equal(QOP_SUCCESS, HPageObtainSSpan(&ctx, 416, true));
   assert_int_equal(uspan_addr, ctx.sspan.uintptr);
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
@@ -641,42 +631,6 @@ test_USpanObtainAddr(void** context)
       assert_ptr_equal(u_addr, addr);
     }
   assert_int_equal(168, count);
-  assert_int_equal(QOP_RESTART, USpanObtainAddr(&ctx, &addr));
-  assert_int_equal(SPAN_DEQUEUED, uspan->state);
-  assert_ptr_equal(NULL, ctx.uqueue->uspan);
-
-
-  /*
-   * Object size: 2 bytes => align to 16
-   * 1 Page count => 4096 bytes
-   * Bitmap: 4096 / 16 = 256 bits to map the space = 4 bitmaps
-   * headroom size in bytes: sizeof(UnarySpan) + 8 * 4 = 24 + 32 = 56 bytes
-   * headroom in object/bits: 56 = 16 * 3 + 8 => 4 bits
-   * padding: 0 bytes
-   * number of objects: 256 - 4 = 252
-   */
-  umagic.typed_uspan.pattern = TYPED_USPAN_PATTERN;
-  umagic.typed_uspan.obj_size = 2;
-  umagic.typed_uspan.thread_id = 0;
-  umagic.typed_uspan.type_alias = 0;
-  ctx.uqueue = &heap->type_alias[0].uspan_queue[0];
-  ctx.sspan.uintptr = heap_base + HPAGE_SIZE + 3 * SPAGE_SIZE;
-  USpanInit(ctx.sspan.uspan, umagic, 1);
-
-  uspan = ctx.sspan.uspan;
-  EnqueueUSpan(ctx.uqueue, uspan);
-  assert_ptr_equal(uspan, ctx.uqueue->uspan);
-  assert_int_equal(SPAN_ENQUEUED, uspan->state);
-  atomic_check_in(&ctx.uqueue->pcard);
-  for (count = 0, u_addr = heap_base + HPAGE_SIZE +
-         3 * SPAGE_SIZE + 16 * uspan->bitmap_headroom;
-       u_addr < heap_base + HPAGE_SIZE + 4 * SPAGE_SIZE;
-       u_addr += 16, count++)
-    {
-      assert_int_equal(QOP_SUCCESS, USpanObtainAddr(&ctx, &addr));
-      assert_ptr_equal(u_addr, addr);
-    }
-  assert_int_equal(252, count);
   assert_int_equal(QOP_RESTART, USpanObtainAddr(&ctx, &addr));
   assert_int_equal(SPAN_DEQUEUED, uspan->state);
   assert_ptr_equal(NULL, ctx.uqueue->uspan);
