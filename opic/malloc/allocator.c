@@ -295,7 +295,7 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
   if (!atomic_check_in(&uspan->pcard))
     return QOP_CONTINUE;
 
-  obj_capacity = uspan->bitmap_cnt * 64 -
+  obj_capacity = uspan->bitmap_cnt * 64L -
     uspan->bitmap_headroom - uspan->bitmap_padding;
   obj_cnt_old = atomic_load_explicit(&uspan->obj_cnt,
                                      memory_order_relaxed);
