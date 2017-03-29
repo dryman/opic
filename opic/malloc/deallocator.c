@@ -96,8 +96,6 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
 
   _addr = addr_base - uspan_base;
   obj_size = uspan->magic.uspan_generic.obj_size;
-  if (obj_size < 16)
-    obj_size = 16;
   _addr_obj_size = _addr / obj_size;
   op_assert(_addr_obj_size >= uspan->bitmap_headroom,
             "Address %p mapped to bitmap_headroom\n", addr);
@@ -202,7 +200,6 @@ HPageReleaseSSpan(HugePage* hpage, SmallSpanPtr sspan)
 
   switch (sspan.magic->generic.pattern)
     {
-    case TYPED_USPAN_PATTERN:
     case RAW_USPAN_PATTERN:
     case LARGE_USPAN_PATTERN:
       obj_size = sspan.magic->uspan_generic.obj_size;
@@ -407,8 +404,7 @@ OPHeapReleaseHSpan(HugeSpanPtr hspan)
     }
 
   pattern = hspan.magic->generic.pattern;
-  if (pattern == TYPED_HPAGE_PATTERN ||
-      pattern == RAW_HPAGE_PATTERN ||
+  if (pattern == RAW_HPAGE_PATTERN ||
       hspan.magic->huge_blob.huge_pages == 1)
     {
       while (!atomic_check_in(&heap->pcard))

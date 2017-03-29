@@ -70,7 +70,6 @@ typedef struct HugeBlob HugeBlob;
 typedef union SmallSpanPtr SmallSpanPtr;
 typedef union HugeSpanPtr HugeSpanPtr;
 typedef struct RawType RawType;
-typedef struct TypeAlias TypeAlias;
 typedef struct OPHeapCtx OPHeapCtx;
 
 // TODO: change to enqueued/dequeued
@@ -184,18 +183,6 @@ struct RawType
 
 static_assert(sizeof(RawType) == 2600, "sizeof(RawType)");
 
-struct TypeAlias
-{
-  // TODO: change to Class* when we merge with object
-  void *klass;
-  char *type_name;
-  // 16 thread local UnarySpanQueue
-  UnarySpanQueue uspan_queue[16];
-  HugePageQueue hpage_queue;
-} __attribute__((packed));
-
-static_assert(sizeof(TypeAlias) == 186, "sizeof(TypeAlias)");
-
 struct OPHeap
 {
   uint32_t version;
@@ -205,11 +192,10 @@ struct OPHeap
   a_uint64_t occupy_bmap[HPAGE_BMAP_NUM];
   a_uint64_t header_bmap[HPAGE_BMAP_NUM];
   RawType raw_type;
-  TypeAlias type_alias[TYPE_ALIAS_NUM];
   HugePage hpage;
-};
+} __attribute__((packed));
 
-static_assert(sizeof(OPHeap) == 391936, "sizeof(OPHeap)");
+//static_assert(sizeof(OPHeap) == 11008, "sizeof(OPHeap)");
 
 struct OPHeapCtx
 {
