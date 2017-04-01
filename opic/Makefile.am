@@ -11,5 +11,3 @@ libdemomalloc_la_SOURCES = \
   malloc/deallocator.c \
   malloc/init_helper.c \
   malloc/lookup_helper.c
-
-libdemomalloc_la_LIBADD = @atomic_LIBS@
