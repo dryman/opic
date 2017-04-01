@@ -78,7 +78,7 @@ OPDealloc(void* addr)
 void
 USpanReleaseAddr(UnarySpan* uspan, void* addr)
 {
-  uint16_t obj_size;
+  uint16_t obj_size, obj_capacity;
   uintptr_t uspan_base, addr_base, _addr, _addr_obj_size,
     _addr_bmidx, _addr_bmbit;
   uint64_t mask, old_bmap;
@@ -103,6 +103,8 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
             "Address %p mapped to bitmap_padding\n", addr);
   _addr_bmidx = _addr_obj_size / 64;
   _addr_bmbit = _addr_obj_size % 64;
+  obj_capacity = uspan->bitmap_cnt * 64L -
+    uspan->bitmap_headroom - uspan->bitmap_padding;
 
   mask = ~(1UL << _addr_bmbit);
   old_bmap = atomic_fetch_and_explicit(&bmap[_addr_bmidx],
@@ -110,7 +112,7 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
   op_assert(old_bmap & (1UL << _addr_bmbit),
             "Double free address %p\n", addr);
   if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
-                                     memory_order_acq_rel) == 1)
+                                memory_order_acq_rel) == 1)
     {
       if (!atomic_book_critical(&uspan->pcard))
         {
@@ -152,7 +154,9 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
 
   while (1)
     {
-      if (atomic_load_explicit(&uspan->state, memory_order_acquire)
+      if (atomic_load_explicit(&uspan->obj_cnt, memory_order_acquire)
+          > obj_capacity / 2 ||
+          atomic_load_explicit(&uspan->state, memory_order_acquire)
           == SPAN_ENQUEUED)
         {
           atomic_check_out(&uspan->pcard);
