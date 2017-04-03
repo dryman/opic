@@ -131,8 +131,8 @@ test_ObtainHugeSpanPtr_firstBMap(void** state)
   // test first hpage
   first_hpage = (uintptr_t)&heap->hpage;
   heap_base = (uintptr_t)heap;
-  heap->occupy_bmap[0] = 0x01;
-  heap->header_bmap[0] = 0x01;
+  atomic_store(&heap->occupy_bmap[0], 0x01);
+  atomic_store(&heap->header_bmap[0], 0x01);
 
   assert_ptr_equal
     (first_hpage,
@@ -151,8 +151,8 @@ test_ObtainHugeSpanPtr_firstBMap(void** state)
      ObtainHugeSpanPtr((void*)(heap_base + HPAGE_SIZE - 1))
      .hpage);
 
-  heap->occupy_bmap[0] = 0x03;
-  heap->header_bmap[0] = 0x03;
+  atomic_store(&heap->occupy_bmap[0], 0x03);
+  atomic_store(&heap->header_bmap[0], 0x03);
   second_hpage = heap_base + HPAGE_SIZE;
   assert_ptr_equal
     (first_hpage,
@@ -175,8 +175,8 @@ test_ObtainHugeSpanPtr_firstBMap(void** state)
      ObtainHugeSpanPtr((void*)(heap_base + 2 * HPAGE_SIZE - 1))
      .hpage);
 
-  heap->occupy_bmap[0] = 0x13;
-  heap->header_bmap[0] = 0x13;
+  atomic_store(&heap->occupy_bmap[0], 0x13);
+  atomic_store(&heap->header_bmap[0], 0x13);
   isolated_hpage = heap_base + 4 * HPAGE_SIZE;
   assert_ptr_equal
     (isolated_hpage,
@@ -187,8 +187,8 @@ test_ObtainHugeSpanPtr_firstBMap(void** state)
      ObtainHugeSpanPtr((void*)(heap_base + 5 * HPAGE_SIZE - 1))
      .hpage);
 
-  heap->occupy_bmap[0] = 0xFFFF3;
-  heap->header_bmap[0] = 0x13;
+  atomic_store(&heap->occupy_bmap[0], 0xFFFF3);
+  atomic_store(&heap->header_bmap[0], 0x13);
   hblob = heap_base + 4 * HPAGE_SIZE;
   assert_ptr_equal
     (hblob,
@@ -216,9 +216,9 @@ test_ObtainHugeSpanPtr_crossBMap(void** state)
 
   heap_base = (uintptr_t)heap;
   hblob = heap_base + 4 * HPAGE_SIZE;
-  heap->occupy_bmap[0] = ~0UL;
-  heap->occupy_bmap[1] = 0x01;
-  heap->header_bmap[0] = 0x1F;
+  atomic_store(&heap->occupy_bmap[0], ~0UL);
+  atomic_store(&heap->occupy_bmap[1], 0x01);
+  atomic_store(&heap->header_bmap[0], 0x1F);
   assert_ptr_equal
     (hblob,
      ObtainHugeSpanPtr((void*)(heap_base + 4 * HPAGE_SIZE))
@@ -236,10 +236,10 @@ test_ObtainHugeSpanPtr_crossBMap(void** state)
      ObtainHugeSpanPtr((void*)(heap_base + 65 * HPAGE_SIZE - 1))
      .hpage);
 
-  heap->occupy_bmap[1] = ~0UL;
-  heap->occupy_bmap[2] = ~0UL;
-  heap->occupy_bmap[3] = ~0UL;
-  heap->occupy_bmap[4] = 0x01;
+  atomic_store(&heap->occupy_bmap[1], ~0UL);
+  atomic_store(&heap->occupy_bmap[2], ~0UL);
+  atomic_store(&heap->occupy_bmap[3], ~0UL);
+  atomic_store(&heap->occupy_bmap[4], 0x01);
   assert_ptr_equal
     (hblob,
      ObtainHugeSpanPtr((void*)(heap_base + 4 * 64 * HPAGE_SIZE))
@@ -260,11 +260,11 @@ test_HPageObtainSmallSpanPtr(void** context)
   hpage_base = heap_base + HPAGE_SIZE;
   hpage = (HugePage*)hpage_base;
 
-  hpage->occupy_bmap[0] = 0x10FF;
-  hpage->header_bmap[0] = 0x1001;
-  hpage->occupy_bmap[1] = ~0UL;
-  hpage->header_bmap[1] = 0x1F;
-  hpage->occupy_bmap[2] = ~0UL;
+  atomic_store(&hpage->occupy_bmap[0], 0x10FF);
+  atomic_store(&hpage->header_bmap[0], 0x1001);
+  atomic_store(&hpage->occupy_bmap[1], ~0UL);
+  atomic_store(&hpage->header_bmap[1], 0x1F);
+  atomic_store(&hpage->occupy_bmap[2], ~0UL);
 
   first_uspan = hpage_base + sizeof(HugePage);
   isolated_uspan = hpage_base + 12 * SPAGE_SIZE;
@@ -340,17 +340,17 @@ test_HPageObtainSmallSpanPtr_firstHPage(void** context)
   assert_true(OPHeapNew(&heap));
   heap_base = (uintptr_t)heap;
 
-  heap->occupy_bmap[0] = 0x01;
-  heap->header_bmap[0] = 0x01;
+  atomic_store(&heap->occupy_bmap[0], 0x01);
+  atomic_store(&heap->header_bmap[0], 0x01);
 
   hpage = ObtainHugeSpanPtr(heap).hpage;
   assert_ptr_equal(&heap->hpage, hpage);
 
-  hpage->occupy_bmap[0] = ~0UL;
-  hpage->occupy_bmap[1] = ~0UL;
-  hpage->occupy_bmap[2] = ~0UL;
-  hpage->header_bmap[2] = 0x01;
-  hpage->occupy_bmap[3] = ~0UL;
+  atomic_store(&hpage->occupy_bmap[0], ~0UL);
+  atomic_store(&hpage->occupy_bmap[1], ~0UL);
+  atomic_store(&hpage->occupy_bmap[2], ~0UL);
+  atomic_store(&hpage->header_bmap[2], 0x01);
+  atomic_store(&hpage->occupy_bmap[3], ~0UL);
 
   cross_bmap_uspan = heap_base + 128 * SPAGE_SIZE;
 
