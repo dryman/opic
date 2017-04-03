@@ -80,8 +80,8 @@ test_OPHeapObtainHPage_FullSize(void** context)
   assert_int_equal(0, heap->pcard);
 
   // test if we can fill the hole
-  heap->occupy_bmap[0] = 0xFFCFUL;
-  heap->header_bmap[0] = 0xFFCFUL;
+  atomic_store(&heap->occupy_bmap[0], 0xFFCFUL);
+  atomic_store(&heap->header_bmap[0], 0xFFCFUL);
   test_bmap[0] = 0XFFDFUL;
   hpage_base = heap_base + 4 * HPAGE_SIZE;
   assert_true(OPHeapObtainHPage(heap, &ctx));
@@ -99,8 +99,8 @@ test_OPHeapObtainHPage_FullSize(void** context)
 
   memset(test_bmap, 0xFF, sizeof(test_bmap));
 
-  heap->occupy_bmap[0] = ~0UL;
-  heap->header_bmap[0] = ~0UL;
+  atomic_store(&heap->occupy_bmap[0], ~0UL);
+  atomic_store(&heap->header_bmap[0], ~0UL);
 
   for (int i = 0; i < (HPAGE_BMAP_NUM - 1) * 64; i++)
     {
@@ -511,9 +511,9 @@ test_HPageObtainSSpan(void** context)
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
-  hpage->occupy_bmap[0] = 0;
-  hpage->occupy_bmap[1] = 0;
-  hpage->header_bmap[0] = 0;
+  atomic_store(&hpage->occupy_bmap[0], 0);
+  atomic_store(&hpage->occupy_bmap[1], 0);
+  atomic_store(&hpage->header_bmap[0], 0);
   //                 7654321076543210
   occupy_bmap[0] = 0xFFFFFFFFFFFFFFFEUL;
   occupy_bmap[1] = 0x0000000000000001UL;
