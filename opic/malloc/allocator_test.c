@@ -169,6 +169,7 @@ test_OPHeapObtainHPage_SmallSize(void** context)
   assert_false(OPHeapObtainHPage(heap, &ctx));
   assert_int_equal(0, heap->pcard);
 
+  heap->hpage_num = HPAGE_BMAP_NUM * 64;
   OPHeapDestroy(heap);
 }
 
