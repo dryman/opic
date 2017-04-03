@@ -69,6 +69,18 @@ ObtainOPHeap(void* addr)
   return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE - 1));
 }
 
+static inline uintptr_t
+OPPtr2Ref(void* addr)
+{
+  return (uintptr_t)addr & (OPHEAP_SIZE - 1);
+}
+
+static inline void*
+OPRef2Ptr(void* ptr_in_heap, uintptr_t ref)
+{
+  return (void*)((uintptr_t)ObtainOPHeap(ptr_in_heap) + ref);
+}
+
 void*
 OPMallocRaw(OPHeap* heap, size_t size)
   __attribute__ ((malloc));

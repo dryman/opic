@@ -342,6 +342,7 @@ test_OPHeapEmptiedBMaps(void** context)
   test_bmap[0] = 0UL;
   assert_memory_equal(test_bmap, heap->occupy_bmap,
                       HPAGE_BMAP_NUM * sizeof(uint64_t));
+  heap->hpage_num = HPAGE_BMAP_NUM * 64;
   OPHeapDestroy(heap);
 }
 

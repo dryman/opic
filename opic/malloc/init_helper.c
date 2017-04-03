@@ -86,7 +86,7 @@ OPHeapNewFromFile(OPHeap** heap_ref, FILE fd)
 void
 OPHeapDestroy(OPHeap* heap)
 {
-  munmap(heap, OPHEAP_SIZE);
+  munmap(heap, heap->hpage_num * HPAGE_SIZE);
 }
 
 void
