@@ -77,10 +77,10 @@ test_OPHeapReleaseHSpan_1Page(void** context)
   occupy_bmap[1] = 0x0F;
   header_bmap[0] = 0x0F;
   header_bmap[1] = 0x0F;
-  heap->occupy_bmap[0] = 0x0F;
-  heap->header_bmap[0] = 0x0F;
-  heap->occupy_bmap[1] = 0x0F;
-  heap->header_bmap[1] = 0x0F;
+  atomic_store(&heap->occupy_bmap[0], 0x0F);
+  atomic_store(&heap->header_bmap[0], 0x0F);
+  atomic_store(&heap->occupy_bmap[1], 0x0F);
+  atomic_store(&heap->header_bmap[1], 0x0F);
 
   raw_hpage_magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
   hblob_magic.huge_blob.pattern = HUGE_BLOB_PATTERN;
@@ -174,11 +174,11 @@ test_OPHeapReleaseHSpan_smallHBlob(void** context)
   assert_true(OPHeapNew(&heap));
   heap_base = (uintptr_t)heap;
 
-  //                       7654321076543210
-  heap->occupy_bmap[0] = 0x0000000FFFFFFFFFUL;
-  heap->header_bmap[0] = 0x0000000000000103UL;
-  heap->occupy_bmap[1] = 0xFFFFFFFFFFFFFFFFUL;
-  heap->header_bmap[1] = 0x0000000100000001UL;
+  //                                    7654321076543210
+  atomic_store(&heap->occupy_bmap[0], 0x0000000FFFFFFFFFUL);
+  atomic_store(&heap->header_bmap[0], 0x0000000000000103UL);
+  atomic_store(&heap->occupy_bmap[1], 0xFFFFFFFFFFFFFFFFUL);
+  atomic_store(&heap->header_bmap[1], 0x0000000100000001UL);
   occupy_bmap[0] = heap->occupy_bmap[0];
   header_bmap[0] = heap->header_bmap[0];
   occupy_bmap[1] = heap->occupy_bmap[1];
@@ -244,18 +244,18 @@ test_OPHeapReleaseHSpan_lageHBlob(void** context)
   assert_true(OPHeapNew(&heap));
   heap_base = (uintptr_t)heap;
 
-  //                       7654321076543210
-  heap->occupy_bmap[0] = 0xFFFFFFFF00000000UL;
-  heap->header_bmap[0] = 0x0000000100000000UL;
-  heap->occupy_bmap[1] = 0xFFFFFFFFFFFFFFFFUL;
-  heap->header_bmap[1] = 0x0000000100000000UL;
-  heap->occupy_bmap[2] = 0xFFFFFFFFFFFFFFFFUL;
-  heap->header_bmap[2] = 0x0000000000000000UL;
-  heap->occupy_bmap[3] = 0xFFFFFFFFFFFFFFF0UL;
-  heap->header_bmap[3] = 0x8000000000000010UL;
-  heap->occupy_bmap[4] = 0xFFFFFFFFFFFFFFFFUL;
-  heap->occupy_bmap[5] = 0xFFFFFFFFFFFFFFFFUL;
-  heap->occupy_bmap[6] = 0x0000000000000001UL;
+  //                                    7654321076543210
+  atomic_store(&heap->occupy_bmap[0], 0xFFFFFFFF00000000UL);
+  atomic_store(&heap->header_bmap[0], 0x0000000100000000UL);
+  atomic_store(&heap->occupy_bmap[1], 0xFFFFFFFFFFFFFFFFUL);
+  atomic_store(&heap->header_bmap[1], 0x0000000100000000UL);
+  atomic_store(&heap->occupy_bmap[2], 0xFFFFFFFFFFFFFFFFUL);
+  atomic_store(&heap->header_bmap[2], 0x0000000000000000UL);
+  atomic_store(&heap->occupy_bmap[3], 0xFFFFFFFFFFFFFFF0UL);
+  atomic_store(&heap->header_bmap[3], 0x8000000000000010UL);
+  atomic_store(&heap->occupy_bmap[4], 0xFFFFFFFFFFFFFFFFUL);
+  atomic_store(&heap->occupy_bmap[5], 0xFFFFFFFFFFFFFFFFUL);
+  atomic_store(&heap->occupy_bmap[6], 0x0000000000000001UL);
   occupy_bmap[0] = heap->occupy_bmap[0];
   header_bmap[0] = heap->header_bmap[0];
   occupy_bmap[1] = heap->occupy_bmap[1];
@@ -338,8 +338,8 @@ test_HPageReleaseSSpan(void** context)
 
   assert_true(OPHeapNew(&heap));
   heap_base = (uintptr_t)heap;
-  heap->occupy_bmap[0] = 0x07;
-  heap->header_bmap[0] = 0x07;
+  atomic_store(&heap->occupy_bmap[0], 0x07);
+  atomic_store(&heap->header_bmap[0], 0x07);
   hmagic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
   ctx.hqueue = &heap->raw_type.hpage_queue;
   ctx.hspan.uintptr = heap_base + HPAGE_SIZE;
@@ -377,8 +377,8 @@ test_HPageReleaseSSpan(void** context)
   hpage1 = ctx.hspan.hpage;
   HPageInit(hpage1, hmagic);
   hpage1->state = SPAN_DEQUEUED;
-  hpage1->occupy_bmap[2] = 0x01UL;
-  hpage1->header_bmap[2] = 0x01UL;
+  atomic_store(&hpage1->occupy_bmap[2], 0x01UL);
+  atomic_store(&hpage1->header_bmap[2], 0x01UL);
   HPageObtainUSpan(&ctx, 1, false);
   ctx.sspan.magic->small_blob.pattern = SMALL_BLOB_PATTERN;
   ctx.sspan.magic->small_blob.pages = 1;
@@ -410,9 +410,9 @@ test_HPageReleaseSSpan(void** context)
   ctx.sspan.uintptr = heap_base + 2 * HPAGE_SIZE + sizeof(HugePage);
   uspan = ctx.sspan.uspan;
   USpanInit(uspan, umagic, 128);
-  hpage3->occupy_bmap[0] = ~0UL;
-  hpage3->occupy_bmap[1] = ~0UL;
-  hpage3->header_bmap[0] = 1UL;
+  atomic_store(&hpage3->occupy_bmap[0], ~0UL);
+  atomic_store(&hpage3->occupy_bmap[1], ~0UL);
+  atomic_store(&hpage3->header_bmap[0], 1UL);
   HPageReleaseSSpan(hpage3, uspan);
   assert_ptr_equal(hpage1, hqueue->hpage);
   assert_ptr_equal(hpage2, hqueue->hpage->next);
@@ -455,16 +455,16 @@ test_USpanReleaseAddr(void** context)
 
   assert_true(OPHeapNew(&heap));
   heap_base = (uintptr_t)heap;
-  heap->occupy_bmap[0] = 0x02UL;
-  heap->header_bmap[0] = 0x02UL;
+  atomic_store(&heap->occupy_bmap[0], 0x02UL);
+  atomic_store(&heap->header_bmap[0], 0x02UL);
 
   hmagic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
   hpage = (HugePage*)(heap_base + HPAGE_SIZE);
   HPageInit(hpage, hmagic);
-  hpage->occupy_bmap[0] = ~0UL;
-  hpage->header_bmap[0] = 0x07;
-  hpage->occupy_bmap[1] = 0x07;
-  hpage->header_bmap[1] = 0x04;
+  atomic_store(&hpage->occupy_bmap[0], ~0UL);
+  atomic_store(&hpage->header_bmap[0], 0x07);
+  atomic_store(&hpage->occupy_bmap[1], 0x07);
+  atomic_store(&hpage->header_bmap[1], 0x04);
 
   sspan1.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
   sspan2.uintptr = heap_base + HPAGE_SIZE + 2 * SPAGE_SIZE;
