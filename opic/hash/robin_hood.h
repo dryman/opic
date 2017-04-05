@@ -48,6 +48,7 @@
 #ifndef OPIC_HASH_ROBIN_HOOD_H
 #define OPIC_HASH_ROBIN_HOOD_H 1
 
+#include <stdbool.h>
 #include "opic/common/op_macros.h"
 
 OP_BEGIN_DECLS

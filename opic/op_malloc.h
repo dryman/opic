@@ -49,6 +49,7 @@
 #ifndef OP_MALLOC_H
 #define OP_MALLOC_H 1
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "opic/common/op_macros.h"
 

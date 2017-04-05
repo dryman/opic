@@ -46,6 +46,7 @@
 /* Code: */
 
 #include <math.h>
+#include <stdio.h> // TODO remove this
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
@@ -66,7 +67,7 @@ struct RobinHoodHash
   uint32_t seed;
   size_t keysize;
   uint64_t* bmap;
-  opref_t* key;
+  uint8_t* key;
   opref_t* value;
 
   uint64_t reserved[8];
@@ -107,7 +108,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   (*rhh)->seed = seed;
   (*rhh)->keysize = keysize;
   (*rhh)->bmap = (uint64_t*)(rhh_base + malloc_header_size);
-  (*rhh)->key = (opref_t*)(rhh_base + malloc_header_size + malloc_bmap_size);
+  (*rhh)->key = (uint8_t*)(rhh_base + malloc_header_size + malloc_bmap_size);
   (*rhh)->value = (opref_t*)(rhh_base + malloc_header_size + malloc_bmap_size +
                              malloc_key_size);
   return true;
@@ -121,20 +122,31 @@ RHHDestroy(RobinHoodHash* rhh)
 
 
 static inline uint64_t
-hash(RobinHoodHash* rhh, void* key)
+hash(RobinHoodHash* rhh, int seed, void* key)
 {
   uint64_t hashed_val[2];
-  MurmurHash3_x64_128(key, rhh->keysize, rhh->seed, hashed_val);
+  MurmurHash3_x64_128(key, rhh->keysize, seed, hashed_val);
   return hashed_val[1];
+  // uint64_t kk = *(uint64_t*)key;
+  // return (((((((17 * kk) % 163307llu + kk) * 1597llu
+  //             + kk) * 2074129llu) % 110477914016779llu
+  //           + kk) * 25717llu) + 4027llu * kk)
+  //   % 905035071625626043llu;
 }
 
 static inline uintptr_t
 hash_with_probe(RobinHoodHash* rhh, void* key, int probe)
 {
+  /*
   int probe_offset;
   probe = probe - rhh->expected_probes;
-  probe_offset = probe < 0 ? -2 * probe - 1 : 2 * probe;
+  probe_offset = probe > 2 * rhh->expected_probes ?
+    probe : probe < 0 ?
+    -2 * probe - 1 :
+    2 * probe;
   return (hash(rhh, key) + probe_offset * probe_offset) % rhh->capacity;
+  */
+  return hash(rhh, rhh->seed + probe * probe, key) % rhh->capacity;
 }
 
 static inline int
@@ -145,12 +157,31 @@ findprobe(RobinHoodHash* rhh, uintptr_t idx)
   int probe_offset;
 
   key_real_location = idx * keysize;
-  key_base_location = hash(rhh, &rhh->key[key_real_location])
+  for (int i = 0; i <= rhh->longest_probes; i++)
+    {
+      if (hash_with_probe(rhh, &rhh->key[idx * keysize], i) == idx)
+        {
+          printf("probe offset: %d\n", i);
+          return i;
+        }
+    }
+  printf("Didn't find any match probe!\n");
+  return -1;
+  /*
+  key_base_location = hash(rhh, rhh->seed, &rhh->key[key_real_location])
     % rhh->capacity;
   if (key_real_location < key_base_location)
     key_real_location += rhh->capacity;
-  probe_offset = key_real_location - key_base_location;
-  if (probe_offset & 0x01)
+  probe_offset = (int)sqrt(key_real_location - key_base_location);
+  printf("probe offset: %d\n", probe_offset);
+  return probe_offset;
+  */
+  /*
+  if (probe_offset > 2 * rhh->expected_probes)
+    {
+      return probe_offset;
+    }
+  else if (probe_offset & 0x01)
     {
       return rhh->expected_probes - ((probe_offset + 1) / 2);
     }
@@ -158,6 +189,7 @@ findprobe(RobinHoodHash* rhh, uintptr_t idx)
     {
       return rhh->expected_probes + (probe_offset / 2);
     }
+  */
 }
 
 bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
@@ -167,10 +199,8 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
   int probe, old_probe;
   uint8_t key_cpy[keysize];
   uint8_t key_tmp[keysize];
-  uint8_t empty_key[keysize];
   opref_t val_cpy, val_tmp;
 
-  memset(empty_key, 0x00, keysize);
   memcpy(key_cpy, key, keysize);
   val_cpy = val_ref;
 
@@ -199,6 +229,8 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
           rhh->value[idx] = val_cpy;
           return true;
         }
+      printf("key: %.22s with idx %d, old key: %.22s\n",
+             (char*)key_cpy, (int)idx, (char*)&rhh->key[idx * keysize]);
       old_probe = findprobe(rhh, idx);
       if (probe > old_probe)
         {
@@ -225,7 +257,7 @@ bool RHHSearchInternal(RobinHoodHash* rhh, void* key, uintptr_t* match_idx)
   uintptr_t idx, bmidx, bmbit;
 
   keysize = rhh->keysize;
-  key_raw_hash = hash(rhh, key);
+  key_raw_hash = hash(rhh, rhh->seed, key);
   for (int i = 0; i < rhh->expected_probes * 2; i++)
     {
       idx = (key_raw_hash + i * i) % rhh->capacity;
