@@ -48,6 +48,7 @@
 #include <sys/mman.h>
 #include <stdio.h>
 #include <string.h>
+#include "opic/common/op_utils.h"
 #include "lookup_helper.h"
 #include "init_helper.h"
 

@@ -49,6 +49,8 @@
 
 OP_BEGIN_DECLS
 
+#define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)
+
 static inline int fftstr1 (uint32_t x, int n)
 {
   int s;

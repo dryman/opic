@@ -49,116 +49,167 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include "opic/common/op_utils.h"
 #include "opic/op_malloc.h"
 #include "murmurhash3.h"
 #include "robin_hood.h"
 
 // for experiment and benchmark, let's define macro for now
 
-struct FixWidthRobinHoodHash
+struct RobinHoodHash
 {
   uint64_t capacity;
   uint64_t objcnt_limit;
   uint64_t objcnt;
-  int32_t expected_probes;
-  int32_t longest_probes;
+  int16_t expected_probes;
+  int16_t longest_probes;
   uint32_t seed;
   size_t keysize;
-  uintptr_t* key;
-  uintptr_t* value;
+  uint64_t* bmap;
+  opref_t* key;
+  opref_t* value;
+
+  uint64_t reserved[8];
   // Use enum to choose hash function? (extra branch here..)
   // Need to benchmark to see the enum overhead
   // candidates: xxhash, highwayhash
 };
 
+bool
+RHHNew(OPHeap* heap, RobinHoodHash** rhh,
+       uint64_t num_objects, double load, size_t keysize, uint32_t seed)
+{
+  uint64_t capacity;
+  double expected_probes;
+  size_t malloc_total_size, malloc_header_size, malloc_bmap_size,
+    malloc_key_size, malloc_val_size;
+  uintptr_t rhh_base;
+
+  expected_probes = -log(1-load) / load;
+  capacity = (uint64_t)(num_objects / load);
+
+  malloc_header_size = sizeof(RobinHoodHash);
+  malloc_bmap_size = round_up_div(capacity, 64) * sizeof(uint64_t);
+  malloc_key_size = keysize * capacity;
+  malloc_val_size = sizeof(opref_t) * capacity;
+  malloc_total_size = malloc_header_size + malloc_bmap_size +
+    malloc_key_size + malloc_val_size;
+
+  *rhh = OPMallocRaw(heap, malloc_total_size);
+  if (!*rhh)
+    return false;
+
+  rhh_base = (uintptr_t)(*rhh);
+  memset(*rhh, 0x00, malloc_total_size);
+  (*rhh)->capacity = capacity;
+  (*rhh)->objcnt_limit = num_objects;
+  (*rhh)->expected_probes = (int16_t) expected_probes;
+  (*rhh)->seed = seed;
+  (*rhh)->keysize = keysize;
+  (*rhh)->bmap = (uint64_t*)(rhh_base + malloc_header_size);
+  (*rhh)->key = (opref_t*)(rhh_base + malloc_header_size + malloc_bmap_size);
+  (*rhh)->value = (opref_t*)(rhh_base + malloc_header_size + malloc_bmap_size +
+                             malloc_key_size);
+  return true;
+}
+
+void
+RHHDestroy(RobinHoodHash* rhh)
+{
+  OPDealloc(rhh);
+}
+
+
 static inline uint64_t
-hash(FixWidthRobinHoodHash* fwrhh, void* key)
+hash(RobinHoodHash* rhh, void* key)
 {
   uint64_t hashed_val[2];
-  MurmurHash3_x64_128(key, fwrhh->keysize, fwrhh->seed, hashed_val);
+  MurmurHash3_x64_128(key, rhh->keysize, rhh->seed, hashed_val);
   return hashed_val[1];
 }
 
 static inline uintptr_t
-hash_with_probe(FixWidthRobinHoodHash* fwrhh, void* key, int probe)
+hash_with_probe(RobinHoodHash* rhh, void* key, int probe)
 {
   int probe_offset;
-  probe = probe - fwrhh->expected_probes;
+  probe = probe - rhh->expected_probes;
   probe_offset = probe < 0 ? -2 * probe - 1 : 2 * probe;
-  return (hash(fwrhh, key) + probe_offset * probe_offset) % fwrhh->capacity;
+  return (hash(rhh, key) + probe_offset * probe_offset) % rhh->capacity;
 }
 
 static inline int
-findprobe(FixWidthRobinHoodHash* fwrhh, uintptr_t idx)
+findprobe(RobinHoodHash* rhh, uintptr_t idx)
 {
-  const size_t keysize = fwrhh->keysize;
+  const size_t keysize = rhh->keysize;
   uintptr_t key_base_location, key_real_location;
   int probe_offset;
 
   key_real_location = idx * keysize;
-  key_base_location = hash(fwrhh, &fwrhh->key[key_real_location])
-    % fwrhh->capacity;
+  key_base_location = hash(rhh, &rhh->key[key_real_location])
+    % rhh->capacity;
   if (key_real_location < key_base_location)
-    key_real_location += fwrhh->capacity;
+    key_real_location += rhh->capacity;
   probe_offset = key_real_location - key_base_location;
   if (probe_offset & 0x01)
     {
-      return fwrhh->expected_probes - ((probe_offset + 1) / 2);
+      return rhh->expected_probes - ((probe_offset + 1) / 2);
     }
   else
     {
-      return fwrhh->expected_probes + (probe_offset / 2);
+      return rhh->expected_probes + (probe_offset / 2);
     }
 }
 
-bool insertKV(FixWidthRobinHoodHash* fwrhh, void* key, void* value)
+bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
 {
-  const size_t keysize = fwrhh->keysize;
-  uintptr_t idx;
+  const size_t keysize = rhh->keysize;
+  uintptr_t idx, bmidx, bmbit;
   int probe, old_probe;
   uint8_t key_cpy[keysize];
   uint8_t key_tmp[keysize];
   uint8_t empty_key[keysize];
-  uintptr_t val_cpy;
-  uintptr_t val_tmp;
+  opref_t val_cpy, val_tmp;
 
   memset(empty_key, 0x00, keysize);
   memcpy(key_cpy, key, keysize);
-  val_cpy = OPPtr2Ref(value);
+  val_cpy = val_ref;
 
-  if (fwrhh->objcnt >= fwrhh->objcnt_limit)
+  if (rhh->objcnt >= rhh->objcnt_limit)
     return false;
 
   probe = 0;
   while (true)
     {
-      idx = hash_with_probe(fwrhh, key_cpy, probe);
-      if (!memcmp(&fwrhh->key[idx * keysize], empty_key, keysize))
+      idx = hash_with_probe(rhh, key_cpy, probe);
+      bmidx = idx / 64;
+      bmbit = idx % 64;
+      if (!(rhh->bmap[bmidx] & (1UL << bmbit)))
         {
-          memcpy(&fwrhh->key[idx * keysize], key_cpy, keysize);
-          fwrhh->value[idx] = val_cpy;
-          fwrhh->longest_probes = probe > fwrhh->longest_probes ?
-            probe : fwrhh->longest_probes;
-          fwrhh->objcnt++;
+          memcpy(&rhh->key[idx * keysize], key_cpy, keysize);
+          rhh->bmap[bmidx] |= 1UL << bmbit;
+          rhh->value[idx] = val_cpy;
+          rhh->longest_probes = probe > rhh->longest_probes ?
+            probe : rhh->longest_probes;
+          rhh->objcnt++;
           return true;
         }
-      else if (!memcmp(&fwrhh->key[idx * keysize], key_cpy, keysize))
+      else if (!memcmp(&rhh->key[idx * keysize], key_cpy, keysize))
         {
           // TODO log duplicate key
-          fwrhh->value[idx] = val_cpy;
+          rhh->value[idx] = val_cpy;
           return true;
         }
-      old_probe = findprobe(fwrhh, idx);
+      old_probe = findprobe(rhh, idx);
       if (probe > old_probe)
         {
-          memcpy(key_tmp, &fwrhh->key[idx * keysize], keysize);
-          memcpy(&fwrhh->key[idx * keysize], key_cpy, keysize);
+          memcpy(key_tmp, &rhh->key[idx * keysize], keysize);
+          memcpy(&rhh->key[idx * keysize], key_cpy, keysize);
           memcpy(key_cpy, key_tmp, keysize);
-          val_tmp = fwrhh->value[idx];
-          fwrhh->value[idx] = val_cpy;
+          val_tmp = rhh->value[idx];
+          rhh->value[idx] = val_cpy;
           val_cpy = val_tmp;
-          fwrhh->longest_probes = probe > fwrhh->longest_probes ?
-            probe : fwrhh->longest_probes;
+          rhh->longest_probes = probe > rhh->longest_probes ?
+            probe : rhh->longest_probes;
           probe = old_probe;
         }
       else
@@ -166,18 +217,35 @@ bool insertKV(FixWidthRobinHoodHash* fwrhh, void* key, void* value)
     }
 }
 
-bool search(FixWidthRobinHoodHash* fwrhh, void* key, uintptr_t* match_idx)
+static inline
+bool RHHSearchInternal(RobinHoodHash* rhh, void* key, uintptr_t* match_idx)
 {
   size_t keysize;
   uint64_t key_raw_hash;
-  uintptr_t idx;
+  uintptr_t idx, bmidx, bmbit;
 
-  keysize = fwrhh->keysize;
-  key_raw_hash = hash(fwrhh, key);
-  for (int i = 0; i < fwrhh->longest_probes; i++)
+  keysize = rhh->keysize;
+  key_raw_hash = hash(rhh, key);
+  for (int i = 0; i < rhh->expected_probes * 2; i++)
     {
-      idx = (key_raw_hash + i * i) % fwrhh->capacity;
-      if (!memcmp(key, &fwrhh->key[idx * keysize], keysize))
+      idx = (key_raw_hash + i * i) % rhh->capacity;
+      bmidx = idx / 64;
+      bmbit = idx % 64;
+      if (rhh->bmap[bmidx] & (1UL << bmbit) &&
+          !memcmp(key, &rhh->key[idx * keysize], keysize))
+        {
+          *match_idx = idx;
+          return true;
+        }
+    }
+  for (int i = rhh->expected_probes * 2; i < rhh->longest_probes; i++)
+    {
+      idx = (key_raw_hash + i * i) % rhh->capacity;
+      bmidx = idx / 64;
+      bmbit = idx % 64;
+      if (!(rhh->bmap[bmidx] & (1UL << bmbit)))
+        return false;
+      if (!memcmp(key, &rhh->key[idx * keysize], keysize))
         {
           *match_idx = idx;
           return true;
@@ -186,49 +254,22 @@ bool search(FixWidthRobinHoodHash* fwrhh, void* key, uintptr_t* match_idx)
   return false;
 }
 
-void*
-robin_hood_get(FixWidthRobinHoodHash* fwrhh, void* key)
+bool RHHSearch(RobinHoodHash* rhh, void* key, opref_t* val)
 {
   uintptr_t match_idx;
-  if (search(fwrhh, key, &match_idx))
-    return OPRef2Ptr(fwrhh, fwrhh->value[match_idx]);
+  if (RHHSearchInternal(rhh, key, &match_idx))
+    {
+      *val = rhh->value[match_idx];
+      return true;
+    }
+  return false;
+}
+
+void* RHHGet(RobinHoodHash* rhh, void* key)
+{
+  uintptr_t match_idx;
+  if (RHHSearchInternal(rhh, key, &match_idx))
+    return OPRef2Ptr(rhh, rhh->value[match_idx]);
   return NULL;
 }
-
-bool
-RHH_new(OPHeap* heap, FixWidthRobinHoodHash** fwrhh,
-        uint64_t size, double load, size_t keysize, uint32_t seed)
-{
-  uint64_t capacity;
-  double capacity_d, expected_probes_d;
-  size_t malloc_size;
-  uintptr_t fwrhh_base;
-  capacity = (uint64_t)(size / load);
-  capacity_d = (double)capacity;
-  expected_probes_d = log(capacity_d / (capacity_d - size)) * capacity_d / size;
-  malloc_size = sizeof(FixWidthRobinHoodHash) +
-    (keysize + sizeof(uintptr_t)) * capacity;
-  *fwrhh = OPMallocRaw(heap, malloc_size);
-  if (!*fwrhh)
-    return false;
-
-  fwrhh_base = (uintptr_t)(*fwrhh);
-  memset(*fwrhh, 0x00, malloc_size);
-  (*fwrhh)->capacity = capacity;
-  (*fwrhh)->objcnt_limit = size;
-  (*fwrhh)->expected_probes = (int32_t) expected_probes_d;
-  (*fwrhh)->seed = seed;
-  (*fwrhh)->keysize = keysize;
-  (*fwrhh)->key = (uintptr_t*)(fwrhh_base + sizeof(FixWidthRobinHoodHash));
-  (*fwrhh)->value = (uintptr_t*)(fwrhh_base + sizeof(FixWidthRobinHoodHash) +
-                                 keysize * capacity);
-  return true;
-}
-
-void
-RHH_destroy(FixWidthRobinHoodHash* fwrhh)
-{
-  OPDealloc(fwrhh);
-}
-
 /* robin_hood.c ends here */
