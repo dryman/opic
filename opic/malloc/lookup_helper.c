@@ -47,6 +47,7 @@
 
 #include <inttypes.h>
 #include "opic/common/op_assert.h"
+#include "opic/common/op_utils.h"
 #include "magic.h"
 #include "inline_aux.h"
 #include "lookup_helper.h"

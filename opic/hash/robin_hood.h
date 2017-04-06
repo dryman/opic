@@ -48,19 +48,20 @@
 #ifndef OPIC_HASH_ROBIN_HOOD_H
 #define OPIC_HASH_ROBIN_HOOD_H 1
 
+#include <stdbool.h>
 #include "opic/common/op_macros.h"
 
 OP_BEGIN_DECLS
 
-typedef struct FixWidthRobinHoodHash FixWidthRobinHoodHash;
+typedef struct RobinHoodHash RobinHoodHash;
 
-bool RHH_new(OPHeap* heap, FixWidthRobinHoodHash** fwrhh,
-               uint64_t size, double load, size_t keysize, uint32_t seed);
-
-void RHH_destroy(FixWidthRobinHoodHash* fwrhh);
-
-bool insertKV(FixWidthRobinHoodHash* fwrhh, void* key, void* value);
-void* robin_hood_get(FixWidthRobinHoodHash* fwrhh, void* key);
+bool RHHNew(OPHeap* heap, RobinHoodHash** rhh, uint64_t num_objects,
+            double load, size_t keysize, uint32_t seed);
+void RHHDestroy(RobinHoodHash* rhh);
+bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref);
+bool RHHSearch(RobinHoodHash* rhh, void* key, opref_t* val);
+void* RHHGet(RobinHoodHash* rhh, void* key);
+void RHHPrintStat(RobinHoodHash* rhh);
 
 OP_END_DECLS
 

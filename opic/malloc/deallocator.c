@@ -48,6 +48,7 @@
 #include <string.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
+#include "opic/common/op_utils.h"
 #include "deallocator.h"
 #include "inline_aux.h"
 #include "init_helper.h"

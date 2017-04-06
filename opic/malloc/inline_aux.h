@@ -58,10 +58,6 @@
 
 OP_BEGIN_DECLS
 
-// TODO: may Rewrite with inline function + C11 generics
-#define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)
-
-
 static inline void
 EnqueueUSpan(UnarySpanQueue* uspan_queue, UnarySpan* uspan)
 {

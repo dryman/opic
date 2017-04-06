@@ -49,6 +49,7 @@
 #ifndef OP_MALLOC_H
 #define OP_MALLOC_H 1
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "opic/common/op_macros.h"
 
@@ -58,6 +59,7 @@ OP_BEGIN_DECLS
 #define OPHEAP_SIZE (1UL << OPHEAP_BITS)
 
 typedef struct OPHeap OPHeap;
+typedef uintptr_t opref_t;
 
 bool OPHeapNew(OPHeap** heap_ref);
 
@@ -69,16 +71,16 @@ ObtainOPHeap(void* addr)
   return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE - 1));
 }
 
-static inline uintptr_t
+static inline opref_t
 OPPtr2Ref(void* addr)
 {
-  return (uintptr_t)addr & (OPHEAP_SIZE - 1);
+  return (opref_t)addr & (OPHEAP_SIZE - 1);
 }
 
 static inline void*
-OPRef2Ptr(void* ptr_in_heap, uintptr_t ref)
+OPRef2Ptr(void* ptr_in_heap, opref_t ref)
 {
-  return (void*)((uintptr_t)ObtainOPHeap(ptr_in_heap) + ref);
+  return (void*)((opref_t)ObtainOPHeap(ptr_in_heap) + ref);
 }
 
 void*
