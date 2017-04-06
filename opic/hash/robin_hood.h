@@ -61,6 +61,7 @@ void RHHDestroy(RobinHoodHash* rhh);
 bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref);
 bool RHHSearch(RobinHoodHash* rhh, void* key, opref_t* val);
 void* RHHGet(RobinHoodHash* rhh, void* key);
+void RHHPrintStat(RobinHoodHash* rhh);
 
 OP_END_DECLS
 

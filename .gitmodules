@@ -2,5 +2,5 @@
 	path = doxygen-bootstrapped
 	url = git@github.com:dryman/doxygen-bootstrapped.git
 [submodule "xxHash"]
-	path = xxHash
+	path = opic/hash/xxHash
 	url = https://github.com/Cyan4973/xxHash.git

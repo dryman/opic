@@ -52,6 +52,7 @@
 #include <stdbool.h>
 #include "opic/common/op_utils.h"
 #include "opic/op_malloc.h"
+#include "xxHash/xxhash.h"
 #include "murmurhash3.h"
 #include "robin_hood.h"
 
@@ -69,6 +70,7 @@ struct RobinHoodHash
   uint64_t* bmap;
   uint8_t* key;
   opref_t* value;
+  uint32_t stats[30];
 
   uint64_t reserved[8];
   // Use enum to choose hash function? (extra branch here..)
@@ -124,9 +126,11 @@ RHHDestroy(RobinHoodHash* rhh)
 static inline uint64_t
 hash(RobinHoodHash* rhh, int seed, void* key)
 {
-  uint64_t hashed_val[2];
-  MurmurHash3_x64_128(key, rhh->keysize, seed, hashed_val);
-  return hashed_val[1];
+  return XXH64(key, rhh->keysize, seed);
+  //uint64_t hashed_val[2];
+  //MurmurHash3_x64_128(key, rhh->keysize, seed, hashed_val);
+  //MurmurHash3_x86_32(key, rhh->keysize, seed, hashed_val);
+  //return hashed_val[0];
   // uint64_t kk = *(uint64_t*)key;
   // return (((((((17 * kk) % 163307llu + kk) * 1597llu
   //             + kk) * 2074129llu) % 110477914016779llu
@@ -161,7 +165,7 @@ findprobe(RobinHoodHash* rhh, uintptr_t idx)
     {
       if (hash_with_probe(rhh, &rhh->key[idx * keysize], i) == idx)
         {
-          printf("probe offset: %d\n", i);
+          //printf("probe offset: %d\n", i);
           return i;
         }
     }
@@ -221,6 +225,10 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
           rhh->objcnt++;
+          if (probe < 30)
+            rhh->stats[probe]++;
+          else
+            printf("large probe: %d\n", probe);
           return true;
         }
       else if (!memcmp(&rhh->key[idx * keysize], key_cpy, keysize))
@@ -229,11 +237,20 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
           rhh->value[idx] = val_cpy;
           return true;
         }
-      printf("key: %.22s with idx %d, old key: %.22s\n",
-             (char*)key_cpy, (int)idx, (char*)&rhh->key[idx * keysize]);
       old_probe = findprobe(rhh, idx);
+      /*
+      printf("key: %.6s with probe %d, old key: %.6s with probe: %d\n",
+             (char*)key_cpy, (int)probe,
+             (char*)&rhh->key[idx * keysize], old_probe);
+      */
       if (probe > old_probe)
         {
+          if (old_probe < 30)
+            rhh->stats[old_probe]--;
+          if (probe < 30)
+            rhh->stats[probe]++;
+          else
+            printf("large probe: %d\n", probe);
           memcpy(key_tmp, &rhh->key[idx * keysize], keysize);
           memcpy(&rhh->key[idx * keysize], key_cpy, keysize);
           memcpy(key_cpy, key_tmp, keysize);
@@ -244,9 +261,14 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
             probe : rhh->longest_probes;
           probe = old_probe;
         }
-      else
         probe++;
     }
+}
+
+void RHHPrintStat(RobinHoodHash* rhh)
+{
+  for (int i = 0; i < 30; i++)
+    printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
 static inline
