@@ -112,6 +112,7 @@ int main(int argc, char* argv[])
   struct timeval start, mid, end;
   gettimeofday(&start, NULL);
   run_short_keys(num_power, rhh_put, rhh);
+  printf("insert finished\n");
   gettimeofday(&mid, NULL);
   run_short_keys(num_power, rhh_get, rhh);
   gettimeofday(&end, NULL);
