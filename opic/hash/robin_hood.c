@@ -57,12 +57,7 @@
 #include "murmurhash3.h"
 #include "robin_hood.h"
 
-
-// TODO refactor for general reusability
-static inline uint64_t rotl64 ( uint64_t x, int r )
-{
-  return (x << r) | (x >> (64 - r));
-}
+#define VISIT_IDX_CACHE 16
 
 struct RobinHoodHash
 {
@@ -219,7 +214,7 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
 {
   const size_t keysize = rhh->keysize;
   uintptr_t idx, bmidx, bmbit;
-  uintptr_t visited_idx[16];
+  uintptr_t visited_idx[VISIT_IDX_CACHE];
   int probe, old_probe, visit;
   uint8_t key_cpy[keysize];
   uint8_t key_tmp[keysize];
@@ -235,6 +230,7 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
   visit = 0;
   while (true)
     {
+    next_iter:
       idx = hash_with_probe(rhh, hash(rhh, key_cpy), probe);
       bmidx = idx / 64;
       bmbit = idx % 64;
@@ -267,7 +263,7 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
              (char*)&rhh->key[idx * keysize], old_probe);
       */
 
-      if (visit < 16)
+      if (visit < VISIT_IDX_CACHE)
         {
           for (int i = 0; i < visit; i++)
             {
@@ -275,21 +271,21 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
                 {
                   printf("found visited idx!\n");
                   probe++;
-                  continue;
+                  goto next_iter;
                 }
             }
         }
       else
         {
-          for (int i = visit + 1; i < visit + 16; i++)
-            if (idx == visited_idx[i % 16])
+          for (int i = visit + 1; i < visit + VISIT_IDX_CACHE; i++)
+            if (idx == visited_idx[i % VISIT_IDX_CACHE])
               {
                 printf("found visited idx!\n");
                 probe++;
-                continue;
+                goto next_iter;
               }
         }
-      visited_idx[visit % 16] = idx;
+      visited_idx[visit % VISIT_IDX_CACHE] = idx;
       visit++;
 
       if (probe > old_probe)
