@@ -69,9 +69,13 @@ void rhh_put(char* key, void* context)
 
 void rhh_get(char* key, void* context)
 {
+  static int counter;
   RobinHoodHash* rhh = (RobinHoodHash*)context;
   //op_assert((size_t)RHHGet(rhh, key) == 0, "val is 0");
-  RHHGet(rhh,key);
+  //RHHGet(rhh,key);
+  opref_t val;
+  printf("counter: %d key %s\n", counter++, key);
+  op_assert(RHHSearch(rhh, key, &val), "can find key\n");
 }
 
 

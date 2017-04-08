@@ -57,6 +57,13 @@
 #include "murmurhash3.h"
 #include "robin_hood.h"
 
+
+// TODO refactor for general reusability
+static inline uint64_t rotl64 ( uint64_t x, int r )
+{
+  return (x << r) | (x >> (64 - r));
+}
+
 struct RobinHoodHash
 {
   uint64_t capacity;
@@ -130,11 +137,11 @@ RHHDestroy(RobinHoodHash* rhh)
 
 
 static inline uint64_t
-hash(RobinHoodHash* rhh, int seed, void* key)
+hash(RobinHoodHash* rhh, void* key)
 {
   //return XXH64(key, rhh->keysize, seed);
   uint64_t hashed_val[2];
-  MurmurHash3_x64_128(key, rhh->keysize, seed, hashed_val);
+  MurmurHash3_x64_128(key, rhh->keysize, rhh->seed, hashed_val);
   return hashed_val[0];
 
   //MurmurHash3_x86_32(key, rhh->keysize, seed, hashed_val);
@@ -146,7 +153,7 @@ hash(RobinHoodHash* rhh, int seed, void* key)
 }
 
 static inline uintptr_t
-hash_with_probe(RobinHoodHash* rhh, void* key, int probe)
+hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
 {
   /*
   int probe_offset;
@@ -157,16 +164,13 @@ hash_with_probe(RobinHoodHash* rhh, void* key, int probe)
     2 * probe;
   return (hash(rhh, key) + probe_offset * probe_offset) % rhh->capacity;
   */
-  uint8_t clz = rhh->capacity_clz;
-  uintptr_t mask = (1ULL << (64 - clz)) -1;
-  uintptr_t hashed = hash(rhh, rhh->seed + probe * probe, key);
-  uintptr_t masked = hashed & mask;
+  uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  return ((key >> (probe * probe)) & mask) * rhh->capacity_ms4b >> 4;
   /*
   printf("clz: %d, mask %" PRIxPTR " hashed %"
          PRIxPTR " masked %" PRIxPTR "\n",
          clz, mask, hashed, masked);
   */
-  return (masked * rhh->capacity_ms4b) >> 4;
   //return (hash(rhh, rhh->seed + probe * probe, key) % rhh->capacity);
 }
 
@@ -177,9 +181,10 @@ findprobe(RobinHoodHash* rhh, uintptr_t idx)
 
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
-      if (hash_with_probe(rhh, &rhh->key[idx * keysize], i) == idx)
+      if (hash_with_probe(rhh,
+                          hash(rhh, &rhh->key[idx * keysize]),
+                          i) == idx)
         {
-          //printf("probe offset: %d\n", i);
           return i;
         }
     }
@@ -214,7 +219,7 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
 {
   const size_t keysize = rhh->keysize;
   uintptr_t idx, bmidx, bmbit;
-  uintptr_t visited_idx[32];
+  uintptr_t visited_idx[16];
   int probe, old_probe, visit;
   uint8_t key_cpy[keysize];
   uint8_t key_tmp[keysize];
@@ -230,7 +235,7 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
   visit = 0;
   while (true)
     {
-      idx = hash_with_probe(rhh, key_cpy, probe);
+      idx = hash_with_probe(rhh, hash(rhh, key_cpy), probe);
       bmidx = idx / 64;
       bmbit = idx % 64;
       if (!(rhh->bmap[bmidx] & (1UL << bmbit)))
@@ -262,29 +267,29 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
              (char*)&rhh->key[idx * keysize], old_probe);
       */
 
-      if (visit < 32)
+      if (visit < 16)
         {
-        for (int i = 0; i < visit; i++)
-          {
-          if (idx == visited_idx[i])
+          for (int i = 0; i < visit; i++)
             {
-              printf("found visited idx!\n");
-              probe++;
-              continue;
+              if (idx == visited_idx[i])
+                {
+                  printf("found visited idx!\n");
+                  probe++;
+                  continue;
+                }
             }
-          }
         }
       else
         {
-          for (int i = visit + 1; i < visit + 32; i++)
-            if (idx == visited_idx[i % 32])
+          for (int i = visit + 1; i < visit + 16; i++)
+            if (idx == visited_idx[i % 16])
               {
                 printf("found visited idx!\n");
                 probe++;
                 continue;
               }
         }
-      visited_idx[visit % 32] = idx;
+      visited_idx[visit % 16] = idx;
       visit++;
 
       if (probe > old_probe)
@@ -319,12 +324,15 @@ static inline
 bool RHHSearchInternal(RobinHoodHash* rhh, void* key, uintptr_t* match_idx)
 {
   size_t keysize;
+  uint64_t hashed_key;
   uintptr_t idx, bmidx, bmbit;
 
   keysize = rhh->keysize;
-  for (int probe = 0; probe < rhh->longest_probes; probe++)
+  hashed_key = hash(rhh, key);
+
+  for (int probe = 0; probe <= rhh->longest_probes; probe++)
     {
-      idx = hash_with_probe(rhh, key, probe);
+      idx = hash_with_probe(rhh, hashed_key, probe);
       bmidx = idx / 64;
       bmbit = idx % 64;
       if (!(rhh->bmap[bmidx] & (1UL << bmbit)))
