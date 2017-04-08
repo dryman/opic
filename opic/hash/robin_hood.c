@@ -47,6 +47,7 @@
 
 #include <math.h>
 #include <stdio.h> // TODO remove this
+#include <inttypes.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
@@ -56,14 +57,15 @@
 #include "murmurhash3.h"
 #include "robin_hood.h"
 
-// for experiment and benchmark, let's define macro for now
+#define VISIT_IDX_CACHE 16
 
 struct RobinHoodHash
 {
   uint64_t capacity;
   uint64_t objcnt_limit;
   uint64_t objcnt;
-  int16_t expected_probes;
+  uint8_t capacity_clz;    // leading zeros of capacity
+  uint8_t capacity_ms4b;   // most significant 4 bits
   int16_t longest_probes;
   uint32_t seed;
   size_t keysize;
@@ -83,16 +85,20 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
        uint64_t num_objects, double load, size_t keysize, uint32_t seed)
 {
   uint64_t capacity;
-  double expected_probes;
+  uint32_t capacity_clz, capacity_ms4b, capacity_msb;
   size_t malloc_total_size, malloc_header_size, malloc_bmap_size,
     malloc_key_size, malloc_val_size;
   uintptr_t rhh_base;
 
-  expected_probes = -log(1-load) / load;
   capacity = (uint64_t)(num_objects / load);
+  capacity_clz = __builtin_clzl(capacity);
+  capacity_msb = 64 - capacity_clz;
+  capacity_ms4b = round_up_div(capacity, 1UL << (capacity_msb - 4));
+  capacity_ms4b |= 1;
+  capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
 
   malloc_header_size = sizeof(RobinHoodHash);
-  malloc_bmap_size = round_up_div(capacity, 64) * sizeof(uint64_t);
+  malloc_bmap_size = capacity / 8;
   malloc_key_size = keysize * capacity;
   malloc_val_size = sizeof(opref_t) * capacity;
   malloc_total_size = malloc_header_size + malloc_bmap_size +
@@ -105,14 +111,16 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   rhh_base = (uintptr_t)(*rhh);
   memset(*rhh, 0x00, malloc_total_size);
   (*rhh)->capacity = capacity;
+  (*rhh)->capacity_clz = capacity_clz;
+  (*rhh)->capacity_ms4b = capacity_ms4b;
   (*rhh)->objcnt_limit = num_objects;
-  (*rhh)->expected_probes = (int16_t) expected_probes;
   (*rhh)->seed = seed;
   (*rhh)->keysize = keysize;
   (*rhh)->bmap = (uint64_t*)(rhh_base + malloc_header_size);
   (*rhh)->key = (uint8_t*)(rhh_base + malloc_header_size + malloc_bmap_size);
   (*rhh)->value = (opref_t*)(rhh_base + malloc_header_size + malloc_bmap_size +
                              malloc_key_size);
+  printf("clz: %d\n", (*rhh)->capacity_clz);
   return true;
 }
 
@@ -124,14 +132,15 @@ RHHDestroy(RobinHoodHash* rhh)
 
 
 static inline uint64_t
-hash(RobinHoodHash* rhh, int seed, void* key)
+hash(RobinHoodHash* rhh, void* key)
 {
-  return XXH64(key, rhh->keysize, seed);
-  //uint64_t hashed_val[2];
-  //MurmurHash3_x64_128(key, rhh->keysize, seed, hashed_val);
+  //return XXH64(key, rhh->keysize, seed);
+  uint64_t hashed_val[2];
+  MurmurHash3_x64_128(key, rhh->keysize, rhh->seed, hashed_val);
+  return hashed_val[0];
+
   //MurmurHash3_x86_32(key, rhh->keysize, seed, hashed_val);
-  //return hashed_val[0];
-  // uint64_t kk = *(uint64_t*)key;
+  //uint64_t kk = *(uint64_t*)key;
   // return (((((((17 * kk) % 163307llu + kk) * 1597llu
   //             + kk) * 2074129llu) % 110477914016779llu
   //           + kk) * 25717llu) + 4027llu * kk)
@@ -139,7 +148,7 @@ hash(RobinHoodHash* rhh, int seed, void* key)
 }
 
 static inline uintptr_t
-hash_with_probe(RobinHoodHash* rhh, void* key, int probe)
+hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
 {
   /*
   int probe_offset;
@@ -150,22 +159,27 @@ hash_with_probe(RobinHoodHash* rhh, void* key, int probe)
     2 * probe;
   return (hash(rhh, key) + probe_offset * probe_offset) % rhh->capacity;
   */
-  return hash(rhh, rhh->seed + probe * probe, key) % rhh->capacity;
+  uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  return ((key >> (probe * probe)) & mask) * rhh->capacity_ms4b >> 4;
+  /*
+  printf("clz: %d, mask %" PRIxPTR " hashed %"
+         PRIxPTR " masked %" PRIxPTR "\n",
+         clz, mask, hashed, masked);
+  */
+  //return (hash(rhh, rhh->seed + probe * probe, key) % rhh->capacity);
 }
 
 static inline int
 findprobe(RobinHoodHash* rhh, uintptr_t idx)
 {
   const size_t keysize = rhh->keysize;
-  uintptr_t key_base_location, key_real_location;
-  int probe_offset;
 
-  key_real_location = idx * keysize;
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
-      if (hash_with_probe(rhh, &rhh->key[idx * keysize], i) == idx)
+      if (hash_with_probe(rhh,
+                          hash(rhh, &rhh->key[idx * keysize]),
+                          i) == idx)
         {
-          //printf("probe offset: %d\n", i);
           return i;
         }
     }
@@ -200,7 +214,8 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
 {
   const size_t keysize = rhh->keysize;
   uintptr_t idx, bmidx, bmbit;
-  int probe, old_probe;
+  uintptr_t visited_idx[VISIT_IDX_CACHE];
+  int probe, old_probe, visit;
   uint8_t key_cpy[keysize];
   uint8_t key_tmp[keysize];
   opref_t val_cpy, val_tmp;
@@ -212,9 +227,11 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
     return false;
 
   probe = 0;
+  visit = 0;
   while (true)
     {
-      idx = hash_with_probe(rhh, key_cpy, probe);
+    next_iter:
+      idx = hash_with_probe(rhh, hash(rhh, key_cpy), probe);
       bmidx = idx / 64;
       bmbit = idx % 64;
       if (!(rhh->bmap[bmidx] & (1UL << bmbit)))
@@ -239,10 +256,38 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
         }
       old_probe = findprobe(rhh, idx);
       /*
-      printf("key: %.6s with probe %d, old key: %.6s with probe: %d\n",
+      printf("idx: %" PRIuPTR "  key: %.6s with probe %d,"
+             "old key: %.6s with probe: %d\n",
+             idx,
              (char*)key_cpy, (int)probe,
              (char*)&rhh->key[idx * keysize], old_probe);
       */
+
+      if (visit < VISIT_IDX_CACHE)
+        {
+          for (int i = 0; i < visit; i++)
+            {
+              if (idx == visited_idx[i])
+                {
+                  printf("found visited idx!\n");
+                  probe++;
+                  goto next_iter;
+                }
+            }
+        }
+      else
+        {
+          for (int i = visit + 1; i < visit + VISIT_IDX_CACHE; i++)
+            if (idx == visited_idx[i % VISIT_IDX_CACHE])
+              {
+                printf("found visited idx!\n");
+                probe++;
+                goto next_iter;
+              }
+        }
+      visited_idx[visit % VISIT_IDX_CACHE] = idx;
+      visit++;
+
       if (probe > old_probe)
         {
           if (old_probe < 30)
@@ -275,26 +320,15 @@ static inline
 bool RHHSearchInternal(RobinHoodHash* rhh, void* key, uintptr_t* match_idx)
 {
   size_t keysize;
-  uint64_t key_raw_hash;
+  uint64_t hashed_key;
   uintptr_t idx, bmidx, bmbit;
 
   keysize = rhh->keysize;
-  key_raw_hash = hash(rhh, rhh->seed, key);
-  for (int i = 0; i < rhh->expected_probes * 2; i++)
+  hashed_key = hash(rhh, key);
+
+  for (int probe = 0; probe <= rhh->longest_probes; probe++)
     {
-      idx = (key_raw_hash + i * i) % rhh->capacity;
-      bmidx = idx / 64;
-      bmbit = idx % 64;
-      if (rhh->bmap[bmidx] & (1UL << bmbit) &&
-          !memcmp(key, &rhh->key[idx * keysize], keysize))
-        {
-          *match_idx = idx;
-          return true;
-        }
-    }
-  for (int i = rhh->expected_probes * 2; i < rhh->longest_probes; i++)
-    {
-      idx = (key_raw_hash + i * i) % rhh->capacity;
+      idx = hash_with_probe(rhh, hashed_key, probe);
       bmidx = idx / 64;
       bmbit = idx % 64;
       if (!(rhh->bmap[bmidx] & (1UL << bmbit)))

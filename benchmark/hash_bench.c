@@ -59,6 +59,7 @@
 typedef void (*HashFunc)(char* key, void* context);
 static void run_short_keys(int size, HashFunc hash_func, void* context);
 static void run_long_keys(int size, HashFunc hash_func, void* context);
+static void run_long_int(int size, HashFunc hash_func, void* context);
 
 
 void rhh_put(char* key, void* context)
@@ -69,11 +70,29 @@ void rhh_put(char* key, void* context)
 
 void rhh_get(char* key, void* context)
 {
+  static int counter;
   RobinHoodHash* rhh = (RobinHoodHash*)context;
   //op_assert((size_t)RHHGet(rhh, key) == 0, "val is 0");
   RHHGet(rhh,key);
+  //opref_t val;
+  //printf("counter: %d key %s\n", counter++, key);
+  //op_assert(RHHSearch(rhh, key, &val), "can find key\n");
 }
 
+void print_timediff(struct timeval start, struct timeval end)
+{
+  long int second = end.tv_sec - start.tv_sec;
+  unsigned int usec;
+  if (end.tv_usec < start.tv_usec)
+    {
+      second--;
+      usec = end.tv_usec + 1000000 - start.tv_usec;
+    }
+  else
+    usec = end.tv_usec - start.tv_usec;
+
+  printf("%ld.%06u\n", second, usec);
+}
 
 int main(int argc, char* argv[])
 {
@@ -112,12 +131,15 @@ int main(int argc, char* argv[])
   struct timeval start, mid, end;
   gettimeofday(&start, NULL);
   run_short_keys(num_power, rhh_put, rhh);
+  //run_long_int(num_power, rhh_put, rhh);
+  printf("insert finished\n");
   gettimeofday(&mid, NULL);
+  //run_long_int(num_power, rhh_get, rhh);
   run_short_keys(num_power, rhh_get, rhh);
   gettimeofday(&end, NULL);
 
-  printf("%ld.%06u\n", mid.tv_sec - start.tv_sec, mid.tv_usec - start.tv_usec);
-  printf("%ld.%06u\n", end.tv_sec - mid.tv_sec, end.tv_usec - mid.tv_usec);
+  print_timediff(start, mid);
+  print_timediff(mid, end);
   RHHPrintStat(rhh);
   return 0;
 }
@@ -175,6 +197,17 @@ void run_long_keys(int size, HashFunc hash_func, void* context)
               hash_func(uuid, context);
             }
         }
+    }
+}
+
+void run_long_int(int size, HashFunc hash_func, void* context)
+{
+  op_assert(size >= 12, "iteration size must > 2^12\n");
+  uint64_t i_bound = 1 << size;
+  uint64_t counter = 0;
+  for (uint64_t i = 0; i < i_bound; i++)
+    {
+      hash_func(&i, context);
     }
 }
 
