@@ -12,5 +12,4 @@ libdemomalloc_la_SOURCES = \
   malloc/init_helper.c \
   malloc/lookup_helper.c \
   hash/robin_hood.c \
-  hash/murmurhash3.c \
-  hash/xxHash/xxhash.c
+  hash/murmurhash3.c

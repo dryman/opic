@@ -53,7 +53,6 @@
 #include <stdbool.h>
 #include "opic/common/op_utils.h"
 #include "opic/op_malloc.h"
-#include "xxHash/xxhash.h"
 #include "murmurhash3.h"
 #include "robin_hood.h"
 
@@ -134,7 +133,7 @@ RHHDestroy(RobinHoodHash* rhh)
 static inline uint64_t
 hash(RobinHoodHash* rhh, void* key)
 {
-  //return XXH64(key, rhh->keysize, seed);
+  // return XXH64(key, rhh->keysize, seed);
   uint64_t hashed_val[2];
   MurmurHash3_x64_128(key, rhh->keysize, rhh->seed, hashed_val);
   return hashed_val[0];
@@ -160,7 +159,13 @@ hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
   return (hash(rhh, key) + probe_offset * probe_offset) % rhh->capacity;
   */
   uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
-  return ((key >> (probe * probe)) & mask) * rhh->capacity_ms4b >> 4;
+  // linear
+  // uint64_t probed_hash = key + probe;
+  // quadratic
+  // uint64_t probed_hash = key + probe * probe;
+  // faster rehash
+  uint64_t probed_hash = key >> probe;
+  return (probed_hash & mask) * rhh->capacity_ms4b >> 4;
   /*
   printf("clz: %d, mask %" PRIxPTR " hashed %"
          PRIxPTR " masked %" PRIxPTR "\n",
