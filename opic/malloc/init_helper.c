@@ -46,49 +46,10 @@
 /* Code: */
 
 #include <sys/mman.h>
-#include <stdio.h>
 #include <string.h>
 #include "opic/common/op_utils.h"
 #include "lookup_helper.h"
 #include "init_helper.h"
-
-bool
-OPHeapNew(OPHeap** heap_ref)
-{
-  void *addr, *map_addr;
-  addr = NULL + OPHEAP_SIZE;
-  map_addr = MAP_FAILED;
-  for (int i = 0; i < (1<<15); i++)
-    {
-      map_addr = mmap(addr, OPHEAP_SIZE,
-                      PROT_READ | PROT_WRITE,
-                      MAP_ANON | MAP_PRIVATE | MAP_FIXED,
-                      -1, 0);
-      if (map_addr != MAP_FAILED)
-        {
-          *heap_ref = map_addr;
-          memset(*heap_ref, 0, sizeof(OPHeap));
-          (*heap_ref)->version = OPHEAP_VERSION;
-          (*heap_ref)->hpage_num = HPAGE_BMAP_NUM * 64;
-          return true;
-        }
-      else
-        addr += OPHEAP_SIZE;
-    }
-  return false;
-}
-
-bool
-OPHeapNewFromFile(OPHeap** heap_ref, FILE fd)
-{
-  return false;
-}
-
-void
-OPHeapDestroy(OPHeap* heap)
-{
-  munmap(heap, heap->hpage_num * HPAGE_SIZE);
-}
 
 void
 HPageInit(HugePage* hpage, Magic magic)

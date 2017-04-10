@@ -7,6 +7,7 @@ lib_LTLIBRARIES = libdemomalloc.la
 
 libdemomalloc_la_SOURCES = \
   demomalloc.c \
+  malloc/op_malloc.c \
   malloc/allocator.c \
   malloc/deallocator.c \
   malloc/init_helper.c \
