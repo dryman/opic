@@ -9,7 +9,8 @@ check_PROGRAMS = lookup_helper_test init_helper_test allocator_test \
 lookup_helper_test_SOURCES = \
   lookup_helper_test.c \
   lookup_helper.c \
-  init_helper.c
+  init_helper.c \
+  op_malloc.c
 
 lookup_helper_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
   @cmocka_LIBS@ @atomic_LIBS@
@@ -18,7 +19,8 @@ lookup_helper_test_LDFLAGS = -static
 init_helper_test_SOURCES = \
   init_helper.c \
   init_helper_test.c \
-  lookup_helper.c
+  lookup_helper.c \
+  op_malloc.c
 
 init_helper_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
   @cmocka_LIBS@ @atomic_LIBS@
@@ -29,7 +31,8 @@ allocator_test_SOURCES = \
   allocator_test.c \
   deallocator.c \
   init_helper.c \
-  lookup_helper.c
+  lookup_helper.c \
+  op_malloc.c
 
 allocator_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
   @cmocka_LIBS@ @atomic_LIBS@
@@ -40,7 +43,8 @@ deallocator_test_SOURCES = \
   deallocator.c \
   deallocator_test.c \
   init_helper.c \
-  lookup_helper.c
+  lookup_helper.c \
+  op_malloc.c
 
 deallocator_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
   @cmocka_LIBS@ @atomic_LIBS@

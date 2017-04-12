@@ -56,11 +56,43 @@
 #include "opic/op_malloc.h"
 #include "opic/hash/robin_hood.h"
 
+#include <string>
+#include <unordered_map>
+#include <google/dense_hash_map>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/unordered_map.hpp>
+
 typedef void (*HashFunc)(char* key, void* context);
 static void run_short_keys(int size, HashFunc hash_func, void* context);
 static void run_long_keys(int size, HashFunc hash_func, void* context);
 static void run_long_int(int size, HashFunc hash_func, void* context);
 
+void um_put(char* key, void* context)
+{
+  auto um = static_cast<std::unordered_map<std::string, uint64_t>*>(context);
+  um->insert(std::make_pair(key, 0));
+}
+
+void um_get(char* key, void* context)
+{
+  auto um = static_cast<std::unordered_map<std::string, uint64_t>*>(context);
+  um->at(key);
+}
+
+void dhm_put(char* key, void* context)
+{
+  auto dhm = static_cast<google::dense_hash_map
+                         <std::string, uint64_t>*>(context);
+  dhm->insert(std::make_pair(key, 0));
+}
+
+void dhm_get(char* key, void* context)
+{
+  auto dhm = static_cast<google::dense_hash_map
+                         <std::string, uint64_t>*>(context);
+  auto search = dhm->find(key);
+  search->first;
+}
 
 void rhh_put(char* key, void* context)
 {
@@ -94,10 +126,77 @@ void print_timediff(struct timeval start, struct timeval end)
   printf("%ld.%06u\n", second, usec);
 }
 
-int main(int argc, char* argv[])
+void run_rhh(int num_power, uint64_t num, int keysize)
 {
   OPHeap* heap;
   RobinHoodHash* rhh;
+
+  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
+  op_assert(RHHNew(heap, &rhh, num,
+                   0.80, keysize, 421439783), "Create RobinHoodHash\n");
+
+  struct timeval start, mid, end;
+  gettimeofday(&start, NULL);
+  run_short_keys(num_power, rhh_put, rhh);
+  //run_long_int(num_power, rhh_put, rhh);
+  printf("insert finished\n");
+  gettimeofday(&mid, NULL);
+  //run_long_int(num_power, rhh_get, rhh);
+  run_short_keys(num_power, rhh_get, rhh);
+  gettimeofday(&end, NULL);
+
+  print_timediff(start, mid);
+  print_timediff(mid, end);
+//RHHPrintStat(rhh);
+
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
+void run_um(int num_power, uint64_t num)
+{
+  struct timeval start, mid, end;
+  auto um = new std::unordered_map<std::string, uint64_t>(num);
+
+  gettimeofday(&start, NULL);
+  run_short_keys(num_power, um_put, static_cast<void*>(um));
+  printf("insert finished\n");
+
+  gettimeofday(&mid, NULL);
+  run_short_keys(num_power, um_get, static_cast<void*>(um));
+  gettimeofday(&end, NULL);
+
+  delete um;
+
+  print_timediff(start, mid);
+  print_timediff(mid, end);
+}
+
+void run_dhm(int num_power, uint64_t num)
+{
+  struct timeval start, mid, end;
+  auto dhm = new google::dense_hash_map<std::string, uint64_t>(num);
+  dhm->set_empty_key("\x00");
+  dhm->set_deleted_key("\xff");
+
+  gettimeofday(&start, NULL);
+   run_short_keys(num_power, dhm_put, static_cast<void*>(dhm));
+  //run_long_keys(num_power, dhm_put, static_cast<void*>(dhm));
+  printf("insert finished\n");
+
+  gettimeofday(&mid, NULL);
+  run_short_keys(num_power, dhm_get, static_cast<void*>(dhm));
+  //run_long_keys(num_power, dhm_get, static_cast<void*>(dhm));
+  gettimeofday(&end, NULL);
+
+  delete dhm;
+
+  print_timediff(start, mid);
+  print_timediff(mid, end);
+}
+
+int main(int argc, char* argv[])
+{
   int num_power, opt;
   uint64_t num;
 
@@ -123,24 +222,19 @@ int main(int argc, char* argv[])
 
   num = 1UL << num_power;
   printf("running elements 2^%d = %" PRIu64 "\n", num_power, num);
+  int keysize = 6;
 
-  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
-  op_assert(RHHNew(heap, &rhh, num,
-                   0.80, 6, 421439783), "Create RobinHoodHash\n");
+  // printf("STD unordered_map:\n");
+  // run_um(num_power, num);
+  printf("RobinHoodHashing:\n");
+  run_rhh(num_power, num, keysize);
+  run_rhh(num_power, num, keysize);
+  run_rhh(num_power, num, keysize);
 
-  struct timeval start, mid, end;
-  gettimeofday(&start, NULL);
-  run_short_keys(num_power, rhh_put, rhh);
-  //run_long_int(num_power, rhh_put, rhh);
-  printf("insert finished\n");
-  gettimeofday(&mid, NULL);
-  //run_long_int(num_power, rhh_get, rhh);
-  run_short_keys(num_power, rhh_get, rhh);
-  gettimeofday(&end, NULL);
-
-  print_timediff(start, mid);
-  print_timediff(mid, end);
-  RHHPrintStat(rhh);
+  printf("google dense_hash_map:\n");
+  run_dhm(num_power, num);
+  run_dhm(num_power, num);
+  run_dhm(num_power, num);
   return 0;
 }
 
@@ -207,7 +301,7 @@ void run_long_int(int size, HashFunc hash_func, void* context)
   uint64_t counter = 0;
   for (uint64_t i = 0; i < i_bound; i++)
     {
-      hash_func(&i, context);
+      hash_func((char*)&i, context);
     }
 }
 
