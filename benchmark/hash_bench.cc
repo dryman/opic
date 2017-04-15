@@ -137,12 +137,14 @@ void run_rhh(int num_power, uint64_t num, int keysize)
 
   struct timeval start, mid, end;
   gettimeofday(&start, NULL);
-  run_short_keys(num_power, rhh_put, rhh);
+  //run_short_keys(num_power, rhh_put, rhh);
+  run_long_keys(num_power, rhh_put, rhh);
   //run_long_int(num_power, rhh_put, rhh);
   printf("insert finished\n");
   gettimeofday(&mid, NULL);
   //run_long_int(num_power, rhh_get, rhh);
-  run_short_keys(num_power, rhh_get, rhh);
+  //run_short_keys(num_power, rhh_get, rhh);
+  run_long_keys(num_power, rhh_get, rhh);
   gettimeofday(&end, NULL);
 
   print_timediff(start, mid);
@@ -180,13 +182,13 @@ void run_dhm(int num_power, uint64_t num)
   dhm->set_deleted_key("\xff");
 
   gettimeofday(&start, NULL);
-   run_short_keys(num_power, dhm_put, static_cast<void*>(dhm));
-  //run_long_keys(num_power, dhm_put, static_cast<void*>(dhm));
+  //run_short_keys(num_power, dhm_put, static_cast<void*>(dhm));
+  run_long_keys(num_power, dhm_put, static_cast<void*>(dhm));
   printf("insert finished\n");
 
   gettimeofday(&mid, NULL);
-  run_short_keys(num_power, dhm_get, static_cast<void*>(dhm));
-  //run_long_keys(num_power, dhm_get, static_cast<void*>(dhm));
+  //run_short_keys(num_power, dhm_get, static_cast<void*>(dhm));
+  run_long_keys(num_power, dhm_get, static_cast<void*>(dhm));
   gettimeofday(&end, NULL);
 
   delete dhm;
@@ -222,7 +224,7 @@ int main(int argc, char* argv[])
 
   num = 1UL << num_power;
   printf("running elements 2^%d = %" PRIu64 "\n", num_power, num);
-  int keysize = 6;
+  int keysize = 22;
 
   // printf("STD unordered_map:\n");
   // run_um(num_power, num);

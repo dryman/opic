@@ -2,9 +2,9 @@ AM_CPPFLAGS = -I$(top_srcdir)
 AM_CFLAGS = @cmocka_CFLAGS@
 
 TESTS = lookup_helper_test init_helper_test allocator_test \
-  deallocator_test
+  deallocator_test op_malloc_test
 check_PROGRAMS = lookup_helper_test init_helper_test allocator_test \
-  deallocator_test
+  deallocator_test op_malloc_test
 
 lookup_helper_test_SOURCES = \
   lookup_helper_test.c \
@@ -49,3 +49,13 @@ deallocator_test_SOURCES = \
 deallocator_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
   @cmocka_LIBS@ @atomic_LIBS@
 deallocator_test_LDFLAGS = -static
+
+op_malloc_test_SOURCES = \
+  op_malloc_test.c \
+  init_helper.c \
+  lookup_helper.c \
+  op_malloc.c
+
+op_malloc_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
+  @cmocka_LIBS@ @atomic_LIBS@
+op_malloc_test_LDFLAGS = -static
