@@ -46,6 +46,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include "opic/op_malloc.h"
+#include "opic/common/op_utils.h"
 #include "opic/malloc/objdef.h"
 
 bool
@@ -75,9 +76,80 @@ OPHeapNew(OPHeap** heap_ref)
 }
 
 bool
-OPHeapNewFromFile(OPHeap** heap_ref, FILE fd)
+OPHeapNewFromFile(OPHeap** heap_ref, FILE* fd)
 {
   return false;
+}
+
+void
+OPHeapShrinkShadow(OPHeap* heap)
+{
+  int max_hpage;
+  int hpage_bmidx, hpage_bmbit, bm_padding_bit;
+  uint64_t bmap;
+
+  hpage_bmidx = (heap->hpage_num - 1) / 64;
+  bm_padding_bit = heap->hpage_num % 64;
+
+  bmap = atomic_load_explicit(&heap->occupy_bmap[hpage_bmidx],
+                              memory_order_relaxed);
+  if (bm_padding_bit)
+    {
+      bmap &= ((1UL << bm_padding_bit) - 1);
+      if (bmap)
+        {
+          hpage_bmbit = 64 - __builtin_clzl(bmap) - 1;
+          max_hpage = hpage_bmidx * 64 + hpage_bmbit;
+          goto found_max_hpage;
+        }
+    }
+
+  for (int i = hpage_bmidx; i >= 0; i--)
+    {
+      if ((bmap = atomic_load_explicit(&heap->occupy_bmap[i],
+                                       memory_order_relaxed)))
+        {
+          hpage_bmbit = 64 - __builtin_clzl(bmap) - 1;
+          max_hpage = i * 64 + hpage_bmbit;
+          goto found_max_hpage;
+        }
+    }
+  max_hpage = 1;
+
+ found_max_hpage:
+  heap->hpage_num = max_hpage;
+  hpage_bmidx = max_hpage / 64;
+  hpage_bmbit = max_hpage % 64;
+
+  if (hpage_bmidx < HPAGE_BMAP_NUM)
+    {
+      if (hpage_bmbit)
+        atomic_fetch_or_explicit(&heap->occupy_bmap[hpage_bmidx],
+                                 ~((1UL << hpage_bmbit) - 1),
+                                 memory_order_relaxed);
+
+      for (int bmidx = round_up_div(heap->hpage_num, 64);
+           bmidx < heap->hpage_num; bmidx++)
+        atomic_store_explicit(&heap->occupy_bmap[bmidx], ~0ULL,
+                              memory_order_relaxed);
+    }
+}
+
+void
+OPHeapWriteToFile(OPHeap* heap, FILE* fd)
+{
+  OPHeap heap_copy;
+  uintptr_t heap_base;
+  heap_base = (uintptr_t)heap;
+  memcpy(&heap_copy, heap, sizeof(OPHeap));
+  OPHeapShrinkShadow(&heap_copy);
+
+  fwrite(&heap_copy, sizeof(OPHeap), 1, fd);
+  fwrite((void*)(heap_base + sizeof(OPHeap)),
+         HPAGE_SIZE - sizeof(OPHeap), 1, fd);
+  if (heap_copy.hpage_num > 1)
+    fwrite((void*)(heap_base + HPAGE_SIZE),
+           HPAGE_SIZE, heap_copy.hpage_num - 1, fd);
 }
 
 void
