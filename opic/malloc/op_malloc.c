@@ -76,13 +76,13 @@ OPHeapNew(OPHeap** heap_ref)
 }
 
 bool
-OPHeapNewFromFile(OPHeap** heap_ref, FILE* fd)
+OPHeapRead(OPHeap** heap_ref, FILE* fd)
 {
   return false;
 }
 
 void
-OPHeapShrinkShadow(OPHeap* heap)
+OPHeapShrinkCopy(OPHeap* heap)
 {
   int max_hpage;
   int hpage_bmidx, hpage_bmbit, bm_padding_bit;
@@ -98,7 +98,7 @@ OPHeapShrinkShadow(OPHeap* heap)
       bmap &= ((1UL << bm_padding_bit) - 1);
       if (bmap)
         {
-          hpage_bmbit = 64 - __builtin_clzl(bmap) - 1;
+          hpage_bmbit = 64 - __builtin_clzl(bmap);
           max_hpage = hpage_bmidx * 64 + hpage_bmbit;
           goto found_max_hpage;
         }
@@ -109,7 +109,7 @@ OPHeapShrinkShadow(OPHeap* heap)
       if ((bmap = atomic_load_explicit(&heap->occupy_bmap[i],
                                        memory_order_relaxed)))
         {
-          hpage_bmbit = 64 - __builtin_clzl(bmap) - 1;
+          hpage_bmbit = 64 - __builtin_clzl(bmap);
           max_hpage = i * 64 + hpage_bmbit;
           goto found_max_hpage;
         }
@@ -117,7 +117,6 @@ OPHeapShrinkShadow(OPHeap* heap)
   max_hpage = 1;
 
  found_max_hpage:
-  heap->hpage_num = max_hpage;
   hpage_bmidx = max_hpage / 64;
   hpage_bmbit = max_hpage % 64;
 
@@ -128,21 +127,26 @@ OPHeapShrinkShadow(OPHeap* heap)
                                  ~((1UL << hpage_bmbit) - 1),
                                  memory_order_relaxed);
 
-      for (int bmidx = round_up_div(heap->hpage_num, 64);
-           bmidx < heap->hpage_num; bmidx++)
-        atomic_store_explicit(&heap->occupy_bmap[bmidx], ~0ULL,
-                              memory_order_relaxed);
+      for (int bmidx = round_up_div(max_hpage, 64);
+           bmidx < HPAGE_BMAP_NUM;
+           bmidx++)
+        {
+          //printf("bmidx: %d\n", bmidx);
+          atomic_store_explicit(&heap->occupy_bmap[bmidx], ~0ULL,
+                                memory_order_relaxed);
+        }
     }
+  heap->hpage_num = max_hpage;
 }
 
 void
-OPHeapWriteToFile(OPHeap* heap, FILE* fd)
+OPHeapWrite(OPHeap* heap, FILE* fd)
 {
   OPHeap heap_copy;
   uintptr_t heap_base;
   heap_base = (uintptr_t)heap;
   memcpy(&heap_copy, heap, sizeof(OPHeap));
-  OPHeapShrinkShadow(&heap_copy);
+  OPHeapShrinkCopy(&heap_copy);
 
   fwrite(&heap_copy, sizeof(OPHeap), 1, fd);
   fwrite((void*)(heap_base + sizeof(OPHeap)),

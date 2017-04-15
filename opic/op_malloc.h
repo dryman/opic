@@ -50,6 +50,7 @@
 #define OP_MALLOC_H 1
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdint.h>
 #include "opic/common/op_macros.h"
 
@@ -62,6 +63,8 @@ typedef struct OPHeap OPHeap;
 typedef uintptr_t opref_t;
 
 bool OPHeapNew(OPHeap** heap_ref);
+
+void OPHeapWrite(OPHeap* heap, FILE* fd);
 
 void OPHeapDestroy(OPHeap* heap);
 
