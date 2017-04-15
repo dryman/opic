@@ -44,10 +44,13 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/mman.h>
 #include "opic/op_malloc.h"
 #include "opic/common/op_utils.h"
 #include "opic/malloc/objdef.h"
+
+char mincore_vec[OPHEAP_SIZE / SPAGE_SIZE];
 
 bool
 OPHeapNew(OPHeap** heap_ref)
@@ -57,6 +60,10 @@ OPHeapNew(OPHeap** heap_ref)
   map_addr = MAP_FAILED;
   for (int i = 0; i < (1<<15); i++)
     {
+      mincore(addr, OPHEAP_SIZE, mincore_vec);
+      for (int j = 0; j < OPHEAP_SIZE / SPAGE_SIZE; j++)
+        if (mincore_vec[j])
+          goto next_heap;
       map_addr = mmap(addr, OPHEAP_SIZE,
                       PROT_READ | PROT_WRITE,
                       MAP_ANON | MAP_PRIVATE | MAP_FIXED,
@@ -70,14 +77,49 @@ OPHeapNew(OPHeap** heap_ref)
           return true;
         }
       else
-        addr += OPHEAP_SIZE;
+        {
+        next_heap:
+          addr += OPHEAP_SIZE;
+          printf("addr %p\n", addr);
+        }
     }
   return false;
 }
 
 bool
-OPHeapRead(OPHeap** heap_ref, FILE* fd)
+OPHeapRead(OPHeap** heap_ref, FILE* stream)
 {
+  OPHeap heap_header;
+  void *addr, *map_addr;
+  addr = NULL + OPHEAP_SIZE;
+  map_addr = MAP_FAILED;
+
+  fread(&heap_header, sizeof(OPHeap), 1, stream);
+  fseek(stream, 0, SEEK_SET);
+
+  for (int i = 0; i < (1<<15); i++)
+    {
+      mincore(addr, heap_header.hpage_num * HPAGE_SIZE, mincore_vec);
+      for (int j = 0;
+           j < heap_header.hpage_num * HPAGE_SIZE / SPAGE_SIZE;
+           j++)
+        if (mincore_vec[j])
+          goto next_heap;
+      map_addr = mmap(addr, heap_header.hpage_num,
+                      PROT_READ,
+                      MAP_SHARED | MAP_FIXED,
+                      fileno(stream), 0);
+      if (map_addr != MAP_FAILED)
+        {
+          *heap_ref = map_addr;
+          return true;
+        }
+      else
+        {
+        next_heap:
+          addr += OPHEAP_SIZE;
+        }
+    }
   return false;
 }
 
@@ -140,7 +182,7 @@ OPHeapShrinkCopy(OPHeap* heap)
 }
 
 void
-OPHeapWrite(OPHeap* heap, FILE* fd)
+OPHeapWrite(OPHeap* heap, FILE* stream)
 {
   OPHeap heap_copy;
   uintptr_t heap_base;
@@ -148,12 +190,12 @@ OPHeapWrite(OPHeap* heap, FILE* fd)
   memcpy(&heap_copy, heap, sizeof(OPHeap));
   OPHeapShrinkCopy(&heap_copy);
 
-  fwrite(&heap_copy, sizeof(OPHeap), 1, fd);
+  fwrite(&heap_copy, sizeof(OPHeap), 1, stream);
   fwrite((void*)(heap_base + sizeof(OPHeap)),
-         HPAGE_SIZE - sizeof(OPHeap), 1, fd);
+         HPAGE_SIZE - sizeof(OPHeap), 1, stream);
   if (heap_copy.hpage_num > 1)
     fwrite((void*)(heap_base + HPAGE_SIZE),
-           HPAGE_SIZE, heap_copy.hpage_num - 1, fd);
+           HPAGE_SIZE, heap_copy.hpage_num - 1, stream);
 }
 
 void

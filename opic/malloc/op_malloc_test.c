@@ -61,7 +61,7 @@ extern void OPHeapShrinkCopy(OPHeap* heap);
 static void
 test_OPHeapShrinkShadow(void** context)
 {
-  OPHeap heap, heap_control;
+  OPHeap heap = {}, heap_control = {};
 
   heap.hpage_num = HPAGE_BMAP_NUM * 64;
   atomic_store(&heap.occupy_bmap[0], ~0ULL);
@@ -101,12 +101,33 @@ test_OPHeapShrinkShadow(void** context)
                       sizeof(uint64_t) * HPAGE_BMAP_NUM);
 }
 
+static void
+test_OPHeapIO(void** context)
+{
+  OPHeap *heap, *heap_read;
+  FILE* fd;
+  assert_true(OPHeapNew(&heap));
+  atomic_store(&heap->occupy_bmap[0], 1);
+  fd = tmpfile();
+  OPHeapWrite(heap, fd);
+  printf("write success\n");
+  fseek(fd, 0, SEEK_SET);
+  assert_true(OPHeapRead(&heap_read, fd));
+  printf("read success\n");
+
+  OPHeapShrinkCopy(heap);
+  //assert_memory_equal(heap, heap_read, sizeof(OPHeap));
+  //OPHeapDestroy(heap);
+  //OPHeapDestroy(heap_read);
+}
+
 int
 main (void)
 {
   const struct CMUnitTest op_malloc_tests[] =
     {
       cmocka_unit_test(test_OPHeapShrinkShadow),
+      cmocka_unit_test(test_OPHeapIO),
     };
 
   return cmocka_run_group_tests(op_malloc_tests, NULL, NULL);

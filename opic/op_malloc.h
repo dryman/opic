@@ -66,6 +66,8 @@ bool OPHeapNew(OPHeap** heap_ref);
 
 void OPHeapWrite(OPHeap* heap, FILE* fd);
 
+bool OPHeapRead(OPHeap** heap_ref, FILE* stream);
+
 void OPHeapDestroy(OPHeap* heap);
 
 static inline OPHeap*
