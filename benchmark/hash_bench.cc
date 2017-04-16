@@ -61,6 +61,8 @@
 #include <google/dense_hash_map>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 
 
 typedef void (*HashFunc)(char* key, void* context);
@@ -82,6 +84,7 @@ enum BENCHMARK_MODE
     IN_MEMORY,
     SERIALIZE,
     DESERIALIZE,
+    DE_NO_CACHE,
   };
 
 void rhh_put(char* key, void* context)
@@ -205,6 +208,34 @@ void rhh_deserialize(int num_power, RunKey key_func, char* file)
   OPHeapDestroy(heap);
 }
 
+void rhh_deserialize2(int num_power, RunKey key_func, char* file)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  struct timeval start, end;
+  FILE* stream;
+  char key [] = "!!!!!!";
+
+  printf("RobinHoodHash deserialization2\n");
+
+  gettimeofday(&start, NULL);
+
+  for (int i = 0; i< 64; i++)
+    {
+      stream = fopen(file, "r");
+      OPHeapRead(&heap, stream);
+      fclose(stream);
+      rhh = (RobinHoodHash*)OPHeapRestorePtr(heap, 0);
+      RHHGet(rhh, key);
+      key[0]++;
+      OPHeapDestroy(heap);
+    }
+
+  gettimeofday(&end, NULL);
+
+  print_timediff(start, end);
+}
+
 void um_in_memory(int num_power, uint64_t num, RunKey key_func)
 {
   struct timeval start, mid, end;
@@ -222,6 +253,18 @@ void um_in_memory(int num_power, uint64_t num, RunKey key_func)
 
   print_timediff(start, mid);
   print_timediff(mid, end);
+}
+
+void um_serialize(int num_power, uint64_t num, RunKey key_func)
+{
+  struct timeval start, mid, end;
+  auto um = new std::unordered_map<std::string, uint64_t>(num);
+
+  printf("std::unordered_map in memory\n");
+  gettimeofday(&start, NULL);
+  key_func(num_power, um_put, static_cast<void*>(um));
+  printf("insert finished\n");
+  gettimeofday(&mid, NULL);
 }
 
 void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
@@ -246,6 +289,56 @@ void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
   print_timediff(mid, end);
 }
 
+/*
+struct StringSerializer {
+  bool operator()(FILE* fp, const std::string& value) const {
+    assert(value.length() <= 255);   // we only support writing small strings
+    const unsigned char size = value.length();
+    if (fwrite(&size, 1, 1, fp) != 1)
+      return false;
+    if (fwrite(value.data(), size, 1, fp) != 1)
+      return false;
+    return true;
+  }
+  bool operator()(FILE* fp, std::string* value) const {
+    unsigned char size;    // all strings are <= 255 chars long
+    if (fread(&size, 1, 1, fp) != 1)
+      return false;
+    char* buf = new char[size];
+    if (fread(buf, size, 1, fp) != 1) {
+      delete[] buf;
+      return false;
+    }
+    value->assign(buf, size);
+    delete[] buf;
+    return true;
+  }
+};
+
+void dhm_serialize(int num_power, uint64_t num, RunKey key_func, char* file)
+{
+  struct timeval start, mid, end;
+  FILE* stream;
+  auto dhm = new google::dense_hash_map<std::string, uint64_t>(num);
+  dhm->set_empty_key("\x00");
+  dhm->set_deleted_key("\xff");
+
+  printf("google::dense_hash_map serialization\n");
+
+  gettimeofday(&start, NULL);
+  key_func(num_power, dhm_put, static_cast<void*>(dhm));
+  printf("insert finished\n");
+  gettimeofday(&mid, NULL);
+
+  stream = fopen(file, "w");
+  dhm->serialize (StringSerializer(), stream);
+  fclose(stream);
+  gettimeofday(&end, NULL);
+  print_timediff(start, mid);
+  print_timediff(mid, end);
+}
+*/
+
 void help(char* program)
 {
   printf
@@ -260,11 +353,11 @@ void help(char* program)
      "             long_string: 22 bytes, short_string: 6 bytes\n"
      "             long_int: 8 bytes\n"
      "  -i impl    impl = robin_hood, dense_hash_map, or std_unordered_map\n"
-     "  -m mode    mode = in_memory, serialize, deserialize, or\n"
-     "             deserialize_cached\n"
+     "  -m mode    mode = in_memory, serialize, deserialize, or de_no_cache\n"
      "             in_memory: benchmark hash map creation time and query time\n"
      "             serialize: hash_map creation time and serialization time\n"
      "             deserialize: deserialize hash map then query for 2^n times\n"
+     "             de_no_cache: measures bare deserialization performance\n"
      "  -f file    file used in serialize, deserialize and deserialize_cached\n"
      "             mode.\n"
      "  -h         print help.\n"
@@ -331,6 +424,8 @@ int main(int argc, char* argv[])
             b_mode = SERIALIZE;
           else if (!strcmp("deserialize", optarg))
             b_mode = DESERIALIZE;
+          else if (!strcmp("de_no_cache", optarg))
+            b_mode = DE_NO_CACHE;
           else
             help(argv[0]);
           break;
@@ -384,6 +479,14 @@ int main(int argc, char* argv[])
             }
           rhh_deserialize(num_power, key_func, file_name);
           break;
+        case DE_NO_CACHE:
+          op_assert(file_name, "Need to specify file name via -f option\n");
+          if (hash_impl != ROBIN_HOOD)
+            {
+              printf("not implemented yet\n");
+              exit(1);
+            }
+          rhh_deserialize2(num_power, key_func, file_name);
         }
     }
 
