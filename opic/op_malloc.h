@@ -70,6 +70,10 @@ bool OPHeapRead(OPHeap** heap_ref, FILE* stream);
 
 void OPHeapDestroy(OPHeap* heap);
 
+void OPHeapStorePtr(OPHeap* heap, void* ptr, int pos);
+
+void* OPHeapRestorePtr(OPHeap* heap, int pos);
+
 static inline OPHeap*
 ObtainOPHeap(void* addr)
 {

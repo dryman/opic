@@ -62,10 +62,40 @@
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/unordered_map.hpp>
 
+
 typedef void (*HashFunc)(char* key, void* context);
+typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
 static void run_short_keys(int size, HashFunc hash_func, void* context);
 static void run_long_keys(int size, HashFunc hash_func, void* context);
 static void run_long_int(int size, HashFunc hash_func, void* context);
+static void print_timediff(struct timeval start, struct timeval end);
+
+enum HASH_IMPL
+  {
+    ROBIN_HOOD,
+    DENSE_HASH_MAP,
+    STD_UNORDERED_MAP,
+  };
+
+enum BENCHMARK_MODE
+  {
+    IN_MEMORY,
+    SERIALIZE,
+    DESERIALIZE,
+  };
+
+void rhh_put(char* key, void* context)
+{
+  RobinHoodHash* rhh = (RobinHoodHash*)context;
+  RHHPut(rhh, key, 0);
+}
+
+void rhh_get(char* key, void* context)
+{
+  static int counter;
+  RobinHoodHash* rhh = (RobinHoodHash*)context;
+  RHHGet(rhh,key);
+}
 
 void um_put(char* key, void* context)
 {
@@ -94,78 +124,97 @@ void dhm_get(char* key, void* context)
   search->first;
 }
 
-void rhh_put(char* key, void* context)
-{
-  RobinHoodHash* rhh = (RobinHoodHash*)context;
-  RHHPut(rhh, key, 0);
-}
-
-void rhh_get(char* key, void* context)
-{
-  static int counter;
-  RobinHoodHash* rhh = (RobinHoodHash*)context;
-  //op_assert((size_t)RHHGet(rhh, key) == 0, "val is 0");
-  RHHGet(rhh,key);
-  //opref_t val;
-  //printf("counter: %d key %s\n", counter++, key);
-  //op_assert(RHHSearch(rhh, key, &val), "can find key\n");
-}
-
-void print_timediff(struct timeval start, struct timeval end)
-{
-  long int second = end.tv_sec - start.tv_sec;
-  unsigned int usec;
-  if (end.tv_usec < start.tv_usec)
-    {
-      second--;
-      usec = end.tv_usec + 1000000 - start.tv_usec;
-    }
-  else
-    usec = end.tv_usec - start.tv_usec;
-
-  printf("%ld.%06u\n", second, usec);
-}
-
-void run_rhh(int num_power, uint64_t num, int keysize)
+void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
 {
   OPHeap* heap;
   RobinHoodHash* rhh;
+  struct timeval start, mid, end;
 
+  printf("RobinHoodHash in memory\n");
   op_assert(OPHeapNew(&heap), "Create OPHeap\n");
   op_assert(RHHNew(heap, &rhh, num,
                    0.80, keysize, 421439783), "Create RobinHoodHash\n");
 
-  struct timeval start, mid, end;
   gettimeofday(&start, NULL);
-  //run_short_keys(num_power, rhh_put, rhh);
-  run_long_keys(num_power, rhh_put, rhh);
-  //run_long_int(num_power, rhh_put, rhh);
+  key_func(num_power, rhh_put, rhh);
   printf("insert finished\n");
   gettimeofday(&mid, NULL);
-  //run_long_int(num_power, rhh_get, rhh);
-  //run_short_keys(num_power, rhh_get, rhh);
-  run_long_keys(num_power, rhh_get, rhh);
+  key_func(num_power, rhh_get, rhh);
   gettimeofday(&end, NULL);
 
   print_timediff(start, mid);
   print_timediff(mid, end);
 //RHHPrintStat(rhh);
-
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
 
-void run_um(int num_power, uint64_t num)
+void rhh_serialize(int num_power, uint64_t num, RunKey key_func, int keysize,
+                   char* file)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  struct timeval start, mid, end;
+  FILE* stream;
+  printf("RobinHoodHash serialization\n");
+
+  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
+  op_assert(RHHNew(heap, &rhh, num,
+                   0.80, keysize, 421439783), "Create RobinHoodHash\n");
+  gettimeofday(&start, NULL);
+  key_func(num_power, rhh_put, rhh);
+  printf("insert finished\n");
+  gettimeofday(&mid, NULL);
+  stream = fopen(file, "w");
+  OPHeapStorePtr(heap, rhh, 0);
+  OPHeapWrite(heap, stream);
+  fclose(stream);
+  gettimeofday(&end, NULL);
+  printf("serialized to %s\n", file);
+
+  print_timediff(start, mid);
+  print_timediff(mid, end);
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
+void rhh_deserialize(int num_power, RunKey key_func, char* file)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  struct timeval start, mid, end;
+  FILE* stream;
+
+  printf("RobinHoodHash deserialization\n");
+
+  gettimeofday(&start, NULL);
+  stream = fopen(file, "r");
+  op_assert(OPHeapRead(&heap, stream));
+  fclose(stream);
+  rhh = (RobinHoodHash*)OPHeapRestorePtr(heap, 0);
+  printf("deserialized\n");
+
+  gettimeofday(&mid, NULL);
+  key_func(num_power, rhh_get, rhh);
+  gettimeofday(&end, NULL);
+
+  print_timediff(start, mid);
+  print_timediff(mid, end);
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
+void um_in_memory(int num_power, uint64_t num, RunKey key_func)
 {
   struct timeval start, mid, end;
   auto um = new std::unordered_map<std::string, uint64_t>(num);
 
+  printf("std::unordered_map in memory\n");
   gettimeofday(&start, NULL);
-  run_short_keys(num_power, um_put, static_cast<void*>(um));
+  key_func(num_power, um_put, static_cast<void*>(um));
   printf("insert finished\n");
-
   gettimeofday(&mid, NULL);
-  run_short_keys(num_power, um_get, static_cast<void*>(um));
+  key_func(num_power, um_get, static_cast<void*>(um));
   gettimeofday(&end, NULL);
 
   delete um;
@@ -174,21 +223,20 @@ void run_um(int num_power, uint64_t num)
   print_timediff(mid, end);
 }
 
-void run_dhm(int num_power, uint64_t num)
+void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
 {
   struct timeval start, mid, end;
   auto dhm = new google::dense_hash_map<std::string, uint64_t>(num);
   dhm->set_empty_key("\x00");
   dhm->set_deleted_key("\xff");
 
-  gettimeofday(&start, NULL);
-  //run_short_keys(num_power, dhm_put, static_cast<void*>(dhm));
-  run_long_keys(num_power, dhm_put, static_cast<void*>(dhm));
-  printf("insert finished\n");
+  printf("google::dense_hash_map in memory\n");
 
+  gettimeofday(&start, NULL);
+  key_func(num_power, dhm_put, static_cast<void*>(dhm));
+  printf("insert finished\n");
   gettimeofday(&mid, NULL);
-  //run_short_keys(num_power, dhm_get, static_cast<void*>(dhm));
-  run_long_keys(num_power, dhm_get, static_cast<void*>(dhm));
+  key_func(num_power, dhm_get, static_cast<void*>(dhm));
   gettimeofday(&end, NULL);
 
   delete dhm;
@@ -197,46 +245,147 @@ void run_dhm(int num_power, uint64_t num)
   print_timediff(mid, end);
 }
 
+void help(char* program)
+{
+  printf
+    ("usage: %s [-n power_of_2] [-r repeat] [-k keytype]\n"
+     "  [-i impl] [-m mode] [-f file] [-h]\n"
+     "Options:\n"
+     "  -n num     Number of elements measured in power of 2.\n"
+     "             -n 20 => run 2^20 = 1 million elements.\n"
+     "             defaults to 20\n"
+     "  -r repeat  Repeat the benchmar for `repeat` times.\n"
+     "  -k keytype keytype = long_string, short_string, or long_int\n"
+     "             long_string: 22 bytes, short_string: 6 bytes\n"
+     "             long_int: 8 bytes\n"
+     "  -i impl    impl = robin_hood, dense_hash_map, or std_unordered_map\n"
+     "  -m mode    mode = in_memory, serialize, deserialize, or\n"
+     "             deserialize_cached\n"
+     "             in_memory: benchmark hash map creation time and query time\n"
+     "             serialize: hash_map creation time and serialization time\n"
+     "             deserialize: deserialize hash map then query for 2^n times\n"
+     "  -f file    file used in serialize, deserialize and deserialize_cached\n"
+     "             mode.\n"
+     "  -h         print help.\n"
+     ,program);
+  exit(1);
+}
+
 int main(int argc, char* argv[])
 {
   int num_power, opt;
+  int repeat = 1;
+  enum HASH_IMPL hash_impl = ROBIN_HOOD;
+  enum BENCHMARK_MODE b_mode = IN_MEMORY;
+  RunKey key_func = run_short_keys;
+  int k_len = 6;
+  char* file_name = NULL;
   uint64_t num;
 
   num_power = 20;
 
-  while ((opt = getopt(argc, argv, "n:h")) > -1)
+  while ((opt = getopt(argc, argv, "n:r:k:i:f:m:h")) > -1)
     {
       switch (opt)
         {
         case 'n':
           num_power = atoi(optarg);
           break;
+        case 'r':
+          repeat = atoi(optarg);
+          break;
+        case 'k':
+          if (!strcmp("short_string", optarg))
+            {
+              key_func = run_short_keys;
+              k_len = 6;
+            }
+          else if (!strcmp("long_string", optarg))
+            {
+              key_func = run_long_keys;
+              k_len = 22;
+            }
+          else if (!strcmp("long_int", optarg))
+            {
+              key_func = run_long_int;
+              k_len = 8;
+            }
+          else
+            help(argv[0]);
+          break;
+        case 'i':
+          if (!strcmp("robin_hood", optarg))
+            hash_impl = ROBIN_HOOD;
+          else if (!strcmp("dense_hash_map", optarg))
+            hash_impl = DENSE_HASH_MAP;
+          else if (!strcmp("std_unordered_map", optarg))
+            hash_impl = STD_UNORDERED_MAP;
+          else
+            help(argv[0]);
+          break;
+        case 'm':
+          if (!strcmp("in_memory", optarg))
+            b_mode = IN_MEMORY;
+          else if (!strcmp("serialize", optarg))
+            b_mode = SERIALIZE;
+          else if (!strcmp("deserialize", optarg))
+            b_mode = DESERIALIZE;
+          else
+            help(argv[0]);
+          break;
+        case 'f':
+          file_name = optarg;
+          break;
         case 'h':
         case '?':
         default:
-          printf("usage: %s [options]\n"
-                 "  -n num     Number of elements measured in power of 2.\n"
-                 "             -n 20 => run 2^20 = 1 million elements.\n"
-                 "             defaults to 20\n", argv[0]);
-          exit(1);
+            help(argv[0]);
         }
     }
 
   num = 1UL << num_power;
   printf("running elements 2^%d = %" PRIu64 "\n", num_power, num);
-  int keysize = 22;
 
-  // printf("STD unordered_map:\n");
-  // run_um(num_power, num);
-  printf("RobinHoodHashing:\n");
-  run_rhh(num_power, num, keysize);
-  run_rhh(num_power, num, keysize);
-  run_rhh(num_power, num, keysize);
+  for (int i = 0; i < repeat; i++)
+    {
+      printf("attempt %d\n", i + 1);
+      switch(b_mode)
+        {
+        case IN_MEMORY:
+          switch(hash_impl)
+            {
+            case ROBIN_HOOD:
+              rhh_in_memory(num_power, num, key_func, k_len);
+              break;
+            case STD_UNORDERED_MAP:
+              um_in_memory(num_power, num, key_func);
+              break;
+            case DENSE_HASH_MAP:
+              dhm_in_memory(num_power, num, key_func);
+              break;
+            }
+          break;
+        case SERIALIZE:
+          op_assert(file_name, "Need to specify file name via -f option\n");
+          if (hash_impl != ROBIN_HOOD)
+            {
+              printf("not implemented yet\n");
+              exit(1);
+            }
+          rhh_serialize(num_power, num, key_func, k_len, file_name);
+          break;
+        case DESERIALIZE:
+          op_assert(file_name, "Need to specify file name via -f option\n");
+          if (hash_impl != ROBIN_HOOD)
+            {
+              printf("not implemented yet\n");
+              exit(1);
+            }
+          rhh_deserialize(num_power, key_func, file_name);
+          break;
+        }
+    }
 
-  printf("google dense_hash_map:\n");
-  run_dhm(num_power, num);
-  run_dhm(num_power, num);
-  run_dhm(num_power, num);
   return 0;
 }
 
@@ -306,5 +455,21 @@ void run_long_int(int size, HashFunc hash_func, void* context)
       hash_func((char*)&i, context);
     }
 }
+
+void print_timediff(struct timeval start, struct timeval end)
+{
+  long int second = end.tv_sec - start.tv_sec;
+  unsigned int usec;
+  if (end.tv_usec < start.tv_usec)
+    {
+      second--;
+      usec = end.tv_usec + 1000000 - start.tv_usec;
+    }
+  else
+    usec = end.tv_usec - start.tv_usec;
+
+  printf("%ld.%06u\n", second, usec);
+}
+
 
 /* hash_bench.c ends here */
