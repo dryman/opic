@@ -106,7 +106,7 @@ OPHeapRead(OPHeap** heap_ref, FILE* stream)
            j++)
         if (mincore_vec[j])
           goto next_heap;
-      map_addr = mmap(addr, heap_header.hpage_num,
+      map_addr = mmap(addr, heap_header.hpage_num * HPAGE_SIZE,
                       PROT_READ,
                       MAP_SHARED | MAP_FIXED,
                       fileno(stream), 0);

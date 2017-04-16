@@ -166,6 +166,7 @@ void rhh_serialize(int num_power, uint64_t num, RunKey key_func, int keysize,
   printf("insert finished\n");
   gettimeofday(&mid, NULL);
   stream = fopen(file, "w");
+  printf("heap %p rhh %p\n", heap, rhh);
   OPHeapStorePtr(heap, rhh, 0);
   OPHeapWrite(heap, stream);
   fclose(stream);
@@ -192,6 +193,7 @@ void rhh_deserialize(int num_power, RunKey key_func, char* file)
   op_assert(OPHeapRead(&heap, stream));
   fclose(stream);
   rhh = (RobinHoodHash*)OPHeapRestorePtr(heap, 0);
+  printf("heap %p rhh %p\n", heap, rhh);
   printf("deserialized\n");
 
   gettimeofday(&mid, NULL);
@@ -200,7 +202,6 @@ void rhh_deserialize(int num_power, RunKey key_func, char* file)
 
   print_timediff(start, mid);
   print_timediff(mid, end);
-  RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
 
