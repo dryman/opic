@@ -68,6 +68,7 @@
 typedef void (*HashFunc)(char* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
 static void run_short_keys(int size, HashFunc hash_func, void* context);
+static void run_mid_keys(int size, HashFunc hash_func, void* context);
 static void run_long_keys(int size, HashFunc hash_func, void* context);
 static void run_long_int(int size, HashFunc hash_func, void* context);
 static void print_timediff(struct timeval start, struct timeval end);
@@ -349,9 +350,10 @@ void help(char* program)
      "             -n 20 => run 2^20 = 1 million elements.\n"
      "             defaults to 20\n"
      "  -r repeat  Repeat the benchmar for `repeat` times.\n"
-     "  -k keytype keytype = long_string, short_string, or long_int\n"
-     "             long_string: 22 bytes, short_string: 6 bytes\n"
-     "             long_int: 8 bytes\n"
+     "  -k keytype keytype = short_string, mid_string, long_string or\n"
+     "             long_int\n"
+     "             short_string: 6 bytes, mid_string: 32 bytes,\n"
+     "             long_string: 256 bytes, long_int: 8 bytes\n"
      "  -i impl    impl = robin_hood, dense_hash_map, or std_unordered_map\n"
      "  -m mode    mode = in_memory, serialize, deserialize, or de_no_cache\n"
      "             in_memory: benchmark hash map creation time and query time\n"
@@ -394,10 +396,15 @@ int main(int argc, char* argv[])
               key_func = run_short_keys;
               k_len = 6;
             }
+          else if (!strcmp("mid_string", optarg))
+            {
+              key_func = run_mid_keys;
+              k_len = 32;
+            }
           else if (!strcmp("long_string", optarg))
             {
               key_func = run_long_keys;
-              k_len = 22;
+              k_len = 256;
             }
           else if (!strcmp("long_int", optarg))
             {
@@ -518,11 +525,11 @@ void run_short_keys(int size, HashFunc hash_func, void* context)
     }
 }
 
-void run_long_keys(int size, HashFunc hash_func, void* context)
+void run_mid_keys(int size, HashFunc hash_func, void* context)
 {
   op_assert(size >= 12, "iteration size must > 2^12\n");
   int i_bound = 1 << (size - 12);
-  char uuid [] = "!!!!!!--!!!!!!--!!!!!!";
+  char uuid [] = "!!!!!!--!!!!!!--!!!!!!--!!!!!!--";
   uint64_t counter = 0;
   for (int i = 0; i < i_bound; i++)
     {
@@ -531,17 +538,56 @@ void run_long_keys(int size, HashFunc hash_func, void* context)
           uuid[j] = 0x21 + (val & 0x3F);
           uuid[j+8] = 0x21 + (val & 0x3F);
           uuid[j+16] = 0x21 + (val & 0x3F);
+          uuid[j+24] = 0x21 + (val & 0x3F);
         }
       for (int j = 0; j < 64; j++)
         {
           uuid[1] = 0x21 + j;
           uuid[1+8] = 0x21 + j;
           uuid[1+16] = 0x21 + j;
+          uuid[1+24] = 0x21 + j;
           for (int k = 0; k < 64; k++)
             {
               uuid[0] = 0x21 + k;
               uuid[0+8] = 0x21 + k;
               uuid[0+16] = 0x21 + k;
+              uuid[0+24] = 0x21 + k;
+              counter++;
+              hash_func(uuid, context);
+            }
+        }
+    }
+}
+
+void run_long_keys(int size, HashFunc hash_func, void* context)
+{
+  op_assert(size >= 12, "iteration size must > 2^12\n");
+  int i_bound = 1 << (size - 12);
+  char uuid [] =
+    "!!!!!!--!!!!!!--!!!!!!--!!!!!!--"
+    "!!!!!!--!!!!!!--!!!!!!--!!!!!!--"
+    "!!!!!!--!!!!!!--!!!!!!--!!!!!!--"
+    "!!!!!!--!!!!!!--!!!!!!--!!!!!!--"
+    "!!!!!!--!!!!!!--!!!!!!--!!!!!!--"
+    "!!!!!!--!!!!!!--!!!!!!--!!!!!!--"
+    "!!!!!!--!!!!!!--!!!!!!--!!!!!!--"
+    "!!!!!!--!!!!!!--!!!!!!--!!!!!!--";
+  uint64_t counter = 0;
+  for (int i = 0; i < i_bound; i++)
+    {
+      for (int j = 2, val = counter >> 12; j < 6; j++, val>>=6)
+        {
+          for (int k = 0; k < 32; k++)
+            uuid[j+k] = 0x21 + (val & 0x3F);
+        }
+      for (int j = 0; j < 64; j++)
+        {
+          for (int h = 0; h < 32; h++)
+            uuid[h+1] = 0x21 + j;
+          for (int k = 0; k < 64; k++)
+            {
+              for (int h = 0; h < 32; h++)
+                uuid[h] = 0x21 + k;
               counter++;
               hash_func(uuid, context);
             }
