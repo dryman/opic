@@ -60,6 +60,7 @@
 #include <string>
 #include <unordered_map>
 #include <google/dense_hash_map>
+#include <google/sparse_hash_map>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -78,6 +79,7 @@ enum HASH_IMPL
   {
     ROBIN_HOOD,
     DENSE_HASH_MAP,
+    SPARSE_HASH_MAP,
     STD_UNORDERED_MAP,
   };
 
@@ -126,6 +128,21 @@ void dhm_get(char* key, void* context)
   auto dhm = static_cast<google::dense_hash_map
                          <std::string, uint64_t>*>(context);
   auto search = dhm->find(key);
+  search->first;
+}
+
+void shm_put(char* key, void* context)
+{
+  auto shm = static_cast<google::sparse_hash_map
+                         <std::string, uint64_t>*>(context);
+  shm->insert(std::make_pair(key, 0));
+}
+
+void shm_get(char* key, void* context)
+{
+  auto shm = static_cast<google::sparse_hash_map
+                         <std::string, uint64_t>*>(context);
+  auto search = shm->find(key);
   search->first;
 }
 
@@ -315,6 +332,78 @@ void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
   print_timediff("Query time: ", mid, end);
 }
 
+void shm_in_memory(int num_power, uint64_t num, RunKey key_func)
+{
+  struct timeval start, mid, end;
+  auto shm = new google::sparse_hash_map<std::string, uint64_t>(num);
+  shm->set_deleted_key("\xff");
+
+  printf("google::sparse_hash_map in memory\n");
+
+  gettimeofday(&start, NULL);
+  key_func(num_power, shm_put, static_cast<void*>(shm));
+  gettimeofday(&mid, NULL);
+  key_func(num_power, shm_get, static_cast<void*>(shm));
+  gettimeofday(&end, NULL);
+
+  delete shm;
+
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
+}
+
+void shm_serialize(int num_power, uint64_t num, RunKey key_func,
+                   char* file_name)
+{
+  struct timeval start, mid, end;
+  FILE* stream;
+  auto shm = new google::sparse_hash_map<std::string, uint64_t>(num);
+  shm->set_deleted_key("\xff");
+
+  printf("google::sparse_hash_map serialization\n");
+
+  gettimeofday(&start, NULL);
+  key_func(num_power, shm_put, static_cast<void*>(shm));
+
+  gettimeofday(&mid, NULL);
+
+  stream = fopen(file_name, "w");
+  shm->write_metadata(stream);
+  shm->write_nopointer_data(stream);
+  fclose(stream);
+  gettimeofday(&end, NULL);
+
+  delete shm;
+
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Serialization time: ", mid, end);
+}
+
+void shm_deserialize(int num_power, RunKey key_func, char* file_name)
+{
+  struct timeval start, mid, end;
+  FILE* stream;
+  auto shm = new google::sparse_hash_map<std::string, uint64_t>();
+
+  printf("google::sparse_hash_map deserialization\n");
+
+  gettimeofday(&start, NULL);
+  stream = fopen(file_name, "r");
+  shm->read_metadata(stream);
+  shm->read_nopointer_data(stream);
+  fclose(stream);
+
+  gettimeofday(&mid, NULL);
+
+  printf("gooogle::sparse_hash_map deserialized\n");
+  key_func(num_power, shm_get, static_cast<void*>(shm));
+  gettimeofday(&end, NULL);
+
+  delete shm;
+
+  print_timediff("Deserialization time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
+}
 
 void help(char* program)
 {
@@ -330,7 +419,9 @@ void help(char* program)
      "             long_int\n"
      "             short_string: 6 bytes, mid_string: 32 bytes,\n"
      "             long_string: 256 bytes, long_int: 8 bytes\n"
-     "  -i impl    impl = robin_hood, dense_hash_map, or std_unordered_map\n"
+     "             For now only robin_hood hash supports long_int benchmark\n"
+     "  -i impl    impl = robin_hood, dense_hash_map, sparse_hash_map,\n"
+     "             or std_unordered_map\n"
      "  -m mode    mode = in_memory, serialize, deserialize, or de_no_cache\n"
      "             in_memory: benchmark hash map creation time and query time\n"
      "             serialize: hash_map creation time and serialization time\n"
@@ -395,6 +486,8 @@ int main(int argc, char* argv[])
             hash_impl = ROBIN_HOOD;
           else if (!strcmp("dense_hash_map", optarg))
             hash_impl = DENSE_HASH_MAP;
+          else if (!strcmp("sparse_hash_map", optarg))
+            hash_impl = SPARSE_HASH_MAP;
           else if (!strcmp("std_unordered_map", optarg))
             hash_impl = STD_UNORDERED_MAP;
           else
@@ -422,6 +515,15 @@ int main(int argc, char* argv[])
         }
     }
 
+  if (key_func == run_long_int &&
+      hash_impl != robin_hood)
+    {
+      printf("We don't support integer key benchmark on "
+             "hash map other than robin_hood yet.\n"
+             "Feel free to contribute to add it in.\n");
+      exit(1);
+    }
+
   num = 1UL << num_power;
   printf("running elements 2^%d = %" PRIu64 "\n", num_power, num);
 
@@ -442,6 +544,9 @@ int main(int argc, char* argv[])
             case DENSE_HASH_MAP:
               dhm_in_memory(num_power, num, key_func);
               break;
+            case SPARSE_HASH_MAP:
+              shm_in_memory(num_power, num, key_func);
+              break;
             }
           break;
         case SERIALIZE:
@@ -453,6 +558,9 @@ int main(int argc, char* argv[])
               break;
             case STD_UNORDERED_MAP:
               um_serialize(num_power, num, key_func, file_name);
+              break;
+            case SPARSE_HASH_MAP:
+              shm_serialize(num_power, num, key_func, file_name);
               break;
             default:
               printf("not implemented yet\n");
@@ -468,6 +576,9 @@ int main(int argc, char* argv[])
               break;
             case STD_UNORDERED_MAP:
               um_deserialize(num_power, key_func, file_name);
+              break;
+            case SPARSE_HASH_MAP:
+              shm_deserialize(num_power, key_func, file_name);
               break;
             default:
               printf("not implemented yet\n");
