@@ -69,7 +69,7 @@
 #include <libcuckoo/cuckoohash_map.hh>
 
 
-typedef void (*HashFunc)(char* key, void* context);
+typedef uint64_t (*HashFunc)(char* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
 static void run_short_keys(int size, HashFunc hash_func, void* context);
 static void run_mid_keys(int size, HashFunc hash_func, void* context);
@@ -78,7 +78,7 @@ static void run_long_int(int size, HashFunc hash_func, void* context);
 static void print_timediff(const char* info,
                            struct timeval start, struct timeval end);
 
-KHASH_SET_INIT_STR(str)
+KHASH_MAP_INIT_STR(str, uint64_t)
 
 enum HASH_IMPL
   {
@@ -98,74 +98,80 @@ enum BENCHMARK_MODE
     DE_NO_CACHE,
   };
 
-void rhh_put(char* key, void* context)
+uint64_t rhh_put(char* key, void* context)
 {
   RobinHoodHash* rhh = (RobinHoodHash*)context;
   RHHPut(rhh, key, 0);
+  return 0;
 }
 
-void rhh_get(char* key, void* context)
+uint64_t rhh_get(char* key, void* context)
 {
-  static int counter;
+  opref_t val;
   RobinHoodHash* rhh = (RobinHoodHash*)context;
-  RHHGet(rhh,key);
+  RHHSearch(rhh, key, &val);
+  return (uint64_t)val;
 }
 
-void um_put(char* key, void* context)
+uint64_t um_put(char* key, void* context)
 {
   auto um = static_cast<std::unordered_map<std::string, uint64_t>*>(context);
   um->insert(std::make_pair(key, 0));
+  return 0;
 }
 
-void um_get(char* key, void* context)
+uint64_t um_get(char* key, void* context)
 {
   auto um = static_cast<std::unordered_map<std::string, uint64_t>*>(context);
-  um->at(key);
+  return um->at(key);
 }
 
-void dhm_put(char* key, void* context)
+uint64_t dhm_put(char* key, void* context)
 {
   auto dhm = static_cast<google::dense_hash_map
                          <std::string, uint64_t>*>(context);
   dhm->insert(std::make_pair(key, 0));
+  return 0;
 }
 
-void dhm_get(char* key, void* context)
+uint64_t dhm_get(char* key, void* context)
 {
   auto dhm = static_cast<google::dense_hash_map
                          <std::string, uint64_t>*>(context);
   auto search = dhm->find(key);
-  search->first;
+  return search->second;
 }
 
-void shm_put(char* key, void* context)
+uint64_t shm_put(char* key, void* context)
 {
   auto shm = static_cast<google::sparse_hash_map
                          <std::string, uint64_t>*>(context);
   shm->insert(std::make_pair(key, 0));
+  return 0;
 }
 
-void shm_get(char* key, void* context)
+uint64_t shm_get(char* key, void* context)
 {
   auto shm = static_cast<google::sparse_hash_map
                          <std::string, uint64_t>*>(context);
   auto search = shm->find(key);
-  search->first;
+  return search->second;
 }
 
-void ckoo_put(char* key, void* context)
+uint64_t ckoo_put(char* key, void* context)
 {
   auto ckoo = static_cast<cuckoohash_map<std::string, uint64_t>*>(context);
   ckoo->insert(key, 0);
+  return 0;
 }
 
-void ckoo_get(char* key, void* context)
+uint64_t ckoo_get(char* key, void* context)
 {
   auto ckoo = static_cast<cuckoohash_map<std::string, uint64_t>*>(context);
-  ckoo->find(key);
+  return ckoo->find(key);
 }
 
-void khash_put(char* key, void* context)
+uint64_t khash_put(char* key, void* context)
 {
   khash_t(str) *kh;
   int absent;
@@ -173,15 +179,20 @@ void khash_put(char* key, void* context)
   kh = (khash_t(str)*)context;
   khint = kh_put(str, kh, key, &absent);
   if (absent)
-    kh_key(kh, khint) = strdup(key);
+    {
+      kh_key(kh, khint) = strdup(key);
+      kh_value(kh, khint) = 0;
+    }
+  return 0;
 }
 
-void khash_get(char* key, void* context)
+uint64_t khash_get(char* key, void* context)
 {
   khash_t(str) *kh;
   khint_t khint;
   kh = (khash_t(str)*)context;
   khint = kh_get(str, kh, key);
+  return (uint64_t)kh_value(kh, khint);
   //printf("%s\n", (char*)kh_key(kh, khint));
 }
 
