@@ -56,6 +56,7 @@
 #include "opic/op_malloc.h"
 #include "opic/hash/robin_hood.h"
 
+#include <fstream>
 #include <string>
 #include <unordered_map>
 #include <google/dense_hash_map>
@@ -64,14 +65,14 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
-
 typedef void (*HashFunc)(char* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
 static void run_short_keys(int size, HashFunc hash_func, void* context);
 static void run_mid_keys(int size, HashFunc hash_func, void* context);
 static void run_long_keys(int size, HashFunc hash_func, void* context);
 static void run_long_int(int size, HashFunc hash_func, void* context);
-static void print_timediff(struct timeval start, struct timeval end);
+static void print_timediff(const char* info,
+                           struct timeval start, struct timeval end);
 
 enum HASH_IMPL
   {
@@ -146,8 +147,8 @@ void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
   key_func(num_power, rhh_get, rhh);
   gettimeofday(&end, NULL);
 
-  print_timediff(start, mid);
-  print_timediff(mid, end);
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
 //RHHPrintStat(rhh);
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
@@ -167,18 +168,16 @@ void rhh_serialize(int num_power, uint64_t num, RunKey key_func, int keysize,
                    0.80, keysize, 421439783), "Create RobinHoodHash\n");
   gettimeofday(&start, NULL);
   key_func(num_power, rhh_put, rhh);
-  printf("insert finished\n");
   gettimeofday(&mid, NULL);
   stream = fopen(file, "w");
-  printf("heap %p rhh %p\n", heap, rhh);
   OPHeapStorePtr(heap, rhh, 0);
   OPHeapWrite(heap, stream);
   fclose(stream);
   gettimeofday(&end, NULL);
   printf("serialized to %s\n", file);
 
-  print_timediff(start, mid);
-  print_timediff(mid, end);
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Serialization time: ", mid, end);
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -197,15 +196,14 @@ void rhh_deserialize(int num_power, RunKey key_func, char* file)
   op_assert(OPHeapRead(&heap, stream));
   fclose(stream);
   rhh = (RobinHoodHash*)OPHeapRestorePtr(heap, 0);
-  printf("heap %p rhh %p\n", heap, rhh);
   printf("deserialized\n");
 
   gettimeofday(&mid, NULL);
   key_func(num_power, rhh_get, rhh);
   gettimeofday(&end, NULL);
 
-  print_timediff(start, mid);
-  print_timediff(mid, end);
+  print_timediff("Deserialization time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
   OPHeapDestroy(heap);
 }
 
@@ -234,7 +232,7 @@ void rhh_deserialize2(int num_power, RunKey key_func, char* file)
 
   gettimeofday(&end, NULL);
 
-  print_timediff(start, end);
+  print_timediff("Deserialization time for 64 short keys: ", start, end);
 }
 
 void um_in_memory(int num_power, uint64_t num, RunKey key_func)
@@ -245,27 +243,55 @@ void um_in_memory(int num_power, uint64_t num, RunKey key_func)
   printf("std::unordered_map in memory\n");
   gettimeofday(&start, NULL);
   key_func(num_power, um_put, static_cast<void*>(um));
-  printf("insert finished\n");
   gettimeofday(&mid, NULL);
   key_func(num_power, um_get, static_cast<void*>(um));
   gettimeofday(&end, NULL);
 
   delete um;
 
-  print_timediff(start, mid);
-  print_timediff(mid, end);
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
 }
 
-void um_serialize(int num_power, uint64_t num, RunKey key_func)
+void um_serialize(int num_power, uint64_t num, RunKey key_func, char* file_name)
 {
   struct timeval start, mid, end;
   auto um = new std::unordered_map<std::string, uint64_t>(num);
 
-  printf("std::unordered_map in memory\n");
+  printf("std::unordered_map serialization\n");
   gettimeofday(&start, NULL);
   key_func(num_power, um_put, static_cast<void*>(um));
-  printf("insert finished\n");
   gettimeofday(&mid, NULL);
+  std::ofstream ofs(file_name);
+  boost::archive::binary_oarchive oa(ofs);
+  oa << um;
+  ofs.close();
+  gettimeofday(&end, NULL);
+  delete um;
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Serialization time: ", mid, end);
+}
+
+void um_deserialize(int num_power, RunKey key_func, char* file_name)
+{
+  struct timeval start, mid, end;
+  auto um = new std::unordered_map<std::string, uint64_t>();
+
+  printf("std::unordered_map deserialization\n");
+
+  gettimeofday(&start, NULL);
+  std::ifstream ifs(file_name);
+  boost::archive::binary_iarchive ia(ifs);
+  ia >> um;
+  ifs.close();
+  gettimeofday(&mid, NULL);
+
+  printf("std:unordered_map deserialized\n");
+  key_func(num_power, um_get, static_cast<void*>(um));
+  gettimeofday(&end, NULL);
+  delete um;
+  print_timediff("Deserialization time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
 }
 
 void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
@@ -279,66 +305,16 @@ void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
 
   gettimeofday(&start, NULL);
   key_func(num_power, dhm_put, static_cast<void*>(dhm));
-  printf("insert finished\n");
   gettimeofday(&mid, NULL);
   key_func(num_power, dhm_get, static_cast<void*>(dhm));
   gettimeofday(&end, NULL);
 
   delete dhm;
 
-  print_timediff(start, mid);
-  print_timediff(mid, end);
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
 }
 
-/*
-struct StringSerializer {
-  bool operator()(FILE* fp, const std::string& value) const {
-    assert(value.length() <= 255);   // we only support writing small strings
-    const unsigned char size = value.length();
-    if (fwrite(&size, 1, 1, fp) != 1)
-      return false;
-    if (fwrite(value.data(), size, 1, fp) != 1)
-      return false;
-    return true;
-  }
-  bool operator()(FILE* fp, std::string* value) const {
-    unsigned char size;    // all strings are <= 255 chars long
-    if (fread(&size, 1, 1, fp) != 1)
-      return false;
-    char* buf = new char[size];
-    if (fread(buf, size, 1, fp) != 1) {
-      delete[] buf;
-      return false;
-    }
-    value->assign(buf, size);
-    delete[] buf;
-    return true;
-  }
-};
-
-void dhm_serialize(int num_power, uint64_t num, RunKey key_func, char* file)
-{
-  struct timeval start, mid, end;
-  FILE* stream;
-  auto dhm = new google::dense_hash_map<std::string, uint64_t>(num);
-  dhm->set_empty_key("\x00");
-  dhm->set_deleted_key("\xff");
-
-  printf("google::dense_hash_map serialization\n");
-
-  gettimeofday(&start, NULL);
-  key_func(num_power, dhm_put, static_cast<void*>(dhm));
-  printf("insert finished\n");
-  gettimeofday(&mid, NULL);
-
-  stream = fopen(file, "w");
-  dhm->serialize (StringSerializer(), stream);
-  fclose(stream);
-  gettimeofday(&end, NULL);
-  print_timediff(start, mid);
-  print_timediff(mid, end);
-}
-*/
 
 void help(char* program)
 {
@@ -452,7 +428,7 @@ int main(int argc, char* argv[])
   for (int i = 0; i < repeat; i++)
     {
       printf("attempt %d\n", i + 1);
-      switch(b_mode)
+      switch (b_mode)
         {
         case IN_MEMORY:
           switch(hash_impl)
@@ -470,21 +446,33 @@ int main(int argc, char* argv[])
           break;
         case SERIALIZE:
           op_assert(file_name, "Need to specify file name via -f option\n");
-          if (hash_impl != ROBIN_HOOD)
+          switch (hash_impl)
             {
+            case ROBIN_HOOD:
+              rhh_serialize(num_power, num, key_func, k_len, file_name);
+              break;
+            case STD_UNORDERED_MAP:
+              um_serialize(num_power, num, key_func, file_name);
+              break;
+            default:
               printf("not implemented yet\n");
               exit(1);
             }
-          rhh_serialize(num_power, num, key_func, k_len, file_name);
           break;
         case DESERIALIZE:
           op_assert(file_name, "Need to specify file name via -f option\n");
-          if (hash_impl != ROBIN_HOOD)
+          switch (hash_impl)
             {
+            case ROBIN_HOOD:
+              rhh_deserialize(num_power, key_func, file_name);
+              break;
+            case STD_UNORDERED_MAP:
+              um_deserialize(num_power, key_func, file_name);
+              break;
+            default:
               printf("not implemented yet\n");
               exit(1);
             }
-          rhh_deserialize(num_power, key_func, file_name);
           break;
         case DE_NO_CACHE:
           op_assert(file_name, "Need to specify file name via -f option\n");
@@ -606,7 +594,7 @@ void run_long_int(int size, HashFunc hash_func, void* context)
     }
 }
 
-void print_timediff(struct timeval start, struct timeval end)
+void print_timediff(const char* info, struct timeval start, struct timeval end)
 {
   long int second = end.tv_sec - start.tv_sec;
   unsigned int usec;
@@ -618,7 +606,7 @@ void print_timediff(struct timeval start, struct timeval end)
   else
     usec = end.tv_usec - start.tv_usec;
 
-  printf("%ld.%06u\n", second, usec);
+  printf("%s%ld.%06u\n", info, second, usec);
 }
 
 

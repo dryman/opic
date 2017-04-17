@@ -8,5 +8,6 @@ malloc_bench_LDFLAGS = -static
 
 hash_bench_SOURCES = hash_bench.cc
 hash_bench_LDADD = $(top_builddir)/opic/libopic.la \
-  @PTHREAD_LIBS@ @atomic_LIBS@ -lm @log4c_LIBS@
+  @PTHREAD_LIBS@ @atomic_LIBS@ -lm @log4c_LIBS@ -lboost_thread-mt \
+  -lboost_iostreams -lboost_serialization
 hash_bench_LDFLAGS = -static
