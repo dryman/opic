@@ -65,6 +65,7 @@
 #include <boost/serialization/unordered_map.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <libcuckoo/cuckoohash_map.hh>
 
 typedef void (*HashFunc)(char* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
@@ -81,6 +82,7 @@ enum HASH_IMPL
     DENSE_HASH_MAP,
     SPARSE_HASH_MAP,
     STD_UNORDERED_MAP,
+    CUCKOO,
   };
 
 enum BENCHMARK_MODE
@@ -144,6 +146,18 @@ void shm_get(char* key, void* context)
                          <std::string, uint64_t>*>(context);
   auto search = shm->find(key);
   search->first;
+}
+
+void ckoo_put(char* key, void* context)
+{
+  auto ckoo = static_cast<cuckoohash_map<std::string, uint64_t>*>(context);
+  ckoo->insert(key, 0);
+}
+
+void ckoo_get(char* key, void* context)
+{
+  auto ckoo = static_cast<cuckoohash_map<std::string, uint64_t>*>(context);
+  ckoo->find(key);
 }
 
 void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
@@ -405,6 +419,25 @@ void shm_deserialize(int num_power, RunKey key_func, char* file_name)
   print_timediff("Query time: ", mid, end);
 }
 
+void ckoo_in_memory(int num_power, uint64_t num, RunKey key_func)
+{
+  struct timeval start, mid, end;
+  auto ckoo = new cuckoohash_map<std::string, uint64_t>
+    ((size_t)(num * 1.25)); // 0.8 load factor
+
+  printf("cuckoohash_map in memory\n");
+  gettimeofday(&start, NULL);
+  key_func(num_power, ckoo_put, static_cast<void*>(ckoo));
+  gettimeofday(&mid, NULL);
+  key_func(num_power, ckoo_get, static_cast<void*>(ckoo));
+  gettimeofday(&end, NULL);
+
+  delete ckoo;
+
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
+}
+
 void help(char* program)
 {
   printf
@@ -421,12 +454,18 @@ void help(char* program)
      "             long_string: 256 bytes, long_int: 8 bytes\n"
      "             For now only robin_hood hash supports long_int benchmark\n"
      "  -i impl    impl = robin_hood, dense_hash_map, sparse_hash_map,\n"
-     "             or std_unordered_map\n"
+     "                    or std_unordered_map\n"
      "  -m mode    mode = in_memory, serialize, deserialize, or de_no_cache\n"
      "             in_memory: benchmark hash map creation time and query time\n"
+     "               supported impl: all\n"
      "             serialize: hash_map creation time and serialization time\n"
+     "               supported impl: robin_hood, sparse_hash_map\n"
+     "                               std_unordered_map\n"
      "             deserialize: deserialize hash map then query for 2^n times\n"
+     "               supported impl: robin_hood, sparse_hash_map\n"
+     "                               std_unordered_map\n"
      "             de_no_cache: measures bare deserialization performance\n"
+     "               supported impl: robin_hood\n"
      "  -f file    file used in serialize, deserialize and deserialize_cached\n"
      "             mode.\n"
      "  -h         print help.\n"
@@ -490,6 +529,8 @@ int main(int argc, char* argv[])
             hash_impl = SPARSE_HASH_MAP;
           else if (!strcmp("std_unordered_map", optarg))
             hash_impl = STD_UNORDERED_MAP;
+          else if (!strcmp("cuckoo", optarg))
+            hash_impl = CUCKOO;
           else
             help(argv[0]);
           break;
@@ -516,7 +557,7 @@ int main(int argc, char* argv[])
     }
 
   if (key_func == run_long_int &&
-      hash_impl != robin_hood)
+      hash_impl != ROBIN_HOOD)
     {
       printf("We don't support integer key benchmark on "
              "hash map other than robin_hood yet.\n"
@@ -547,6 +588,8 @@ int main(int argc, char* argv[])
             case SPARSE_HASH_MAP:
               shm_in_memory(num_power, num, key_func);
               break;
+            case CUCKOO:
+              ckoo_in_memory(num_power, num, key_func);
             }
           break;
         case SERIALIZE:
