@@ -55,6 +55,7 @@
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
 #include "opic/hash/robin_hood.h"
+#include "khash.h"
 
 #include <fstream>
 #include <string>
@@ -67,6 +68,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <libcuckoo/cuckoohash_map.hh>
 
+
 typedef void (*HashFunc)(char* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
 static void run_short_keys(int size, HashFunc hash_func, void* context);
@@ -76,6 +78,8 @@ static void run_long_int(int size, HashFunc hash_func, void* context);
 static void print_timediff(const char* info,
                            struct timeval start, struct timeval end);
 
+KHASH_SET_INIT_STR(str)
+
 enum HASH_IMPL
   {
     ROBIN_HOOD,
@@ -83,6 +87,7 @@ enum HASH_IMPL
     SPARSE_HASH_MAP,
     STD_UNORDERED_MAP,
     CUCKOO,
+    KHASH,
   };
 
 enum BENCHMARK_MODE
@@ -158,6 +163,26 @@ void ckoo_get(char* key, void* context)
 {
   auto ckoo = static_cast<cuckoohash_map<std::string, uint64_t>*>(context);
   ckoo->find(key);
+}
+
+void khash_put(char* key, void* context)
+{
+  khash_t(str) *kh;
+  int absent;
+  khint_t khint;
+  kh = (khash_t(str)*)context;
+  khint = kh_put(str, kh, key, &absent);
+  if (absent)
+    kh_key(kh, khint) = strdup(key);
+}
+
+void khash_get(char* key, void* context)
+{
+  khash_t(str) *kh;
+  khint_t khint;
+  kh = (khash_t(str)*)context;
+  khint = kh_get(str, kh, key);
+  //printf("%s\n", (char*)kh_key(kh, khint));
 }
 
 void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
@@ -438,6 +463,30 @@ void ckoo_in_memory(int num_power, uint64_t num, RunKey key_func)
   print_timediff("Query time: ", mid, end);
 }
 
+void khash_in_memory(int num_power, uint64_t num, RunKey key_func)
+{
+  struct timeval start, mid, end;
+  khash_t(str) *kh;
+  kh = kh_init(str);
+
+  printf("khash in memory\n");
+  gettimeofday(&start, NULL);
+  key_func(num_power, khash_put, kh);
+  gettimeofday(&mid, NULL);
+  key_func(num_power, khash_get, kh);
+  gettimeofday(&end, NULL);
+
+  khint_t khint;
+  for (khint = 0; khint < kh_end(kh); ++khint)
+    if (kh_exist(kh, khint))
+      free((char*)kh_key(kh, khint));
+
+  kh_destroy(str, kh);
+
+  print_timediff("Insert time: ", start, mid);
+  print_timediff("Query time: ", mid, end);
+}
+
 void help(char* program)
 {
   printf
@@ -454,7 +503,7 @@ void help(char* program)
      "             long_string: 256 bytes, long_int: 8 bytes\n"
      "             For now only robin_hood hash supports long_int benchmark\n"
      "  -i impl    impl = robin_hood, dense_hash_map, sparse_hash_map,\n"
-     "                    or std_unordered_map\n"
+     "                    std_unordered_map, cuckoo, khash\n"
      "  -m mode    mode = in_memory, serialize, deserialize, or de_no_cache\n"
      "             in_memory: benchmark hash map creation time and query time\n"
      "               supported impl: all\n"
@@ -531,6 +580,8 @@ int main(int argc, char* argv[])
             hash_impl = STD_UNORDERED_MAP;
           else if (!strcmp("cuckoo", optarg))
             hash_impl = CUCKOO;
+          else if (!strcmp("khash", optarg))
+            hash_impl = KHASH;
           else
             help(argv[0]);
           break;
@@ -590,6 +641,10 @@ int main(int argc, char* argv[])
               break;
             case CUCKOO:
               ckoo_in_memory(num_power, num, key_func);
+              break;
+            case KHASH:
+              khash_in_memory(num_power, num, key_func);
+              break;
             }
           break;
         case SERIALIZE:
@@ -719,16 +774,16 @@ void run_long_keys(int size, HashFunc hash_func, void* context)
     {
       for (int j = 2, val = counter >> 12; j < 6; j++, val>>=6)
         {
-          for (int k = 0; k < 32; k++)
+          for (int k = 0; k < 256; k+=8)
             uuid[j+k] = 0x21 + (val & 0x3F);
         }
       for (int j = 0; j < 64; j++)
         {
-          for (int h = 0; h < 32; h++)
+          for (int h = 0; h < 256; h+=8)
             uuid[h+1] = 0x21 + j;
           for (int k = 0; k < 64; k++)
             {
-              for (int h = 0; h < 32; h++)
+              for (int h = 0; h < 256; h+=8)
                 uuid[h] = 0x21 + k;
               counter++;
               hash_func(uuid, context);
