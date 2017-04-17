@@ -188,7 +188,7 @@ struct OPHeap
   uint32_t version;
   a_int16_t pcard;
   uint16_t hpage_num;
-  void* root_ptrs[8];
+  opref_t root_ptrs[8];
   a_uint64_t occupy_bmap[HPAGE_BMAP_NUM];
   a_uint64_t header_bmap[HPAGE_BMAP_NUM];
   RawType raw_type;

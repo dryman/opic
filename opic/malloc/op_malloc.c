@@ -47,6 +47,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include "opic/op_malloc.h"
+#include "opic/common/op_assert.h"
 #include "opic/common/op_utils.h"
 #include "opic/malloc/objdef.h"
 
@@ -105,7 +106,7 @@ OPHeapRead(OPHeap** heap_ref, FILE* stream)
            j++)
         if (mincore_vec[j])
           goto next_heap;
-      map_addr = mmap(addr, heap_header.hpage_num,
+      map_addr = mmap(addr, heap_header.hpage_num * HPAGE_SIZE,
                       PROT_READ,
                       MAP_SHARED | MAP_FIXED,
                       fileno(stream), 0);
@@ -196,6 +197,22 @@ OPHeapWrite(OPHeap* heap, FILE* stream)
   if (heap_copy.hpage_num > 1)
     fwrite((void*)(heap_base + HPAGE_SIZE),
            HPAGE_SIZE, heap_copy.hpage_num - 1, stream);
+}
+
+void OPHeapStorePtr(OPHeap* heap, void* ptr, int pos)
+{
+  op_assert(heap == ObtainOPHeap(ptr), "Attempt to store ptr %p in OPHeap %p\n",
+            ptr, heap);
+  op_assert(pos < 8, "Can only store 8 root ptrs, but got pos = %d\n", pos);
+  opref_t ptr_base;
+  ptr_base = OPPtr2Ref(ptr);
+  heap->root_ptrs[pos] = ptr_base;
+}
+
+void* OPHeapRestorePtr(OPHeap* heap, int pos)
+{
+  op_assert(pos < 8, "Can only store 8 root ptrs, but got pos = %d\n", pos);
+  return OPRef2Ptr(heap, heap->root_ptrs[pos]);
 }
 
 void
