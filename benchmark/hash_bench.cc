@@ -364,7 +364,9 @@ void um_deserialize(int num_power, RunKey key_func, char* file_name)
 void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
 {
   struct timeval start, mid, end;
-  auto dhm = new google::dense_hash_map<std::string, uint64_t>(num);
+  auto dhm = new google::dense_hash_map<std::string, uint64_t>();
+  dhm->max_load_factor(0.80);
+  dhm->resize(num);
   dhm->set_empty_key("\x00");
   dhm->set_deleted_key("\xff");
 
@@ -628,7 +630,7 @@ int main(int argc, char* argv[])
     }
 
   num = 1UL << num_power;
-  printf("running elements 2^%d = %" PRIu64 "\n", num_power, num);
+  printf("running elements %" PRIu64 "\n", num);
 
   for (int i = 0; i < repeat; i++)
     {
