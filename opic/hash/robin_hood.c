@@ -253,13 +253,10 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
             rhh->stats[probe]++;
           else
             printf("large probe: %d\n", probe);
-          //crc_tmp = *(uint32_t*)&rhh->key[idx * (keysize + 4 + 8)];
           *(uint32_t*)&rhh->key[idx * (keysize + 4 + 8)] = crc;
-          //crc = crc_tmp;
           memcpy(key_tmp, &rhh->key[idx * (keysize + 4 + 8) + 4], keysize);
           memcpy(&rhh->key[idx * (keysize + 4 + 8) + 4], key_cpy, keysize);
           memcpy(key_cpy, key_tmp, keysize);
-          //val_tmp = rhh->value[idx];
           val_tmp = (opref_t)rhh->key[idx * (keysize + 4 + 8)
                                       + 4 + keysize];
           *(opref_t*)&rhh->key[idx * (keysize + 4 + 8)
@@ -307,18 +304,6 @@ bool RHHSearch(RobinHoodHash* rhh, void* key, opref_t* val)
   return false;
 }
 
-/*
-bool RHHSearch(RobinHoodHash* rhh, void* key, opref_t* val)
-{
-  uintptr_t match_idx;
-  if (RHHSearchInternal(rhh, key, &match_idx))
-    {
-      *val = rhh->value[match_idx];
-      return true;
-    }
-  return false;
-}
-*/
 
 void* RHHGet(RobinHoodHash* rhh, void* key)
 {
