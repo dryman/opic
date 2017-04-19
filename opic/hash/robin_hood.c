@@ -71,7 +71,7 @@ struct RobinHoodHash
   int16_t longest_probes;
   uint32_t seed;
   size_t keysize;
-  uint8_t* key;
+  uint8_t* data; // TODO might be better to use data[0]
   //opref_t* value;
   uint32_t stats[30];
 
@@ -87,8 +87,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
 {
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
-  size_t malloc_total_size, malloc_header_size,
-    malloc_key_size, malloc_val_size;
+  size_t malloc_total_size, malloc_header_size, bucket_size;
   uintptr_t rhh_base;
 
   capacity = (uint64_t)(num_objects / load);
@@ -98,11 +97,9 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   capacity_ms4b |= 1;
   capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
 
+  bucket_size = keysize + 1 + 8;
   malloc_header_size = sizeof(RobinHoodHash);
-  malloc_key_size = (keysize + 4 + 8) * capacity;
-  //malloc_val_size = sizeof(opref_t) * capacity;
-  malloc_total_size = malloc_header_size + malloc_key_size;
-  //+ malloc_val_size;
+  malloc_total_size = malloc_header_size + bucket_size * capacity;
 
   *rhh = OPMallocRaw(heap, malloc_total_size);
   if (!*rhh)
@@ -116,8 +113,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   (*rhh)->objcnt_limit = num_objects;
   (*rhh)->seed = seed;
   (*rhh)->keysize = keysize;
-  (*rhh)->key = (uint8_t*)(rhh_base + malloc_header_size);
-  //(*rhh)->value = (opref_t*)(rhh_base + malloc_header_size + malloc_key_size);
+  (*rhh)->data = (uint8_t*)(rhh_base + malloc_header_size);
   return true;
 }
 
@@ -128,11 +124,21 @@ RHHDestroy(RobinHoodHash* rhh)
 }
 
 
+/*
 static inline uint64_t
 hash(RobinHoodHash* rhh, void* key, uint32_t* crc)
 {
   uint64_t hashed_val[2];
   MurmurHash3_crc_x64_128(key, rhh->keysize, rhh->seed, hashed_val, crc);
+  return hashed_val[0];
+}
+*/
+
+static inline uint64_t
+hash(RobinHoodHash* rhh, void* key)
+{
+  uint64_t hashed_val[2];
+  MurmurHash3_x64_128(key, rhh->keysize, rhh->seed, hashed_val);
   return hashed_val[0];
 }
 
@@ -153,13 +159,14 @@ static inline int
 findprobe(RobinHoodHash* rhh, uintptr_t idx)
 {
   const size_t keysize = rhh->keysize;
+  const size_t bucket_size = keysize + sizeof(opref_t) + 1;
   uint32_t unused_crc;
 
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
       if (hash_with_probe(rhh,
-                          hash(rhh, &rhh->key[idx * (keysize + 4 + 8) + 4],
-                               &unused_crc),
+                          hash(rhh, &rhh->data[idx * bucket_size + 1]),
+                               //&unused_crc),
                           i) == idx)
         {
           return i;
@@ -172,13 +179,15 @@ findprobe(RobinHoodHash* rhh, uintptr_t idx)
 bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
 {
   const size_t keysize = rhh->keysize;
+  const size_t bucket_size = keysize + sizeof(opref_t) + 1;
   uintptr_t idx;
   uintptr_t visited_idx[VISIT_IDX_CACHE];
   int probe, old_probe, visit;
+  // TODO Might be better to bind key and val together as bucket_tmp
   uint8_t key_cpy[keysize];
   uint8_t key_tmp[keysize];
   opref_t val_cpy, val_tmp;
-  uint32_t crc, crc_tmp;
+  //uint32_t crc, crc_tmp;
   uint64_t hashed_key;
 
   memcpy(key_cpy, key, keysize);
@@ -191,16 +200,17 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
   visit = 0;
   while (true)
     {
-      hashed_key = hash(rhh, key_cpy, &crc);
-      crc |= 1;
+      hashed_key = hash(rhh, key_cpy);
+      //hashed_key = hash(rhh, key_cpy, &crc);
+      //crc |= 1;
     next_iter:
       idx = hash_with_probe(rhh, hashed_key, probe);
-      if (!(uint32_t)rhh->key[idx * (keysize + 4 + 8)])
+      if (!rhh->data[idx * (bucket_size)])
         {
-          memcpy(&rhh->key[idx * (keysize + 4 + 8) + 4], key_cpy, keysize);
-          *(uint32_t*)&rhh->key[idx * (keysize + 4 + 8)] = crc;
-          *(opref_t*)&rhh->key[idx * (keysize + 4 + 8)
-                               + 4 + keysize] = val_cpy;
+          rhh->data[idx*bucket_size + 1] = 1;
+          memcpy(&rhh->data[idx*bucket_size + 1], key_cpy, keysize);
+          //*(uint32_t*)&rhh->data[idx * (bucket_size)] = crc;
+          *(opref_t*)&rhh->data[idx*bucket_size + 1 + keysize] = val_cpy;
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
           rhh->objcnt++;
@@ -210,14 +220,14 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
           return true;
         }
-      else if (((uint32_t)rhh->key[idx * (keysize + 4 + 8)] == crc) &&
-               !memcmp(&rhh->key[idx * (keysize + 4 + 8) + 4],
-                       key_cpy, keysize))
+      /* else if (((uint32_t)rhh->data[idx * (bucket_size)] == crc) && */
+      /*          !memcmp(&rhh->data[idx * (bucket_size) + 4], */
+      /*                  key_cpy, keysize)) */
+      else if (!memcmp(&rhh->data[idx*bucket_size + 1], key_cpy, keysize))
         {
           // TODO log duplicate key
           //rhh->value[idx] = val_cpy;
-          *(opref_t*)&rhh->key[idx * (keysize + 4 + 8)
-                               + 4 + keysize] = val_cpy;
+          *(opref_t*)&rhh->data[idx*bucket_size + 1 + keysize] = val_cpy;
           return true;
         }
       old_probe = findprobe(rhh, idx);
@@ -253,14 +263,12 @@ bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref)
             rhh->stats[probe]++;
           else
             printf("large probe: %d\n", probe);
-          *(uint32_t*)&rhh->key[idx * (keysize + 4 + 8)] = crc;
-          memcpy(key_tmp, &rhh->key[idx * (keysize + 4 + 8) + 4], keysize);
-          memcpy(&rhh->key[idx * (keysize + 4 + 8) + 4], key_cpy, keysize);
+          //*(uint32_t*)&rhh->data[idx * (bucket_size)] = crc;
+          memcpy(key_tmp, &rhh->data[idx*bucket_size + 1], keysize);
+          memcpy(&rhh->data[idx*bucket_size + 1], key_cpy, keysize);
           memcpy(key_cpy, key_tmp, keysize);
-          val_tmp = (opref_t)rhh->key[idx * (keysize + 4 + 8)
-                                      + 4 + keysize];
-          *(opref_t*)&rhh->key[idx * (keysize + 4 + 8)
-                               + 4 + keysize] = val_cpy;
+          val_tmp = (opref_t)rhh->data[idx*bucket_size + 1 + keysize];
+          *(opref_t*)&rhh->data[idx*bucket_size + 1 + keysize] = val_cpy;
           val_cpy = val_tmp;
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
@@ -278,26 +286,30 @@ void RHHPrintStat(RobinHoodHash* rhh)
 
 bool RHHSearch(RobinHoodHash* rhh, void* key, opref_t* val)
 {
-  size_t keysize;
+  size_t keysize, bucket_size;
   uint64_t hashed_key;
   uintptr_t idx;
-  uint32_t record_crc, crc;
+  //uint32_t record_crc, crc;
 
   keysize = rhh->keysize;
-  hashed_key = hash(rhh, key, &crc);
-  crc |= 1;
+  bucket_size = keysize + sizeof(opref_t) + 1;
+  hashed_key = hash(rhh, key);
+  //hashed_key = hash(rhh, key, &crc);
+  //crc |= 1;
 
   for (int probe = 0; probe <= rhh->longest_probes; probe++)
     {
       idx = hash_with_probe(rhh, hashed_key, probe);
-      record_crc = (uint32_t)rhh->key[idx * (keysize + 4 + 8)];
-      if (!record_crc)
+      if (!rhh->data[idx * (bucket_size)])
         return false;
-      if (record_crc == crc &&
-          !memcmp(key, &rhh->key[idx * (keysize + 4 + 8) + 4], keysize))
+      /* record_crc = (uint32_t)rhh->data[idx * (bucket_size)]; */
+      /* if (!record_crc) */
+      /*   return false; */
+      /* if (record_crc == crc && */
+      /*     !memcmp(key, &rhh->data[idx * (bucket_size) + 4], keysize)) */
+      if (!memcmp(key, &rhh->data[idx*bucket_size + 1], keysize))
         {
-          *val = (opref_t)rhh->key[idx * (keysize + 4 + 8)
-                                   + 4 + keysize];
+          *val = (opref_t)rhh->data[idx*bucket_size + 1 + keysize];
           return true;
         }
     }

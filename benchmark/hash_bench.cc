@@ -364,9 +364,9 @@ void um_deserialize(int num_power, RunKey key_func, char* file_name)
 void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
 {
   struct timeval start, mid, end;
-  auto dhm = new google::dense_hash_map<std::string, uint64_t>();
-  dhm->max_load_factor(0.80);
-  dhm->resize(num);
+  auto dhm = new google::dense_hash_map<std::string, uint64_t>(num);
+  //dhm->max_load_factor(0.80);
+  //dhm->resize(num);
   dhm->set_empty_key("\x00");
   dhm->set_deleted_key("\xff");
 
