@@ -2,7 +2,7 @@
 <!DOCTYPE log4c SYSTEM "">
 
 <log4c>
-  <category name="root" priority="debug" appender="stdout"/>
+  <category name="root" priority="info" appender="stdout"/>
   <appender name="stdout" type="stream" layout="basic"/>
   <layout name="basic" type="basic"/>
 </log4c>
