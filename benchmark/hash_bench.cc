@@ -216,7 +216,7 @@ void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
 
   print_timediff("Insert time: ", start, mid);
   print_timediff("Query time: ", mid, end);
-  RHHPrintStat(rhh);
+  // RHHPrintStat(rhh);
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
