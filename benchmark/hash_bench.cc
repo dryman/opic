@@ -101,16 +101,15 @@ enum BENCHMARK_MODE
 uint64_t rhh_put(char* key, void* context)
 {
   RobinHoodHash* rhh = (RobinHoodHash*)context;
-  RHHPut(rhh, key, 0);
+  uint64_t val = 0;
+  RHHFixkeyPut(rhh, key, &val);
   return 0;
 }
 
 uint64_t rhh_get(char* key, void* context)
 {
-  opref_t val;
   RobinHoodHash* rhh = (RobinHoodHash*)context;
-  RHHSearch(rhh, key, &val);
-  return (uint64_t)val;
+  return *(uint64_t*)RHHFixkeyGet(rhh, key);
 }
 
 uint64_t um_put(char* key, void* context)
@@ -205,7 +204,7 @@ void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
   printf("RobinHoodHash in memory\n");
   op_assert(OPHeapNew(&heap), "Create OPHeap\n");
   op_assert(RHHNew(heap, &rhh, num,
-                   0.80, keysize, 421439783), "Create RobinHoodHash\n");
+                   0.80, keysize, 8), "Create RobinHoodHash\n");
 
   gettimeofday(&start, NULL);
   key_func(num_power, rhh_put, rhh);
@@ -232,7 +231,7 @@ void rhh_serialize(int num_power, uint64_t num, RunKey key_func, int keysize,
 
   op_assert(OPHeapNew(&heap), "Create OPHeap\n");
   op_assert(RHHNew(heap, &rhh, num,
-                   0.80, keysize, 421439783), "Create RobinHoodHash\n");
+                   0.80, keysize, 8), "Create RobinHoodHash\n");
   gettimeofday(&start, NULL);
   key_func(num_power, rhh_put, rhh);
   gettimeofday(&mid, NULL);
@@ -292,7 +291,7 @@ void rhh_deserialize2(int num_power, RunKey key_func, char* file)
       OPHeapRead(&heap, stream);
       fclose(stream);
       rhh = (RobinHoodHash*)OPHeapRestorePtr(heap, 0);
-      RHHGet(rhh, key);
+      RHHFixkeyGet(rhh, key);
       key[0]++;
       OPHeapDestroy(heap);
     }

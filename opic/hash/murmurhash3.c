@@ -7,7 +7,7 @@
 // compile and run any of them on any platform, but your performance with the
 // non-native version will be less than optimal.
 
-#include "nmmintrin.h"
+//#include "nmmintrin.h"
 #include "MurmurHash3.h"
 
 //-----------------------------------------------------------------------------
@@ -171,6 +171,7 @@ void MurmurHash3_x64_128 ( const void * key, const int len,
   ((uint64_t*)out)[1] = h2;
 }
 
+/*
 void MurmurHash3_crc_x64_128 ( const void * key, const int len,
                                const uint32_t seed, void * out,
                                uint32_t * crc_out)
@@ -288,5 +289,6 @@ void MurmurHash3_crc_x64_128 ( const void * key, const int len,
   ((uint64_t*)out)[1] = h2;
   *crc_out = crc;
 }
+*/
 
 //-----------------------------------------------------------------------------

@@ -54,14 +54,43 @@
 OP_BEGIN_DECLS
 
 typedef struct RobinHoodHash RobinHoodHash;
+typedef uint64_t(*OPHash)(void* key, size_t size);
 
 bool RHHNew(OPHeap* heap, RobinHoodHash** rhh, uint64_t num_objects,
-            double load, size_t keysize, uint32_t seed);
+            double load, size_t keysize, size_t valsize);
 void RHHDestroy(RobinHoodHash* rhh);
-bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref);
-bool RHHSearch(RobinHoodHash* rhh, void* key, opref_t* val);
-void* RHHGet(RobinHoodHash* rhh, void* key);
+bool RHHPut(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
+void* RHHGet(RobinHoodHash* rhh, OPHash hasher, void* key);
+void* RHHDelete(RobinHoodHash* rhh, OPHash hasher, void* key);
 void RHHPrintStat(RobinHoodHash* rhh);
+uint64_t RHHKeysize(RobinHoodHash* rhh);
+uint64_t RHHValsize(RobinHoodHash* rhh);
+uint64_t RHHFixkey(void* key, size_t size);
+uint64_t RHHPascal(void* key, size_t size);
+
+static inline bool
+RHHFixkeyPut(RobinHoodHash* rhh, void* key, void* val)
+{
+  return RHHPut(rhh, RHHFixkey, key, val);
+}
+
+static inline void*
+RHHFixkeyGet(RobinHoodHash* rhh, void* key)
+{
+  return RHHGet(rhh, RHHFixkey, key);
+}
+
+static inline bool
+RHHPascalPut(RobinHoodHash* rhh, void* key, void* val)
+{
+  return RHHPut(rhh, RHHPascal, key, val);
+}
+
+static inline void*
+RHHPascalGet(RobinHoodHash* rhh, void* key)
+{
+  return RHHGet(rhh, RHHPascal, key);
+}
 
 OP_END_DECLS
 
