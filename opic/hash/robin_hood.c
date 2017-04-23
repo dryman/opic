@@ -72,8 +72,7 @@ struct RobinHoodHash
   size_t keysize;
   size_t valsize;
   uint32_t stats[PROBE_STATS_SIZE];
-
-  uint8_t* data;
+  opref_t bucket_ref;
 };
 
 bool
@@ -83,6 +82,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
   size_t bucket_size;
+  void* bucket_ptr;
 
   // maybe it's better to use predefined load?
   // default upper bound 90
@@ -105,12 +105,13 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   *rhh = OPCallocRaw(heap, 1, sizeof(RobinHoodHash));
   if (!*rhh)
     return false;
-  (*rhh)->data = OPCallocRaw(heap, 1, bucket_size * capacity);
-  if (!(*rhh)->data)
+  bucket_ptr = OPCallocRaw(heap, 1, bucket_size * capacity);
+  if (!bucket_ptr)
     {
       OPDealloc(rhh);
       return false;
     }
+  (*rhh)->bucket_ref = OPPtr2Ref(bucket_ptr);
 
   (*rhh)->capacity_clz = capacity_clz;
   (*rhh)->capacity_ms4b = capacity_ms4b;
@@ -123,7 +124,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
 void
 RHHDestroy(RobinHoodHash* rhh)
 {
-  OPDealloc(rhh->data);
+  OPDealloc(OPRef2Ptr(rhh, rhh->bucket_ref));
   OPDealloc(rhh);
 }
 
@@ -190,11 +191,12 @@ findprobe(RobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uint64_t hashed_key;
 
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
-      hashed_key = hasher(&rhh->data[idx*bucket_size + 1], keysize);
+      hashed_key = hasher(&buckets[idx*bucket_size + 1], keysize);
       if (hash_with_probe(rhh, hashed_key, i) == idx)
         return i;
     }
@@ -207,6 +209,7 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uintptr_t idx;
   int probe, old_probe, visit;
   uint8_t bucket_cpy[bucket_size];
@@ -226,9 +229,9 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
     {
       hashed_key = hasher(&bucket_cpy[1], keysize);
       idx = hash_with_probe(rhh, hashed_key, probe);
-      if (rhh->data[idx*bucket_size] != 1)
+      if (buckets[idx*bucket_size] != 1)
         {
-          memcpy(&rhh->data[idx*bucket_size], bucket_cpy, bucket_size);
+          memcpy(&buckets[idx*bucket_size], bucket_cpy, bucket_size);
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
           rhh->objcnt++;
@@ -238,10 +241,10 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
           return true;
         }
-      else if (!memcmp(&rhh->data[idx*bucket_size + 1],
+      else if (!memcmp(&buckets[idx*bucket_size + 1],
                        &bucket_cpy[1], keysize))
         {
-          memcpy(&rhh->data[idx*bucket_size], bucket_cpy, bucket_size);
+          memcpy(&buckets[idx*bucket_size], bucket_cpy, bucket_size);
           return true;
         }
       old_probe = findprobe(rhh, hasher, idx);
@@ -254,8 +257,8 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
             rhh->stats[probe]++;
           else
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-          memcpy(bucket_tmp, &rhh->data[idx*bucket_size], bucket_size);
-          memcpy(&rhh->data[idx*bucket_size], bucket_cpy, bucket_size);
+          memcpy(bucket_tmp, &buckets[idx*bucket_size], bucket_size);
+          memcpy(&buckets[idx*bucket_size], bucket_cpy, bucket_size);
           memcpy(bucket_cpy, bucket_tmp, bucket_size);
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
@@ -271,6 +274,7 @@ RHHSearchIdx(RobinHoodHash* rhh, OPHash hasher, void* key, uintptr_t* idx)
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uint64_t hashed_key;
 
   hashed_key = hasher(key, keysize);
@@ -278,13 +282,13 @@ RHHSearchIdx(RobinHoodHash* rhh, OPHash hasher, void* key, uintptr_t* idx)
   for (int probe = 0; probe <= rhh->longest_probes; probe++)
     {
       *idx = hash_with_probe(rhh, hashed_key, probe);
-      switch(rhh->data[*idx*bucket_size])
+      switch(buckets[*idx*bucket_size])
         {
         case 0: return false;
-          //case 2: continue;
+        case 2: continue;
         default: (void)0;
         }
-      if (!memcmp(key, &rhh->data[*idx*bucket_size + 1], keysize))
+      if (!memcmp(key, &buckets[*idx*bucket_size + 1], keysize))
         return true;
     }
   return false;
@@ -295,10 +299,11 @@ void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uintptr_t idx;
   if (RHHSearchIdx(rhh, hasher, key, &idx))
     {
-      return &rhh->data[idx*bucket_size + keysize + 1];
+      return &buckets[idx*bucket_size + keysize + 1];
     }
   return NULL;
 }
@@ -313,6 +318,7 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uintptr_t idx, premod_idx, candidate_idx;
   uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
   int candidates;
@@ -356,15 +362,13 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
               candidate_idx =
                 ((premod_idx + candidate + (probe + 1)*(probe + 1)*2
                   - probe*probe*2) & mask) * rhh->capacity_ms4b >> 4;
-              if (rhh->data[candidate_idx * bucket_size] == 1 &&
+              if (buckets[candidate_idx * bucket_size] == 1 &&
                   hash_with_probe(rhh,
-                                  hasher(&rhh->data[candidate_idx
-                                                    * bucket_size + 1],
+                                  hasher(&buckets[candidate_idx*bucket_size+1],
                                          keysize),
                                   probe + 1) == candidate_idx &&
                   hash_with_probe(rhh,
-                                  hasher(&rhh->data[candidate_idx
-                                                    * bucket_size + 1],
+                                  hasher(&buckets[candidate_idx*bucket_size+1],
                                          keysize),
                                   probe) == idx)
                 {
@@ -379,8 +383,8 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
                     {
                       rhh->longest_probes--;
                     }
-                  memcpy(&rhh->data[idx*bucket_size],
-                         &rhh->data[candidate_idx*bucket_size],
+                  memcpy(&buckets[idx*bucket_size],
+                         &buckets[candidate_idx*bucket_size],
                          bucket_size);
                   idx = candidate_idx;
                   record_probe--;
@@ -392,8 +396,8 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
     }
 
  end_iter:
-  rhh->data[idx*bucket_size] = 2;
-  return &rhh->data[idx*bucket_size + 1 + keysize];
+  buckets[idx*bucket_size] = 2;
+  return &buckets[idx*bucket_size + 1 + keysize];
 }
 
 
@@ -402,12 +406,13 @@ void RHHIterate(RobinHoodHash* rhh, RHHIterator iterator, void* context)
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uint64_t capacity = RHHCapacity(rhh);
 
   for (uint64_t idx = 0; idx < capacity; idx++)
     {
-      if (rhh->data[idx*bucket_size] == 1)
-        iterator(&rhh->data[idx*bucket_size + 1],
+      if (buckets[idx*bucket_size] == 1)
+        iterator(&buckets[idx*bucket_size + 1],
                  keysize, valsize, context);
     }
 }

@@ -2,8 +2,11 @@ SUBDIRS = malloc hash
 
 AUTOMAKE_OPTIONS = subdir-objects
 AM_CPPFLAGS = -I$(top_srcdir)
+AM_CFLAGS = @log4c_CFLAGS@
+
 
 lib_LTLIBRARIES = libopic.la
+
 
 libopic_la_SOURCES = \
   demomalloc.c \
@@ -15,5 +18,3 @@ libopic_la_SOURCES = \
   malloc/lookup_helper.c \
   hash/robin_hood.c \
   hash/murmurhash3.c
-
-libopic_la_CFLAGS = @log4c_CFLAGS@

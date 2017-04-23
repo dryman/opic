@@ -55,7 +55,7 @@
 
 #include "robin_hood.h"
 
-#define TEST_OBJECTS (1 << 16)
+#define TEST_OBJECTS (1 << 15)
 
 static int objcnt = 0;
 static uint8_t objmap[TEST_OBJECTS];
@@ -155,6 +155,7 @@ test_DistributionForUpdate(void** context)
       RHHPut(rhh, &i, NULL);
     }
   assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  // TODO Change API to test the highest probe
   RHHPrintStat(rhh);
 
   for (int i = TEST_OBJECTS; i < TEST_OBJECTS*40; i++)
