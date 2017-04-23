@@ -50,6 +50,7 @@ AC_CONFIG_FILES([
   Makefile
   opic/Makefile
   opic/malloc/Makefile
+  opic/hash/Makefile
   benchmark/Makefile
 ])
 

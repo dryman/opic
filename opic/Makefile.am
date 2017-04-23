@@ -1,4 +1,4 @@
-SUBDIRS = malloc
+SUBDIRS = malloc hash
 
 AUTOMAKE_OPTIONS = subdir-objects
 AM_CPPFLAGS = -I$(top_srcdir)

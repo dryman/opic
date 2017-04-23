@@ -58,24 +58,22 @@
 #include "murmurhash3.h"
 #include "robin_hood.h"
 
-#define VISIT_IDX_CACHE 16
+#define PROBE_STATS_SIZE 32
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
 
 struct RobinHoodHash
 {
-  uint64_t capacity;
-  uint64_t objcnt_limit;
+  uint64_t objcnt_limit;   // to be deprecated after we can resize
   uint64_t objcnt;
   uint8_t capacity_clz;    // leading zeros of capacity
   uint8_t capacity_ms4b;   // most significant 4 bits
   int16_t longest_probes;
   size_t keysize;
   size_t valsize;
-  uint8_t* data; // TODO might be better to use data[0]
-  uint32_t stats[30];
+  uint32_t stats[PROBE_STATS_SIZE];
 
-  uint64_t reserved[8];
+  uint8_t* data;
 };
 
 bool
@@ -84,9 +82,17 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
 {
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
-  size_t malloc_total_size, malloc_header_size, bucket_size;
-  uintptr_t rhh_base;
+  size_t bucket_size;
 
+  // maybe it's better to use predefined load?
+  // default upper bound 90
+  //         lower bound 10
+  // minimal size 16?
+  // On small size grow by 4?
+  // On med size grow by 2
+  // On large size grow by 1.25, 1.5, 1.75
+  // How to determine size? by objcnt or by bucket_size * objcnt?
+  // We can set a large data ratio, default to 100MB?
   capacity = (uint64_t)(num_objects / load);
   capacity_clz = __builtin_clzl(capacity);
   capacity_msb = 64 - capacity_clz;
@@ -95,37 +101,48 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
 
   bucket_size = keysize + valsize + 1;
-  malloc_header_size = sizeof(RobinHoodHash);
-  malloc_total_size = malloc_header_size + bucket_size * capacity;
 
-  *rhh = OPMallocRaw(heap, malloc_total_size);
+  *rhh = OPCallocRaw(heap, 1, sizeof(RobinHoodHash));
   if (!*rhh)
     return false;
+  (*rhh)->data = OPCallocRaw(heap, 1, bucket_size * capacity);
+  if (!(*rhh)->data)
+    {
+      OPDealloc(rhh);
+      return false;
+    }
 
-  rhh_base = (uintptr_t)(*rhh);
-  memset(*rhh, 0x00, malloc_total_size);
-  (*rhh)->capacity = capacity;
   (*rhh)->capacity_clz = capacity_clz;
   (*rhh)->capacity_ms4b = capacity_ms4b;
   (*rhh)->objcnt_limit = num_objects;
   (*rhh)->keysize = keysize;
   (*rhh)->valsize = valsize;
-  (*rhh)->data = (uint8_t*)(rhh_base + malloc_header_size);
   return true;
 }
 
 void
 RHHDestroy(RobinHoodHash* rhh)
 {
+  OPDealloc(rhh->data);
   OPDealloc(rhh);
 }
 
-uint64_t RHHKeysize(RobinHoodHash* rhh)
+uint64_t RHHObjcnt(RobinHoodHash* rhh)
+{
+  return rhh->objcnt;
+}
+
+uint64_t RHHCapacity(RobinHoodHash* rhh)
+{
+  return (1UL << (64 - rhh->capacity_clz -4)) * rhh->capacity_ms4b;
+}
+
+size_t RHHKeysize(RobinHoodHash* rhh)
 {
   return rhh->keysize;
 }
 
-uint64_t RHHValsize(RobinHoodHash* rhh)
+size_t RHHValsize(RobinHoodHash* rhh)
 {
   return rhh->valsize;
 }
@@ -134,20 +151,6 @@ uint64_t RHHFixkey(void* key, size_t size)
 {
   uint64_t hashed_val[2];
   MurmurHash3_x64_128(key, size, 421439783, hashed_val);
-  return hashed_val[0];
-}
-
-uint64_t RHHPascal(void* key, size_t size)
-{
-  uint64_t hashed_val[2];
-  opref_t packed_key, opref_key;
-  size_t real_keysize;
-  void* real_key;
-  packed_key = *(opref_t*)key;
-  opref_key = packed_key & ((1ULL << OPHEAP_BITS) - 1);
-  real_keysize = (size_t)packed_key >> OPHEAP_BITS;
-  real_key = OPRef2Ptr(key, opref_key);
-  MurmurHash3_x64_128(real_key, real_keysize, 421439783, hashed_val);
   return hashed_val[0];
 }
 
@@ -199,7 +202,7 @@ findprobe(RobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   return -1;
 }
 
-bool RHHPut(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
+bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
@@ -223,13 +226,13 @@ bool RHHPut(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
     {
       hashed_key = hasher(&bucket_cpy[1], keysize);
       idx = hash_with_probe(rhh, hashed_key, probe);
-      if (!rhh->data[idx*bucket_size])
+      if (rhh->data[idx*bucket_size] != 1)
         {
           memcpy(&rhh->data[idx*bucket_size], bucket_cpy, bucket_size);
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
           rhh->objcnt++;
-          if (probe < 30)
+          if (probe < PROBE_STATS_SIZE)
             rhh->stats[probe]++;
           else
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
@@ -245,9 +248,9 @@ bool RHHPut(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
 
       if (probe > old_probe)
         {
-          if (old_probe < 30)
+          if (old_probe < PROBE_STATS_SIZE)
             rhh->stats[old_probe]--;
-          if (probe < 30)
+          if (probe < PROBE_STATS_SIZE)
             rhh->stats[probe]++;
           else
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
@@ -275,15 +278,30 @@ RHHSearchIdx(RobinHoodHash* rhh, OPHash hasher, void* key, uintptr_t* idx)
   for (int probe = 0; probe <= rhh->longest_probes; probe++)
     {
       *idx = hash_with_probe(rhh, hashed_key, probe);
-      if (!rhh->data[*idx*bucket_size])
-        return false;
+      switch(rhh->data[*idx*bucket_size])
+        {
+        case 0: return false;
+        case 2: continue;
+        default: (void)0;
+        }
       if (!memcmp(key, &rhh->data[*idx*bucket_size + 1], keysize))
         return true;
     }
   return false;
 }
 
-void* RHHDelete(RobinHoodHash* rhh, OPHash hasher, void* key)
+void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uintptr_t idx;
+  if (RHHSearchIdx(rhh, hasher, key, &idx))
+    return &rhh->data[idx*bucket_size + keysize + 1];
+  return NULL;
+}
+
+void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
@@ -291,14 +309,19 @@ void* RHHDelete(RobinHoodHash* rhh, OPHash hasher, void* key)
   uintptr_t idx, premod_idx, candidate_idx;
   uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
   int candidates;
+  int record_probe;
 
   if (!RHHSearchIdx(rhh, hasher, key, &idx))
     return NULL;
 
   rhh->objcnt--;
+  record_probe = findprobe(rhh, hasher, idx);
+
   while (true)
     {
     next_iter:
+      if (record_probe == 0)
+        goto end_iter;
       switch (rhh->capacity_ms4b)
         {
         case 8: premod_idx =  round_up_div(16*idx, 8); break;
@@ -317,10 +340,10 @@ void* RHHDelete(RobinHoodHash* rhh, OPHash hasher, void* key)
       for (int probe = rhh->longest_probes - 1;
            probe > 0; probe--)
         {
-          for (int extra = 0; extra < candidates; extra++)
+          for (int candidate = 0; candidate < candidates; candidate++)
             {
               candidate_idx =
-                ((premod_idx + extra + (probe + 1)*(probe + 1)*2
+                ((premod_idx + candidate + (probe + 1)*(probe + 1)*2
                   - probe*probe*2) & mask) * rhh->capacity_ms4b >> 4;
               if (rhh->data[candidate_idx * bucket_size] &&
                   hash_with_probe(rhh,
@@ -329,8 +352,12 @@ void* RHHDelete(RobinHoodHash* rhh, OPHash hasher, void* key)
                                          keysize),
                                   probe + 1) == candidate_idx)
                 {
-                  rhh->stats[probe+1]--;
-                  rhh->stats[probe]++;
+                  if (probe + 1 < PROBE_STATS_SIZE)
+                    rhh->stats[probe + 1]--;
+                  if (probe < PROBE_STATS_SIZE)
+                    rhh->stats[probe]++;
+                  else
+                    OP_LOG_WARN(logger, "Large probe: %d\n", probe);
                   if (probe+1 == rhh->longest_probes &&
                       rhh->stats[probe+1] == 0)
                     rhh->longest_probes--;
@@ -338,32 +365,40 @@ void* RHHDelete(RobinHoodHash* rhh, OPHash hasher, void* key)
                          &rhh->data[candidate_idx*bucket_size],
                          bucket_size);
                   idx = candidate_idx;
+                  record_probe--;
                   goto next_iter;
                 }
             }
         }
-      // TODO: use 2 as tombstone
-      // TODO: only iterate deleted.probe times. That's what it can
-      // contributes
-      rhh->data[idx*bucket_size] = 0;
-      return &rhh->data[idx*bucket_size + 1 + keysize];
+      goto end_iter;
+    }
+
+ end_iter:
+  rhh->data[idx*bucket_size] = 2;
+  return &rhh->data[idx*bucket_size + 1 + keysize];
+}
+
+
+void RHHIterate(RobinHoodHash* rhh, RHHIterator iterator, void* context)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint64_t capacity = RHHCapacity(rhh);
+
+  for (uint64_t idx = 0; idx < capacity; idx++)
+    {
+      if (rhh->data[idx*bucket_size] == 1)
+        iterator(&rhh->data[idx*bucket_size + 1],
+                 keysize, valsize, context);
     }
 }
 
 void RHHPrintStat(RobinHoodHash* rhh)
 {
-  for (int i = 0; i < 30; i++)
-    printf("probe %02d: %d\n", i, rhh->stats[i]);
+  for (int i = 0; i < PROBE_STATS_SIZE; i++)
+    if (rhh->stats[i])
+      printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
-void* RHHGet(RobinHoodHash* rhh, OPHash hasher, void* key)
-{
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
-  const size_t bucket_size = keysize + valsize + 1;
-  uintptr_t idx;
-  if (RHHSearchIdx(rhh, hasher, key, &idx))
-    return &rhh->data[idx*bucket_size + keysize + 1];
-  return NULL;
-}
 /* robin_hood.c ends here */

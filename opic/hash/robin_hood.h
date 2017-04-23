@@ -50,46 +50,50 @@
 
 #include <stdbool.h>
 #include "opic/common/op_macros.h"
+#include "opic/op_malloc.h"
 
 OP_BEGIN_DECLS
 
 typedef struct RobinHoodHash RobinHoodHash;
 typedef uint64_t(*OPHash)(void* key, size_t size);
+typedef void(*RHHIterator)(void* keyval, size_t keysize, size_t valsize,
+                           void* context);
+
+// Default OPHash function for RobinHoodHashing
+uint64_t RHHFixkey(void* key, size_t size);
+
 
 bool RHHNew(OPHeap* heap, RobinHoodHash** rhh, uint64_t num_objects,
             double load, size_t keysize, size_t valsize);
 void RHHDestroy(RobinHoodHash* rhh);
-bool RHHPut(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
-void* RHHGet(RobinHoodHash* rhh, OPHash hasher, void* key);
-void* RHHDelete(RobinHoodHash* rhh, OPHash hasher, void* key);
+
+bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
+void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
+void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
+
+uint64_t RHHObjcnt(RobinHoodHash* rhh);
+uint64_t RHHCapacity(RobinHoodHash* rhh);
+size_t RHHKeysize(RobinHoodHash* rhh);
+size_t RHHValsize(RobinHoodHash* rhh);
+void RHHIterate(RobinHoodHash* rhh, RHHIterator iterator, void* context);
 void RHHPrintStat(RobinHoodHash* rhh);
-uint64_t RHHKeysize(RobinHoodHash* rhh);
-uint64_t RHHValsize(RobinHoodHash* rhh);
-uint64_t RHHFixkey(void* key, size_t size);
-uint64_t RHHPascal(void* key, size_t size);
 
 static inline bool
-RHHFixkeyPut(RobinHoodHash* rhh, void* key, void* val)
+RHHPut(RobinHoodHash* rhh, void* key, void* val)
 {
-  return RHHPut(rhh, RHHFixkey, key, val);
+  return RHHPutCustom(rhh, RHHFixkey, key, val);
 }
 
 static inline void*
-RHHFixkeyGet(RobinHoodHash* rhh, void* key)
+RHHGet(RobinHoodHash* rhh, void* key)
 {
-  return RHHGet(rhh, RHHFixkey, key);
-}
-
-static inline bool
-RHHPascalPut(RobinHoodHash* rhh, void* key, void* val)
-{
-  return RHHPut(rhh, RHHPascal, key, val);
+  return RHHGetCustom(rhh, RHHFixkey, key);
 }
 
 static inline void*
-RHHPascalGet(RobinHoodHash* rhh, void* key)
+RHHDelete(RobinHoodHash* rhh, void* key)
 {
-  return RHHGet(rhh, RHHPascal, key);
+  return RHHDeleteCustom(rhh, RHHFixkey, key);
 }
 
 OP_END_DECLS
