@@ -55,7 +55,7 @@
 
 #include "robin_hood.h"
 
-#define TEST_OBJECTS 3000
+#define TEST_OBJECTS (1 << 16)
 
 static int objcnt = 0;
 static uint8_t objmap[TEST_OBJECTS];
@@ -91,7 +91,6 @@ test_BasicInsert(void** context)
 {
   OPHeap* heap;
   RobinHoodHash* rhh;
-  int key;
 
   assert_true(OPHeapNew(&heap));
   assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
@@ -105,8 +104,6 @@ test_BasicInsert(void** context)
   ResetObjcnt();
   RHHIterate(rhh, CountObjects, NULL);
   assert_int_equal(TEST_OBJECTS, objcnt);
-  key = 5;
-  assert_non_null(RHHGet(rhh, &key));
   ResetObjmap();
   RHHIterate(rhh, CheckObjects, NULL);
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -118,6 +115,58 @@ test_BasicInsert(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_BasicDelete(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.95, sizeof(int), 0));
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHPut(rhh, &i, NULL);
+    }
+  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_non_null(RHHDelete(rhh, &i));
+    }
+  assert_int_equal(0, RHHObjcnt(rhh));
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
+static void
+test_DistributionForUpdate(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  int key;
+
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.80, sizeof(int), 0));
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHPut(rhh, &i, NULL);
+    }
+  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  RHHPrintStat(rhh);
+
+  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*40; i++)
+    {
+      key = i - TEST_OBJECTS;
+      RHHDelete(rhh, &key);
+      RHHPut(rhh, &i, NULL);
+    }
+  RHHPrintStat(rhh);
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
 
 int
 main (void)
@@ -126,6 +175,8 @@ main (void)
     {
       cmocka_unit_test(test_RHHNew),
       cmocka_unit_test(test_BasicInsert),
+      cmocka_unit_test(test_BasicDelete),
+      cmocka_unit_test(test_DistributionForUpdate),
     };
 
   return cmocka_run_group_tests(rhh_tests, NULL, NULL);

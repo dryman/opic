@@ -58,7 +58,7 @@
 #include "murmurhash3.h"
 #include "robin_hood.h"
 
-#define PROBE_STATS_SIZE 32
+#define PROBE_STATS_SIZE 64
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
 
@@ -281,7 +281,7 @@ RHHSearchIdx(RobinHoodHash* rhh, OPHash hasher, void* key, uintptr_t* idx)
       switch(rhh->data[*idx*bucket_size])
         {
         case 0: return false;
-        case 2: continue;
+          //case 2: continue;
         default: (void)0;
         }
       if (!memcmp(key, &rhh->data[*idx*bucket_size + 1], keysize))
@@ -297,12 +297,19 @@ void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
   const size_t bucket_size = keysize + valsize + 1;
   uintptr_t idx;
   if (RHHSearchIdx(rhh, hasher, key, &idx))
-    return &rhh->data[idx*bucket_size + keysize + 1];
+    {
+      return &rhh->data[idx*bucket_size + keysize + 1];
+    }
   return NULL;
 }
 
 void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
 {
+  /*
+   * This works for load that is not super high, i.e. < 0.9.
+   * It slows down the growth for both E[psl] and Var[psl], but only
+   * slows down, not bounding it.
+   */
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
@@ -316,6 +323,10 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
 
   rhh->objcnt--;
   record_probe = findprobe(rhh, hasher, idx);
+  if (record_probe < PROBE_STATS_SIZE)
+    rhh->stats[record_probe]--;
+  else
+    OP_LOG_WARN(logger, "Large probe: %d\n", record_probe);
 
   while (true)
     {
@@ -345,12 +356,17 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
               candidate_idx =
                 ((premod_idx + candidate + (probe + 1)*(probe + 1)*2
                   - probe*probe*2) & mask) * rhh->capacity_ms4b >> 4;
-              if (rhh->data[candidate_idx * bucket_size] &&
+              if (rhh->data[candidate_idx * bucket_size] == 1 &&
                   hash_with_probe(rhh,
                                   hasher(&rhh->data[candidate_idx
                                                     * bucket_size + 1],
                                          keysize),
-                                  probe + 1) == candidate_idx)
+                                  probe + 1) == candidate_idx &&
+                  hash_with_probe(rhh,
+                                  hasher(&rhh->data[candidate_idx
+                                                    * bucket_size + 1],
+                                         keysize),
+                                  probe) == idx)
                 {
                   if (probe + 1 < PROBE_STATS_SIZE)
                     rhh->stats[probe + 1]--;
@@ -360,7 +376,9 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
                     OP_LOG_WARN(logger, "Large probe: %d\n", probe);
                   if (probe+1 == rhh->longest_probes &&
                       rhh->stats[probe+1] == 0)
-                    rhh->longest_probes--;
+                    {
+                      rhh->longest_probes--;
+                    }
                   memcpy(&rhh->data[idx*bucket_size],
                          &rhh->data[candidate_idx*bucket_size],
                          bucket_size);
