@@ -68,7 +68,7 @@ struct RobinHoodHash
   uint64_t objcnt;
   uint8_t capacity_clz;    // leading zeros of capacity
   uint8_t capacity_ms4b;   // most significant 4 bits
-  int16_t longest_probes;
+  uint16_t longest_probes;
   size_t keysize;
   size_t valsize;
   uint32_t stats[PROBE_STATS_SIZE];
@@ -334,6 +334,12 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
   else
     OP_LOG_WARN(logger, "Large probe: %d\n", record_probe);
 
+  if (record_probe == rhh->longest_probes &&
+      rhh->stats[record_probe] == 0)
+    {
+      rhh->longest_probes--;
+    }
+
   while (true)
     {
     next_iter:
@@ -378,7 +384,7 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
                     rhh->stats[probe]++;
                   else
                     OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-                  if (probe+1 == rhh->longest_probes &&
+                  if (probe + 1 == rhh->longest_probes &&
                       rhh->stats[probe+1] == 0)
                     {
                       rhh->longest_probes--;

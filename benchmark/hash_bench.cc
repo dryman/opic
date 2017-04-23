@@ -204,7 +204,7 @@ void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
   printf("RobinHoodHash in memory\n");
   op_assert(OPHeapNew(&heap), "Create OPHeap\n");
   op_assert(RHHNew(heap, &rhh, num,
-                   0.50, keysize, 8), "Create RobinHoodHash\n");
+                   0.90, keysize, 8), "Create RobinHoodHash\n");
 
   gettimeofday(&start, NULL);
   key_func(num_power, rhh_put, rhh);
