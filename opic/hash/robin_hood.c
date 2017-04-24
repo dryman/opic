@@ -59,13 +59,17 @@
 #include "robin_hood.h"
 
 #define PROBE_STATS_SIZE 64
+// 128MB
+#define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 27)
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
 
 struct RobinHoodHash
 {
-  uint64_t objcnt_limit;   // to be deprecated after we can resize
   uint64_t objcnt;
+  uint64_t objcnt_high;
+  uint64_t objcnt_low;
+  uint64_t large_data_threshold;
   uint8_t capacity_clz;    // leading zeros of capacity
   uint8_t capacity_ms4b;   // most significant 4 bits
   uint16_t longest_probes;
@@ -93,11 +97,14 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   // On large size grow by 1.25, 1.5, 1.75
   // How to determine size? by objcnt or by bucket_size * objcnt?
   // We can set a large data ratio, default to 100MB?
+  op_assert(load > 0.0 && load < 1.0,
+            "load %lf must within close interval (0.0, 1.0)\n", load);
   capacity = (uint64_t)(num_objects / load);
+  if (capacity < 8)
+    capacity = 8;
   capacity_clz = __builtin_clzl(capacity);
   capacity_msb = 64 - capacity_clz;
   capacity_ms4b = round_up_div(capacity, 1UL << (capacity_msb - 4));
-  capacity_ms4b |= 1;
   capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
 
   bucket_size = keysize + valsize + 1;
@@ -115,7 +122,8 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
 
   (*rhh)->capacity_clz = capacity_clz;
   (*rhh)->capacity_ms4b = capacity_ms4b;
-  (*rhh)->objcnt_limit = num_objects;
+  (*rhh)->objcnt_high = (uint64_t)(capacity * load);
+  (*rhh)->objcnt_low = capacity * 2 / 10;
   (*rhh)->keysize = keysize;
   (*rhh)->valsize = valsize;
   return true;
@@ -133,9 +141,15 @@ uint64_t RHHObjcnt(RobinHoodHash* rhh)
   return rhh->objcnt;
 }
 
+static inline
+uint64_t RHHCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b)
+{
+  return (1UL << (64 - capacity_clz - 4)) * capacity_ms4b;
+}
+
 uint64_t RHHCapacity(RobinHoodHash* rhh)
 {
-  return (1UL << (64 - rhh->capacity_clz -4)) * rhh->capacity_ms4b;
+  return RHHCapacityInternal(rhh->capacity_clz, rhh->capacity_ms4b);
 }
 
 size_t RHHKeysize(RobinHoodHash* rhh)
@@ -161,25 +175,10 @@ hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
   uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
   // linear probing
-  // Best cache performance, but terrible on key collision.
   // uint64_t probed_hash = key + probe * 2;
 
   // quadratic probing
-  // Still good on cache performance, but not good enough to resolve
-  // key collisions under high load.
   uint64_t probed_hash = key + probe * probe * 2;
-
-  // Felix's probing 1: perfect hashing based on probes.
-  // Best key collision resolver. Generates unifomly distributed
-  // probe result. However, it has bad cache performance.
-  // uint64_t probed_hash = (key >> probe) | (key << (64 - probe));
-
-  // Felix's probing 2
-  // Use the last 3,4 digits to shuffle the probe position.
-  // Makes good balance on cache performance and key collision
-  // int probe_mod = probe % 4;
-  // int probe_div = probe / 4;
-  // uint64_t probed_hash = (key << probe_div) + probe_mod * probe_mod;
 
   // Fast mod and scale
   return (probed_hash & mask) * rhh->capacity_ms4b >> 4;
@@ -204,12 +203,174 @@ findprobe(RobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   return -1;
 }
 
+static bool
+RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  const size_t large_data_threshold = rhh->large_data_threshold;
+  uint8_t* old_buckets;
+  uint8_t* new_buckets;
+  uint8_t new_capacity_ms4b, new_capacity_clz;
+  uint64_t old_capacity, new_capacity;
+  uintptr_t bucket_base;
+  void* oldkey;
+  void* oldval;
+
+  old_capacity = RHHCapacity(rhh);
+  old_buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+
+  if (old_capacity * bucket_size >= large_data_threshold)
+    {
+      // increase size by 20% ~ 33%
+      switch(rhh->capacity_ms4b)
+        {
+        case 8:
+          new_capacity_ms4b = 10;
+          new_capacity_clz = rhh->capacity_clz;
+          break;
+        case 9:
+        case 10:
+          new_capacity_ms4b = 12;
+          new_capacity_clz = rhh->capacity_clz;
+          break;
+        case 11:
+        case 12:
+          new_capacity_ms4b = 14;
+          new_capacity_clz = rhh->capacity_clz;
+          break;
+        case 13:
+        case 14:
+          new_capacity_ms4b = 8;
+          new_capacity_clz = rhh->capacity_clz - 1;
+          break;
+        case 15:
+          new_capacity_ms4b = 10;
+          new_capacity_clz = rhh->capacity_clz - 1;
+          break;
+        default: op_assert(false, "Unknown capacity_ms4b %d\n",
+                           rhh->capacity_ms4b);
+        }
+    }
+  else
+    {
+      new_capacity_ms4b = 8;
+      new_capacity_clz = rhh->capacity_ms4b == 8 ?
+        rhh->capacity_clz - 1 : rhh->capacity_clz - 2;
+    }
+  new_capacity = RHHCapacityInternal(new_capacity_clz, new_capacity_ms4b);
+  new_buckets = OPCallocRaw(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
+  if (!new_buckets)
+    {
+      OP_LOG_ERROR(logger, "Cannot obtain new bucket for size %" PRIu64,
+                   new_capacity);
+      return false;
+    }
+
+  rhh->objcnt = 0;
+  rhh->objcnt_high = new_capacity * 8 / 10;
+  rhh->objcnt_low = new_capacity * 2 / 10;
+  rhh->capacity_clz = new_capacity_clz;
+  rhh->capacity_ms4b = new_capacity_ms4b;
+  rhh->longest_probes = 0;
+  memset(rhh->stats, 0x00, sizeof(uint32_t) * PROBE_STATS_SIZE);
+  rhh->bucket_ref = OPPtr2Ref(new_buckets);
+
+  for (uint64_t idx = 0; idx < old_capacity; idx++)
+    {
+      if (old_buckets[idx*bucket_size] == 1)
+        {
+          bucket_base = (uintptr_t)old_buckets[idx*bucket_size];
+          oldkey = (void*)(bucket_base + 1);
+          oldval = (void*)(bucket_base + 1 + keysize);
+          op_assert(RHHPutCustom(rhh, hasher, oldkey, oldval),
+                    "Resize and insert with idx: %" PRIu64 "\n", idx);
+        }
+    }
+  OPDealloc(old_buckets);
+  return true;
+}
+
+static bool
+RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* old_buckets;
+  uint8_t* new_buckets;
+  uint8_t new_capacity_ms4b, new_capacity_clz;
+  uint64_t old_capacity, new_capacity;
+  uintptr_t bucket_base;
+  void* oldkey;
+  void* oldval;
+
+  old_capacity = RHHCapacity(rhh);
+  old_buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  op_assert(old_capacity > 16,
+            "Can not resize smaller than 16, but got old_capacity %"
+            PRIu64 "\n", old_capacity);
+
+  switch(rhh->capacity_ms4b)
+    {
+    case 8:  // new load 0.45
+    case 9:  // new load 0.50
+    case 10: // new load 0.55
+    case 11: // new load 0.60
+      new_capacity_ms4b = 8;
+      new_capacity_clz = rhh->capacity_clz + 1;
+      break;
+    case 12: // new load 0.40
+    case 13: // new load 0.43
+    case 14: // new load 0.46
+    case 15: // new load 0.50
+      new_capacity_ms4b = 12;
+      new_capacity_clz = rhh->capacity_clz + 1;
+      break;
+    default: op_assert(false, "Unknown capacity_ms4b %d\n",
+                       rhh->capacity_ms4b);
+    }
+
+  new_capacity = RHHCapacityInternal(new_capacity_clz, new_capacity_ms4b);
+  new_buckets = OPCallocRaw(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
+  if (!new_buckets)
+    {
+      OP_LOG_ERROR(logger, "Cannot obtain new bucket for size %" PRIu64,
+                   new_capacity);
+      return false;
+    }
+
+  rhh->objcnt = 0;
+  rhh->objcnt_high = new_capacity * 8 / 10;
+  rhh->objcnt_low = new_capacity * 2 / 10;
+  rhh->capacity_clz = new_capacity_clz;
+  rhh->capacity_ms4b = new_capacity_ms4b;
+  rhh->longest_probes = 0;
+  memset(rhh->stats, 0x00, sizeof(uint32_t) * PROBE_STATS_SIZE);
+  rhh->bucket_ref = OPPtr2Ref(new_buckets);
+
+  for (uint64_t idx = 0; idx < old_capacity; idx++)
+    {
+      if (old_buckets[idx*bucket_size] == 1)
+        {
+          bucket_base = (uintptr_t)old_buckets[idx*bucket_size];
+          oldkey = (void*)(bucket_base + 1);
+          oldval = (void*)(bucket_base + 1 + keysize);
+          op_assert(RHHPutCustom(rhh, hasher, oldkey, oldval),
+                    "Resize and insert with idx: %" PRIu64 "\n", idx);
+        }
+    }
+  OPDealloc(old_buckets);
+  return true;
+}
+
 bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
-  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uintptr_t idx;
   int probe, old_probe, visit;
   uint8_t bucket_cpy[bucket_size];
@@ -219,9 +380,6 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
   bucket_cpy[0] = 1;
   memcpy(&bucket_cpy[1], key, keysize);
   memcpy(&bucket_cpy[1 + keysize], val, valsize);
-
-  if (rhh->objcnt >= rhh->objcnt_limit)
-    return false;
 
   probe = 0;
   visit = 0;
@@ -239,13 +397,13 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
             rhh->stats[probe]++;
           else
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-          return true;
+          goto size_check;
         }
       else if (!memcmp(&buckets[idx*bucket_size + 1],
                        &bucket_cpy[1], keysize))
         {
           memcpy(&buckets[idx*bucket_size], bucket_cpy, bucket_size);
-          return true;
+          goto size_check;
         }
       old_probe = findprobe(rhh, hasher, idx);
 
@@ -266,6 +424,12 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
         }
         probe++;
     }
+ size_check:
+  if (rhh->objcnt > rhh->objcnt_high)
+    {
+      return RHHSizeUp(rhh, hasher);
+    }
+  return true;
 }
 
 static inline bool
@@ -315,17 +479,30 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
    * It slows down the growth for both E[psl] and Var[psl], but only
    * slows down, not bounding it.
    */
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
-  const size_t bucket_size = keysize + valsize + 1;
-  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  size_t keysize;
+  size_t valsize;
+  size_t bucket_size;
+  uint8_t* buckets;
   uintptr_t idx, premod_idx, candidate_idx;
-  uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  uintptr_t mask;
   int candidates;
   int record_probe;
 
+  if (rhh->objcnt < rhh->objcnt_low &&
+      rhh->objcnt > 16)
+    {
+      if (!RHHSizeDown(rhh, hasher))
+        return NULL;
+    }
+
   if (!RHHSearchIdx(rhh, hasher, key, &idx))
     return NULL;
+
+  keysize = rhh->keysize;
+  valsize = rhh->valsize;
+  bucket_size = keysize + valsize + 1;
+  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
   rhh->objcnt--;
   record_probe = findprobe(rhh, hasher, idx);
