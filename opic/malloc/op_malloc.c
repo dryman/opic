@@ -51,20 +51,19 @@
 #include "opic/common/op_utils.h"
 #include "opic/malloc/objdef.h"
 
-char mincore_vec[OPHEAP_SIZE / SPAGE_SIZE];
 
 bool
 OPHeapNew(OPHeap** heap_ref)
 {
   void *addr, *map_addr;
+  char page_check[1] = {0};
   addr = NULL + OPHEAP_SIZE;
   map_addr = MAP_FAILED;
   for (int i = 0; i < (1<<15); i++)
     {
-      mincore(addr, OPHEAP_SIZE, mincore_vec);
-      for (int j = 0; j < OPHEAP_SIZE / SPAGE_SIZE; j++)
-        if (mincore_vec[j])
-          goto next_heap;
+      mincore(addr, SPAGE_SIZE, page_check);
+      if (page_check[0])
+        goto next_heap;
       map_addr = mmap(addr, OPHEAP_SIZE,
                       PROT_READ | PROT_WRITE,
                       MAP_ANON | MAP_PRIVATE | MAP_FIXED,
@@ -92,6 +91,7 @@ OPHeapRead(OPHeap** heap_ref, FILE* stream)
 {
   OPHeap heap_header;
   void *addr, *map_addr;
+  char page_check[1] = {0};
   addr = NULL + OPHEAP_SIZE;
   map_addr = MAP_FAILED;
 
@@ -100,12 +100,9 @@ OPHeapRead(OPHeap** heap_ref, FILE* stream)
 
   for (int i = 0; i < (1<<15); i++)
     {
-      mincore(addr, heap_header.hpage_num * HPAGE_SIZE, mincore_vec);
-      for (int j = 0;
-           j < heap_header.hpage_num * HPAGE_SIZE / SPAGE_SIZE;
-           j++)
-        if (mincore_vec[j])
-          goto next_heap;
+      mincore(addr, SPAGE_SIZE, page_check);
+      if (page_check[0])
+        goto next_heap;
       map_addr = mmap(addr, heap_header.hpage_num * HPAGE_SIZE,
                       PROT_READ,
                       MAP_SHARED | MAP_FIXED,

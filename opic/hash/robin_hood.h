@@ -50,18 +50,51 @@
 
 #include <stdbool.h>
 #include "opic/common/op_macros.h"
+#include "opic/op_malloc.h"
 
 OP_BEGIN_DECLS
 
 typedef struct RobinHoodHash RobinHoodHash;
+typedef uint64_t(*OPHash)(void* key, size_t size);
+typedef void(*RHHIterator)(void* keyval, size_t keysize, size_t valsize,
+                           void* context);
+
+// Default OPHash function for RobinHoodHashing
+uint64_t RHHFixkey(void* key, size_t size);
+
 
 bool RHHNew(OPHeap* heap, RobinHoodHash** rhh, uint64_t num_objects,
-            double load, size_t keysize, uint32_t seed);
+            double load, size_t keysize, size_t valsize);
 void RHHDestroy(RobinHoodHash* rhh);
-bool RHHPut(RobinHoodHash* rhh, void* key, opref_t val_ref);
-bool RHHSearch(RobinHoodHash* rhh, void* key, opref_t* val);
-void* RHHGet(RobinHoodHash* rhh, void* key);
+
+bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
+void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
+void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
+
+uint64_t RHHObjcnt(RobinHoodHash* rhh);
+uint64_t RHHCapacity(RobinHoodHash* rhh);
+size_t RHHKeysize(RobinHoodHash* rhh);
+size_t RHHValsize(RobinHoodHash* rhh);
+void RHHIterate(RobinHoodHash* rhh, RHHIterator iterator, void* context);
 void RHHPrintStat(RobinHoodHash* rhh);
+
+static inline bool
+RHHPut(RobinHoodHash* rhh, void* key, void* val)
+{
+  return RHHPutCustom(rhh, RHHFixkey, key, val);
+}
+
+static inline void*
+RHHGet(RobinHoodHash* rhh, void* key)
+{
+  return RHHGetCustom(rhh, RHHFixkey, key);
+}
+
+static inline void*
+RHHDelete(RobinHoodHash* rhh, void* key)
+{
+  return RHHDeleteCustom(rhh, RHHFixkey, key);
+}
 
 OP_END_DECLS
 

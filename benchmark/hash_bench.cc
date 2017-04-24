@@ -101,16 +101,15 @@ enum BENCHMARK_MODE
 uint64_t rhh_put(char* key, void* context)
 {
   RobinHoodHash* rhh = (RobinHoodHash*)context;
-  RHHPut(rhh, key, 0);
+  uint64_t val = 0;
+  RHHPut(rhh, key, &val);
   return 0;
 }
 
 uint64_t rhh_get(char* key, void* context)
 {
-  opref_t val;
   RobinHoodHash* rhh = (RobinHoodHash*)context;
-  RHHSearch(rhh, key, &val);
-  return (uint64_t)val;
+  return *(uint64_t*)RHHGet(rhh, key);
 }
 
 uint64_t um_put(char* key, void* context)
@@ -205,7 +204,7 @@ void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
   printf("RobinHoodHash in memory\n");
   op_assert(OPHeapNew(&heap), "Create OPHeap\n");
   op_assert(RHHNew(heap, &rhh, num,
-                   0.80, keysize, 421439783), "Create RobinHoodHash\n");
+                   0.95, keysize, 8), "Create RobinHoodHash\n");
 
   gettimeofday(&start, NULL);
   key_func(num_power, rhh_put, rhh);
@@ -216,7 +215,7 @@ void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
 
   print_timediff("Insert time: ", start, mid);
   print_timediff("Query time: ", mid, end);
-//RHHPrintStat(rhh);
+  RHHPrintStat(rhh);
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -232,7 +231,7 @@ void rhh_serialize(int num_power, uint64_t num, RunKey key_func, int keysize,
 
   op_assert(OPHeapNew(&heap), "Create OPHeap\n");
   op_assert(RHHNew(heap, &rhh, num,
-                   0.80, keysize, 421439783), "Create RobinHoodHash\n");
+                   0.80, keysize, 8), "Create RobinHoodHash\n");
   gettimeofday(&start, NULL);
   key_func(num_power, rhh_put, rhh);
   gettimeofday(&mid, NULL);
@@ -365,6 +364,8 @@ void dhm_in_memory(int num_power, uint64_t num, RunKey key_func)
 {
   struct timeval start, mid, end;
   auto dhm = new google::dense_hash_map<std::string, uint64_t>(num);
+  //dhm->max_load_factor(0.80);
+  //dhm->resize(num);
   dhm->set_empty_key("\x00");
   dhm->set_deleted_key("\xff");
 
@@ -628,7 +629,7 @@ int main(int argc, char* argv[])
     }
 
   num = 1UL << num_power;
-  printf("running elements 2^%d = %" PRIu64 "\n", num_power, num);
+  printf("running elements %" PRIu64 "\n", num);
 
   for (int i = 0; i < repeat; i++)
     {
