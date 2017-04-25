@@ -53,7 +53,10 @@
 #include <string.h>
 #include <cmocka.h>
 
+#include "opic/common/op_log.h"
 #include "robin_hood.h"
+
+OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood_test");
 
 #define TEST_OBJECTS (1 << 15)
 
@@ -84,6 +87,14 @@ void CheckObjects(void* keyval, size_t keysize, size_t valsize, void* ctx)
 static void
 test_RHHNew(void** context)
 {
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.95, sizeof(int), 0));
+  RHHDestroy(rhh);
+
+  OPHeapDestroy(heap);
 }
 
 static void
@@ -92,9 +103,11 @@ test_BasicInsert(void** context)
   OPHeap* heap;
   RobinHoodHash* rhh;
 
+  OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(RHHNew(heap, &rhh, 20,
                      0.95, sizeof(int), 0));
+  OP_LOG_DEBUG(logger, "RHH addr %p", rhh);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       RHHPut(rhh, &i, NULL);
@@ -108,7 +121,6 @@ test_BasicInsert(void** context)
   RHHIterate(rhh, CheckObjects, NULL);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      // printf("checking i = %d\n", i);
       assert_int_equal(1, objmap[i]);
     }
   RHHDestroy(rhh);
@@ -148,7 +160,7 @@ test_DistributionForUpdate(void** context)
 
   assert_true(OPHeapNew(&heap));
   assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
-                     0.80, sizeof(int), 0));
+                     0.70, sizeof(int), 0));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -158,7 +170,7 @@ test_DistributionForUpdate(void** context)
   // TODO Change API to test the highest probe
   RHHPrintStat(rhh);
 
-  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*40; i++)
+  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*10; i++)
     {
       key = i - TEST_OBJECTS;
       RHHDelete(rhh, &key);

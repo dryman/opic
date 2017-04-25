@@ -1,5 +1,6 @@
 AM_CPPFLAGS = -I$(top_srcdir)
 AM_CFLAGS = @cmocka_CFLAGS@
+AUTOMAKE_OPTIONS = subdir-objects
 
 TESTS = lookup_helper_test init_helper_test allocator_test \
   deallocator_test op_malloc_test
@@ -27,6 +28,7 @@ init_helper_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
 init_helper_test_LDFLAGS = -static
 
 allocator_test_SOURCES = \
+  ../common/op_log.c \
   allocator.c \
   allocator_test.c \
   deallocator.c \
@@ -39,6 +41,7 @@ allocator_test_LDADD = @log4c_LIBS@ @PTHREAD_LIBS@ \
 allocator_test_LDFLAGS = -static
 
 deallocator_test_SOURCES = \
+  ../common/op_log.c \
   allocator.c \
   deallocator.c \
   deallocator_test.c \
