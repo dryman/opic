@@ -46,14 +46,17 @@
 /* Code: */
 
 #include <string.h>
+#include <inttypes.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
+#include "opic/common/op_log.h"
 #include "opic/common/op_utils.h"
 #include "deallocator.h"
 #include "inline_aux.h"
 #include "init_helper.h"
 #include "lookup_helper.h"
 
+OP_LOGGER_FACTORY(logger, "opic.malloc.deallocator");
 
 void
 OPDealloc(void* addr)

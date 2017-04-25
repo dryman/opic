@@ -146,9 +146,9 @@ HPageObtainSmallSpanPtr(HugePage* hpage, void* addr)
   op_assert(atomic_load_explicit(&hpage->occupy_bmap[_addr_bmidx],
                                  memory_order_relaxed) &
             (1UL << _addr_bmbit),
-            "Addr located in %" PRIuPTR " HPage bitmap "
+            "Addr %p located in %" PRIuPTR " HPage bitmap "
             "has value %" PRIx64 "\n",
-            _addr_bmidx, hpage->occupy_bmap[_addr_bmidx]);
+            addr, _addr_bmidx, hpage->occupy_bmap[_addr_bmidx]);
 
   if (atomic_load_explicit(&hpage->header_bmap[_addr_bmidx],
                            memory_order_relaxed) &

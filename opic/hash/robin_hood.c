@@ -60,7 +60,7 @@
 
 #define PROBE_STATS_SIZE 64
 // 128MB
-#define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 27)
+#define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
 
@@ -88,15 +88,6 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   size_t bucket_size;
   void* bucket_ptr;
 
-  // maybe it's better to use predefined load?
-  // default upper bound 90
-  //         lower bound 10
-  // minimal size 16?
-  // On small size grow by 4?
-  // On med size grow by 2
-  // On large size grow by 1.25, 1.5, 1.75
-  // How to determine size? by objcnt or by bucket_size * objcnt?
-  // We can set a large data ratio, default to 100MB?
   op_assert(load > 0.0 && load < 1.0,
             "load %lf must within close interval (0.0, 1.0)\n", load);
   capacity = (uint64_t)(num_objects / load);
@@ -260,6 +251,9 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
         rhh->capacity_clz - 1 : rhh->capacity_clz - 2;
     }
   new_capacity = RHHCapacityInternal(new_capacity_clz, new_capacity_ms4b);
+  OP_LOG_INFO(logger, "Resize from %" PRIu64 " to %" PRIu64,
+              old_capacity, new_capacity);
+
   new_buckets = OPCallocRaw(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
   if (!new_buckets)
     {
@@ -281,7 +275,7 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
     {
       if (old_buckets[idx*bucket_size] == 1)
         {
-          bucket_base = (uintptr_t)old_buckets[idx*bucket_size];
+          bucket_base = (uintptr_t)&old_buckets[idx*bucket_size];
           oldkey = (void*)(bucket_base + 1);
           oldval = (void*)(bucket_base + 1 + keysize);
           op_assert(RHHPutCustom(rhh, hasher, oldkey, oldval),
@@ -333,6 +327,8 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
     }
 
   new_capacity = RHHCapacityInternal(new_capacity_clz, new_capacity_ms4b);
+  OP_LOG_INFO(logger, "Resize from %" PRIu64 " to %" PRIu64,
+              old_capacity, new_capacity);
   new_buckets = OPCallocRaw(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
   if (!new_buckets)
     {
@@ -354,7 +350,7 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
     {
       if (old_buckets[idx*bucket_size] == 1)
         {
-          bucket_base = (uintptr_t)old_buckets[idx*bucket_size];
+          bucket_base = (uintptr_t)&old_buckets[idx*bucket_size];
           oldkey = (void*)(bucket_base + 1);
           oldval = (void*)(bucket_base + 1 + keysize);
           op_assert(RHHPutCustom(rhh, hasher, oldkey, oldval),

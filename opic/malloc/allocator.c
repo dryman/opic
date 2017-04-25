@@ -46,8 +46,10 @@
 /* Code: */
 
 #include <string.h>
+#include <inttypes.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
+#include "opic/common/op_log.h"
 #include "opic/common/op_utils.h"
 #include "allocator.h"
 #include "init_helper.h"
@@ -55,6 +57,7 @@
 
 #define DISPATCH_ATTEMPT 1024
 
+OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
 static __thread int thread_id = -1;
 static a_uint32_t round_robin = 0;
@@ -435,10 +438,12 @@ HPageObtainSSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
     (64 * sspan_bmidx + sspan_bmbit) * SPAGE_SIZE;
   if (sspan_bmidx == 0 && sspan_bmbit == 0)
     ctx->sspan.uintptr += sizeof(HugePage);
-  hpage->header_bmap[sspan_bmidx] |= 1UL << sspan_bmbit;
+  atomic_fetch_or_explicit(&hpage->header_bmap[sspan_bmidx],
+                           1UL << sspan_bmbit,
+                           memory_order_release);
   if (bmidx == sspan_bmidx)
     {
-      occupy_bmap[sspan_bmidx] = ((1UL << _spage_cnt) - 1) << sspan_bmbit;
+      occupy_bmap[sspan_bmidx] |= ((1UL << _spage_cnt) - 1) << sspan_bmbit;
     }
   else
     {
@@ -757,7 +762,9 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
  found:
   ctx->hspan.uintptr = heap_base +
     (64 * bmidx_head + bmbit_head) * HPAGE_SIZE;
-  heap->header_bmap[bmidx_head] |= 1UL << bmbit_head;
+  atomic_fetch_or_explicit(&heap->header_bmap[bmidx_head],
+                           1UL << bmbit_head,
+                           memory_order_release);
   if (bmidx_iter - bmidx_head == 0)
     {
       occupy_bmap[bmidx_head] = ((1UL << _hpage_cnt) - 1) << bmbit_head;
