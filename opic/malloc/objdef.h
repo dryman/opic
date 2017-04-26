@@ -58,7 +58,6 @@
 
 OP_BEGIN_DECLS
 
-typedef enum SpanState SpanState;
 typedef enum QueueOperation QueueOperation;
 typedef struct UnarySpan UnarySpan;
 typedef struct HugePage HugePage;
@@ -67,21 +66,18 @@ typedef struct HugePageQueue HugePageQueue;
 typedef struct GenericContainer GenericContainer;
 typedef struct SmallBlob SmallBlob;
 typedef struct HugeBlob HugeBlob;
-typedef union SmallSpanPtr SmallSpanPtr;
-typedef union HugeSpanPtr HugeSpanPtr;
 typedef struct RawType RawType;
 typedef struct OPHeapCtx OPHeapCtx;
 
-// TODO: change to enqueued/dequeued
-// TODO: Rename to something more meaningful
-// ENQUEUED, DEQUEUED, TOMBSTONE, NEW
-enum SpanState
-  {
-    SPAN_ENQUEUED = 0,
-    SPAN_DEQUEUED = 1,
-  } __attribute__((packed));
 
-// static_assert(sizeof(SpanState) == 1, "sizeof(SpanState)");
+// Value used in UnarySpan.state and HugePage.state.
+// This used to be a packed enum
+// However compilers has inconsistant support on packed enum
+// gcc-6 fully supports it
+// gcc-5 and gcc-4.9 requires -fshort-enums
+// In the end I choose to use traditional macro instead
+#define SPAN_ENQUEUED 0
+#define SPAN_DEQUEUED 1
 
 enum QueueOperation
   {
@@ -99,27 +95,22 @@ struct UnarySpan
   uint8_t bitmap_hint;  // TODO: Document how this hints to search avail space.
   a_int16_t pcard;
   a_uint16_t obj_cnt;
-  _Atomic SpanState state;
+  a_uint8_t state;
   const uint32_t struct_padding: 24;
   UnarySpan* next;
   // TODO: Document how bitmap is stored after this header
 };
 
-// static_assert(sizeof(UnarySpan) == 24, "sizeof(UnarySpan)");
-
-
 struct HugePage
 {
   Magic magic;
   a_int16_t pcard;
-  _Atomic SpanState state;
+  a_uint8_t state;
   const int8_t struct_padding;
   HugePage* next;
   a_uint64_t occupy_bmap[8];
   a_uint64_t header_bmap[8];
 };
-
-// static_assert(sizeof(HugePage) == 144, "sizeof(HugePage)");
 
 struct UnarySpanQueue
 {
@@ -127,15 +118,11 @@ struct UnarySpanQueue
   a_int16_t pcard;
 } __attribute__((packed));
 
-// static_assert(sizeof(UnarySpanQueue) == 10, "sizeof(UnarySpanQueue)");
-
 struct HugePageQueue
 {
   HugePage* hpage;
   a_int16_t pcard;
 } __attribute__((packed));
-
-// static_assert(sizeof(HugePageQueue) == 10, "sizeof(HugePageQueue)");
 
 // Blob contained by HPage
 struct SmallBlob
@@ -151,21 +138,21 @@ struct HugeBlob
   // May have more info like size and offset.
 };
 
-union SmallSpanPtr
+typedef union SmallSpanPtr
 {
   uintptr_t uintptr;
   Magic* magic;
   UnarySpan* uspan;
   SmallBlob* sblob;
-} __attribute__((__transparent_union__));
+} SmallSpanPtr __attribute__((__transparent_union__));
 
-union HugeSpanPtr
+typedef union HugeSpanPtr
 {
   uintptr_t uintptr;
   Magic* magic;
   HugePage* hpage;
   HugeBlob* hblob;
-} __attribute__((__transparent_union__));
+} HugeSpanPtr __attribute__((__transparent_union__));
 
 /************** OPHeap Layout ******************/
 
@@ -181,8 +168,6 @@ struct RawType
   HugePageQueue hpage_queue;
 } __attribute__((packed));
 
-// static_assert(sizeof(RawType) == 2600, "sizeof(RawType)");
-
 struct OPHeap
 {
   uint32_t version;
@@ -194,8 +179,6 @@ struct OPHeap
   RawType raw_type;
   HugePage hpage;
 } __attribute__((packed));
-
-// static_assert(sizeof(OPHeap) == 11008, "sizeof(OPHeap)");
 
 struct OPHeapCtx
 {

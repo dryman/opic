@@ -59,6 +59,18 @@
 #include "init_helper.h"
 
 static void
+test_Sizes(void** context)
+{
+  assert_int_equal(4, sizeof(Magic));
+  assert_int_equal(24, sizeof(UnarySpan));
+  assert_int_equal(144, sizeof(HugePage));
+  assert_int_equal(10, sizeof(UnarySpanQueue));
+  assert_int_equal(10, sizeof(HugePageQueue));
+  assert_int_equal(2600, sizeof(RawType));
+  assert_int_equal(11008, sizeof(OPHeap));
+}
+
+static void
 test_HPageInit(void** context)
 {
   OPHeap* heap;
@@ -351,6 +363,7 @@ main (void)
 {
   const struct CMUnitTest init_helper_tests[] =
     {
+      cmocka_unit_test(test_Sizes),
       cmocka_unit_test(test_HPageInit),
       cmocka_unit_test(test_USpanInit_RawTypeSmall),
       cmocka_unit_test(test_USpanInit_RawTypeSmall_FstPage),

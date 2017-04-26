@@ -53,13 +53,11 @@
 
 OP_BEGIN_DECLS
 
-typedef union BmapPtr BmapPtr;
-
-union BmapPtr
+typedef union BmapPtr
 {
   uint64_t* uint64;
   a_uint64_t* a_uint64;
-} __attribute__ ((__transparent_union__));
+} BmapPtr __attribute__ ((__transparent_union__));
 
 void HPageInit(HugePage* hpage, Magic magic)
   __attribute__ ((visibility ("internal")));
