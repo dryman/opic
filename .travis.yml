@@ -1,0 +1,30 @@
+sudo: true
+language: c
+compiler:
+- clang
+- gcc-4.9
+- gcc-5
+- gcc-6
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-4.9
+    - gcc-5
+    - gcc-6
+install:
+- sudo apt-get update
+- sudo apt-get install liblog4c-dev
+- mkdir cmocka && cd cmocka
+- wget http://launchpadlibrarian.net/291735619/libcmocka0_1.0.1-3_amd64.deb
+- wget http://launchpadlibrarian.net/291735617/libcmocka-dev_1.0.1-3_amd64.deb
+- sudo dpkg -i libcmocka0_1.0.1-3_amd64.deb
+- sudo dpkg -i libcmocka-dev_1.0.1-3_amd64.deb
+- cd ..
+before_script:
+- sudo sysctl vm.overcommit_memory=1
+script:
+- autoreconf -vif
+- ./configure
+- make check

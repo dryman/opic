@@ -368,7 +368,7 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uintptr_t idx;
-  int probe, old_probe, visit;
+  int probe, old_probe;
   uint8_t bucket_cpy[bucket_size];
   uint8_t bucket_tmp[bucket_size];
   uint64_t hashed_key;
@@ -378,7 +378,6 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
   memcpy(&bucket_cpy[1 + keysize], val, valsize);
 
   probe = 0;
-  visit = 0;
   while (true)
     {
       hashed_key = hasher(&bucket_cpy[1], keysize);

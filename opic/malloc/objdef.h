@@ -81,7 +81,7 @@ enum SpanState
     SPAN_DEQUEUED = 1,
   } __attribute__((packed));
 
-static_assert(sizeof(SpanState) == 1, "sizeof(SpanState)");
+// static_assert(sizeof(SpanState) == 1, "sizeof(SpanState)");
 
 enum QueueOperation
   {
@@ -105,7 +105,7 @@ struct UnarySpan
   // TODO: Document how bitmap is stored after this header
 };
 
-static_assert(sizeof(UnarySpan) == 24, "sizeof(UnarySpan)");
+// static_assert(sizeof(UnarySpan) == 24, "sizeof(UnarySpan)");
 
 
 struct HugePage
@@ -119,7 +119,7 @@ struct HugePage
   a_uint64_t header_bmap[8];
 };
 
-static_assert(sizeof(HugePage) == 144, "sizeof(HugePage)");
+// static_assert(sizeof(HugePage) == 144, "sizeof(HugePage)");
 
 struct UnarySpanQueue
 {
@@ -127,7 +127,7 @@ struct UnarySpanQueue
   a_int16_t pcard;
 } __attribute__((packed));
 
-static_assert(sizeof(UnarySpanQueue) == 10, "sizeof(UnarySpanQueue)");
+// static_assert(sizeof(UnarySpanQueue) == 10, "sizeof(UnarySpanQueue)");
 
 struct HugePageQueue
 {
@@ -135,7 +135,7 @@ struct HugePageQueue
   a_int16_t pcard;
 } __attribute__((packed));
 
-static_assert(sizeof(HugePageQueue) == 10, "sizeof(HugePageQueue)");
+// static_assert(sizeof(HugePageQueue) == 10, "sizeof(HugePageQueue)");
 
 // Blob contained by HPage
 struct SmallBlob
@@ -181,7 +181,7 @@ struct RawType
   HugePageQueue hpage_queue;
 } __attribute__((packed));
 
-static_assert(sizeof(RawType) == 2600, "sizeof(RawType)");
+// static_assert(sizeof(RawType) == 2600, "sizeof(RawType)");
 
 struct OPHeap
 {
@@ -195,7 +195,7 @@ struct OPHeap
   HugePage hpage;
 } __attribute__((packed));
 
-//static_assert(sizeof(OPHeap) == 11008, "sizeof(OPHeap)");
+// static_assert(sizeof(OPHeap) == 11008, "sizeof(OPHeap)");
 
 struct OPHeapCtx
 {
