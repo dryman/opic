@@ -1,6 +1,9 @@
 sudo: true
 language: c
 compiler:
+- clang
+- gcc-4.9
+- gcc-5
 - gcc-6
 addons:
   apt:
