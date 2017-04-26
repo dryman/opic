@@ -1,6 +1,8 @@
 Object Persistence In C (Alpha)
 ===================================
 
+[![Build Status](https://travis-ci.org/dryman/opic.svg?branch=master)](https://travis-ci.org/dryman/opic)
+
 OPIC is a new approach to serialize general data structures, object types, and
 primitive types. It's a new data stack from the ground up -- from object
 oriented model, generics, to memory management. With everything redesigned for
