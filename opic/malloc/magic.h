@@ -121,7 +121,5 @@ union Magic
   uint32_t int_value;
 };
 
-// static_assert(sizeof(Magic) == 4, "sizeof(Magic)");
-
 #endif
 /* magic.h ends here */
