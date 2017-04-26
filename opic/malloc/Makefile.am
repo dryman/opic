@@ -1,5 +1,5 @@
 AM_CPPFLAGS = -I$(top_srcdir)
-AM_CFLAGS = @cmocka_CFLAGS@
+AM_CFLAGS = @cmocka_CFLAGS@ @log4c_CFLAGS@
 AUTOMAKE_OPTIONS = subdir-objects
 
 TESTS = lookup_helper_test init_helper_test allocator_test \
