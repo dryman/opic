@@ -2,6 +2,12 @@ sudo: true
 language: c
 compiler:
 - gcc-5
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
 install:
 - sudo apt-get update
 - sudo apt-get install liblog4c-dev
