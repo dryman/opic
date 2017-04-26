@@ -12,4 +12,7 @@ install:
 - sudo dpkg -i libcmocka-dev_1.0.1-3_amd64.deb
 before_script:
 - sudo sysctl vm.overcommit_memory=1
-script: ./configure && make check
+script:
+- autoreconf -vif
+- ./configure
+- make check
