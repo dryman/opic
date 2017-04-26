@@ -10,8 +10,6 @@ addons:
     - gcc-4.9
     - gcc-5
     - gcc-6
-    - gcc-7
-    - glibc
 install:
 - sudo apt-get update
 - sudo apt-get install liblog4c-dev
