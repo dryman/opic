@@ -1,4 +1,4 @@
-Object Persistence In C (Pre-Alpha)
+Object Persistence In C (Alpha)
 ===================================
 
 OPIC is a new approach to serialize general data structures, object types, and
