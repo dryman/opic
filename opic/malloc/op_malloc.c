@@ -46,6 +46,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <errno.h>
 #include "opic/op_malloc.h"
 #include "opic/common/op_assert.h"
 #include "opic/common/op_log.h"
@@ -64,12 +65,15 @@ OPHeapNew(OPHeap** heap_ref)
   map_addr = MAP_FAILED;
   for (int i = 0; i < (1<<15); i++)
     {
+      errno = 0;
+      page_check[0] = 0;
       mincore_status = mincore(addr, SPAGE_SIZE, page_check);
-      if (mincore_status || page_check[0])
+      if (page_check[0] ||
+          (mincore_status == -1 && errno != ENOMEM))
         {
-          OP_LOG_DEBUG(logger,
-                       "Address %p not available, skip to next address",
-                       addr);
+          OP_LOG_DEBUG(logger, "Addr %p not available: "
+                       "page_check %d errno %d",
+                       addr, page_check[0], errno);
           goto next_heap;
         }
       map_addr = mmap(addr, OPHEAP_SIZE,
@@ -109,12 +113,15 @@ OPHeapRead(OPHeap** heap_ref, FILE* stream)
 
   for (int i = 0; i < (1<<15); i++)
     {
+      errno = 0;
+      page_check[0] = 0;
       mincore_status = mincore(addr, SPAGE_SIZE, page_check);
-      if (mincore_status || page_check[0])
+      if (page_check[0] ||
+          (mincore_status == -1 && errno != ENOMEM))
         {
-          OP_LOG_DEBUG(logger,
-                       "Address %p not available, skip to next address",
-                       addr);
+          OP_LOG_DEBUG(logger, "Addr %p not available: "
+                       "page_check %d errno %d",
+                       addr, page_check[0], errno);
           goto next_heap;
         }
       map_addr = mmap(addr, heap_header.hpage_num * HPAGE_SIZE,

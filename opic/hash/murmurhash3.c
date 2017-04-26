@@ -8,7 +8,7 @@
 // non-native version will be less than optimal.
 
 //#include "nmmintrin.h"
-#include "MurmurHash3.h"
+#include "murmurhash3.h"
 
 //-----------------------------------------------------------------------------
 // Platform-specific functions and macros
