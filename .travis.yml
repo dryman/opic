@@ -4,6 +4,7 @@ compiler:
 - clang
 - gcc
 install:
+- sudo add-apt-repository universe
 - sudo apt-get update
 - sudo apt-get install liblog4c-dev libcmocka-dev
 before_script:
