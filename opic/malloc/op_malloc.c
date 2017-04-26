@@ -53,13 +53,21 @@
 #include "opic/common/op_utils.h"
 #include "opic/malloc/objdef.h"
 
+#ifdef __linux__
+#define MINCORE_VEC unsigned char
+#elif __APPLE__
+#define MINCORE_VEC char
+#else
+#error "unknown platform for mincore"
+#endif
+
 OP_LOGGER_FACTORY(logger, "opic.malloc.op_malloc");
 
 bool
 OPHeapNew(OPHeap** heap_ref)
 {
   void *addr, *map_addr;
-  char page_check[1] = {0};
+  MINCORE_VEC page_check[1] = {0};
   int mincore_status;
   addr = NULL + OPHEAP_SIZE;
   map_addr = MAP_FAILED;
@@ -103,7 +111,7 @@ OPHeapRead(OPHeap** heap_ref, FILE* stream)
 {
   OPHeap heap_header;
   void *addr, *map_addr;
-  char page_check[1] = {0};
+  MINCORE_VEC page_check[1] = {0};
   int mincore_status;
   addr = NULL + OPHEAP_SIZE;
   map_addr = MAP_FAILED;
