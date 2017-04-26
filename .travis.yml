@@ -1,7 +1,7 @@
 sudo: true
 language: c
 compiler:
-- gcc-5
+- gcc-6
 addons:
   apt:
     sources:
