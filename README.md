@@ -59,10 +59,10 @@ DEPENDENCY
 * C compiler with support of C11 atomics.
   - gcc 4.9, gcc 5, gcc 6
   - TODO: figure out which versions of clang support C11 atomics.
-* [log4c 1.2.4](http://log4c.sourceforge.net)
+* [log4c (>= 1.2.4)](http://log4c.sourceforge.net)
   - I guess 1.2.1 also works, but 1.2.4 was released since 2008. Getting
   it on most distros shouldn't be hard.
-* [cmocka 1.0.1](https://cmocka.org)
+* [cmocka (>= 1.0.1)](https://cmocka.org)
   - Required for unit testing.
 * GNU Autotools for people who want to build from head
   - autoconf
