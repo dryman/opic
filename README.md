@@ -1,47 +1,122 @@
-Object Persistence In C (Alpha)
+Object Persistence In C (Beta)
 ===================================
 
 [![Build Status](https://travis-ci.org/dryman/opic.svg?branch=master)](https://travis-ci.org/dryman/opic)
 
-OPIC is a new approach to serialize general data structures, object types, and
-primitive types. It's a new data stack from the ground up -- from object
-oriented model, generics, to memory management. With everything redesigned for
-scalability, we visioned a new distributed computing ecosystem for the 21st
-century.
+OPIC is a revolutionary serialization framework for C.  Unlike traditional
+approaches which walk through the in-memory objects and write it to disk, OPIC
+itself is a memory allocator where all the objects created with it have the same
+representation in memory and on disk. "Serializing/deserializing" is extreme
+cheap with OPIC because it only requires memory dump and mmap syscalls.
 
-Our key to success is to extend the memory oriented programming model to other
-tier of storages: disk, SSD, network, or even tape. Accessing data should not be
-limited by memory address on single machine; instead, all data types should be
-serializable so that it can be shared across network or save for future use.
-Having serialzability as the core design brings many benefits for free:
+OPIC is suitable for building database indexes, key-value store, or even search
+engines. At the moment of writing we provide a POC hash table to demonstrate how
+easy it is to build an embedded key-value store engine.
 
-* Scalability. When all the data types are serializable, the application can
-easily scale up with multiple strategies, including sharing data between nodes,
-off load certain data for later use, or build caches from the same serialization
-abstraction.
+SYNOPSIS
+--------
 
-* Data persistence. Think of databases' durability. Since all the data types are
-serializable, you can save the snapshot of the entire program state whenever you
-want. This can make database applications way easier to build, and also make
-debugging easier.
+```c
+#include "opic/op_malloc.h"
 
-* Generality for data processing applications. All the data processing systems,
-including RDBMS, map reduce, search engines, even RPC involves are some sort of
-special case of serialization. Why duplicates the effort for each of those
-applications instead of having one powerful and optimized framework?
+void simple_object_database(char* filename)
+{
+  OPHeap* heap1, heap2;
+  FILE* fd;
 
-Most of the functionalities will be implemented in C. Our end goal is to embed
-this framework into other higher level languages like python, java, nodejs for
-wider adoption.
+  OPHeapNew(&heap1);
 
-To begin with, please check out our [documentation page][doc].
+  struct S1* s1 = (struct S1*)OPMallocRaw(heap1, sizeof(struct S1));
+  struct S2* s2 = (struct S2*)OPMallocRaw(heap1, sizeof(struct S2));
+
+  // object relationships in OPIC must convert to opref_t
+  s1->s2_ref = OPPtr2Ref(s2);
+
+  // opref_t can convert back to pointer via OPRef2Ptr
+  struct S2* s2_ptr = OPRef2Ptr(heap1, s1->s2ref);
+
+  // Serialize the heap to a file
+  OPHeapStorePtr(heap1, s1, 0);
+  fd = fopen(filename, "w");
+  OPHeapWrite(heap1, fd)
+  fclose(fd);
+  OPHeapDestroy(heap1);
+
+  // Deserialize the heap and restore the objects
+  fd = fopen(filename, "r");
+  OPHeapRead(&heap2, fd);
+  fclose(fd);
+
+  s1 = (struct S1*)OPHeapRestorePtr(heap2, 0);
+  s2 = s2_ptr = OPRef2Ptr(heap2, s1->s2_ref);
+  OPHeapDestroy(heap2);
+}
+```
+
+DEPENDENCY
+----------
+
+* C compiler with support of C11 atomics.
+  - gcc 4.9, gcc 5, gcc 6
+  - TODO: figure out which versions of clang support C11 atomics.
+* [log4c 1.2.4](http://log4c.sourceforge.net)
+  - I guess 1.2.1 also works, but 1.2.4 was released since 2008. Getting
+  it on most distros shouldn't be hard.
+* [cmocka 1.0.1](https://cmocka.org)
+  - Required for unit testing.
+* GNU Autotools for people who want to build from head
+  - autoconf
+  - automake
+  - libtools
+
+INSTALL
+-------
+
+```bash
+# For people who download the tarball release
+./configure; make; make install
+
+# For people who clone from github
+./bootstrap.sh
+./configure; make; make install
+```
+
+User who runs OPIC on linux need to disable overcommit accounting.  This is
+because OPIC pre-allocates large memory in 64bit memory space.
+
+```bash
+sudo sysctl vm.overcommit_memory=1
+```
+
+DATA STRUCTURES
+---------------
+
+* RobinHoodHashing, can be used as
+  - HashMap
+  - HashSet
+  - HashMultimap
+  - TODO: document benchmark results
+
+* TODO (like a wishlist):
+  - Integer DS which support predecessor quries
+  - Tries
+  - Succinct data structures
+  - Integer compression (for columnar store)
+
+DOCUMENTATION
+-------------
+
+* [documentation page][doc].
+* TODO: tutorial
+* TODO: advanced examples which explains how it work
+* TODO: API doc
 
 [doc]: http://dryman.github.com/opic/
 
 LICENSE
 -------
 
-Copyright (c) 2016 Felix Chern
+Copyright (c) 2016, 2017 Felix Chern
 
     OPIC is free software: you can redistribute it and/or modify it under the
     terms of the GNU Lesser General Public License as published by the Free
@@ -66,4 +141,3 @@ writing we still have some portion of the code hasn't yet convert to GNU
 formatting styles, but this should be fixed in near future.
 
 [gnuc]: https://www.gnu.org/prep/standards/standards.html
-
