@@ -13,6 +13,8 @@ OPIC is suitable for building database indexes, key-value store, or even search
 engines. At the moment of writing we provide a POC hash table to demonstrate how
 easy it is to build an embedded key-value store engine.
 
+TODO: link to post or tutorial for the hash table.
+
 SYNOPSIS
 --------
 
@@ -88,8 +90,8 @@ because OPIC pre-allocates large memory in 64bit memory space.
 sudo sysctl vm.overcommit_memory=1
 ```
 
-DATA STRUCTURES
----------------
+DATA STRUCTURES INCLUDED
+------------------------
 
 * RobinHoodHashing, can be used as
   - HashMap
