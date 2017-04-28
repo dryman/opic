@@ -116,7 +116,7 @@ run_alloc_benchmark(int loops, size_t blk_min, size_t blk_max,
         }
 
         /* Insert the newly alloced block into the array at a random point. */
-        blk_array[next_idx] = OPMallocRaw(heap, blk_size);
+        blk_array[next_idx] = OPMalloc(heap, blk_size);
 #ifdef DEBUG
         printf("got addr %p\n", blk_array[next_idx]);
 #endif

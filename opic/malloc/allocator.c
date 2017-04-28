@@ -63,27 +63,27 @@ static __thread int thread_id = -1;
 static a_uint32_t round_robin = 0;
 
 void*
-OPMallocRaw(OPHeap* heap, size_t size)
+OPMalloc(OPHeap* heap, size_t size)
 {
   if (thread_id == -1)
     thread_id = atomic_fetch_add_explicit
       (&round_robin, 1, memory_order_acquire) % 16;
 
-  return OPMallocRawAdviced(heap, size, thread_id);
+  return OPMallocAdviced(heap, size, thread_id);
 }
 
 void*
-OPCallocRaw(OPHeap* heap, size_t num, size_t size)
+OPCalloc(OPHeap* heap, size_t num, size_t size)
 {
   if (thread_id == -1)
     thread_id = atomic_fetch_add_explicit
       (&round_robin, 1, memory_order_acquire) % 16;
 
-  return OPCallocRawAdviced(heap, num, size, thread_id);
+  return OPCallocAdviced(heap, num, size, thread_id);
 }
 
 void*
-OPMallocRawAdviced(OPHeap* heap, size_t size, int advice)
+OPMallocAdviced(OPHeap* heap, size_t size, int advice)
 {
   OPHeapCtx ctx;
   void* addr;
@@ -156,13 +156,13 @@ OPMallocRawAdviced(OPHeap* heap, size_t size, int advice)
 }
 
 void*
-OPCallocRawAdviced(OPHeap* heap, size_t num, size_t size, int advice)
+OPCallocAdviced(OPHeap* heap, size_t num, size_t size, int advice)
 {
   void* addr;
   size_t _size;
 
   _size = num * size;
-  addr = OPMallocRawAdviced(heap, _size, thread_id);
+  addr = OPMallocAdviced(heap, _size, thread_id);
 
   if (addr)
     memset(addr, 0x00, _size);

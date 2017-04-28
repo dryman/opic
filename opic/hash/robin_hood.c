@@ -100,10 +100,10 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
 
   bucket_size = keysize + valsize + 1;
 
-  *rhh = OPCallocRaw(heap, 1, sizeof(RobinHoodHash));
+  *rhh = OPCalloc(heap, 1, sizeof(RobinHoodHash));
   if (!*rhh)
     return false;
-  bucket_ptr = OPCallocRaw(heap, 1, bucket_size * capacity);
+  bucket_ptr = OPCalloc(heap, 1, bucket_size * capacity);
   if (!bucket_ptr)
     {
       OPDealloc(rhh);
@@ -254,7 +254,7 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
   OP_LOG_INFO(logger, "Resize from %" PRIu64 " to %" PRIu64,
               old_capacity, new_capacity);
 
-  new_buckets = OPCallocRaw(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
+  new_buckets = OPCalloc(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
   if (!new_buckets)
     {
       OP_LOG_ERROR(logger, "Cannot obtain new bucket for size %" PRIu64,
@@ -329,7 +329,7 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
   new_capacity = RHHCapacityInternal(new_capacity_clz, new_capacity_ms4b);
   OP_LOG_INFO(logger, "Resize from %" PRIu64 " to %" PRIu64,
               old_capacity, new_capacity);
-  new_buckets = OPCallocRaw(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
+  new_buckets = OPCalloc(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
   if (!new_buckets)
     {
       OP_LOG_ERROR(logger, "Cannot obtain new bucket for size %" PRIu64,
