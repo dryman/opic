@@ -40,7 +40,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
     <ul class="tablist">
       <li><a href="../../index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="../../pages.html"><span>Related&#160;Pages</span></a></li>
-      <li><a href="../../annotated.html"><span>Classes</span></a></li>
+      <li><a href="../../annotated.html"><span>Data&#160;Structures</span></a></li>
       <li class="current"><a href="../../files.html"><span>Files</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
@@ -63,7 +63,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
   <div id="navrow2" class="tabs2">
     <ul class="tablist">
       <li><a href="../../files.html"><span>File&#160;List</span></a></li>
-      <li><a href="../../globals.html"><span>File&#160;Members</span></a></li>
+      <li><a href="../../globals.html"><span>Globals</span></a></li>
     </ul>
   </div>
 <!-- window showing the filter options -->
@@ -90,7 +90,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="title">demomalloc.h</div>  </div>
 </div><!--header-->
 <div class="contents">
-<a href="../../d2/dd0/demomalloc_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* demomalloc.h ---</span></div>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* demomalloc.h ---</span></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment"> *</span></div>
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Filename: demomalloc.h</span></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * Description:</span></div>
@@ -140,21 +140,21 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="preprocessor">#ifndef OPIC_DEMOMALLOC_H</span></div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#define OPIC_DEMOMALLOC_H 1</span></div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="../../d4/d90/op__macros_8h.html">opic/common/op_macros.h</a>&quot;</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#include &quot;opic/common/op_macros.h&quot;</span></div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="../../de/d87/op__malloc_8h.html">opic/op_malloc.h</a>&quot;</span></div>
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<a class="code" href="../../d4/d90/op__macros_8h.html#a589912b6d6a4054ba69636fbacdbbcb3">OP_BEGIN_DECLS</a></div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;OP_BEGIN_DECLS</div>
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="keywordtype">void</span>* <a class="code" href="../../d2/dd0/demomalloc_8h.html#a26845f843f1bbf6a7d996403eeb188c8">OPDemoMalloc</a>(<span class="keywordtype">size_t</span> size)</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="keywordtype">void</span>* OPDemoMalloc(<span class="keywordtype">size_t</span> size)</div>
 <div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  __attribute__((malloc));</div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="keywordtype">void</span>* <a class="code" href="../../d2/dd0/demomalloc_8h.html#adf9d48630b5a0b710ade6d796ce882ba">OPDemoCalloc</a>(<span class="keywordtype">size_t</span> num, <span class="keywordtype">size_t</span> size)</div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="keywordtype">void</span>* OPDemoCalloc(<span class="keywordtype">size_t</span> num, <span class="keywordtype">size_t</span> size)</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;  __attribute__((malloc));</div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="keywordtype">void</span>* <a class="code" href="../../d2/dd0/demomalloc_8h.html#a634bba66bafcd0a9426d2ea8874b2137">OPDemoRealloc</a>(<span class="keywordtype">void</span>* addr, <span class="keywordtype">size_t</span> size)</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="keywordtype">void</span>* OPDemoRealloc(<span class="keywordtype">void</span>* addr, <span class="keywordtype">size_t</span> size)</div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;  __attribute__((malloc));</div>
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="keywordtype">void</span> <a class="code" href="../../d2/dd0/demomalloc_8h.html#a04b6e8d3e5e2866e1824b7d6cc0955fd">OPDemoFree</a>(<span class="keywordtype">void</span>* addr);</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="keywordtype">void</span> OPDemoFree(<span class="keywordtype">void</span>* addr);</div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;</div>
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="comment">/*</span></div>
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;<span class="comment"> * Somehow I cannot compile the code below on OSX.</span></div>
@@ -175,23 +175,16 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="comment">  __attribute__((weak, alias(&quot;OPDemoFree&quot;)));</span></div>
 <div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<span class="comment">*/</span></div>
 <div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;<a class="code" href="../../d4/d90/op__macros_8h.html#ac32bbe2e2e8b1c3b4ac94736ee797963">OP_END_DECLS</a></div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;OP_END_DECLS</div>
 <div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;</div>
 <div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;</div>
 <div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;<span class="comment">/* demomalloc.h ends here */</span></div>
-<div class="ttc" id="demomalloc_8h_html_a634bba66bafcd0a9426d2ea8874b2137"><div class="ttname"><a href="../../d2/dd0/demomalloc_8h.html#a634bba66bafcd0a9426d2ea8874b2137">OPDemoRealloc</a></div><div class="ttdeci">void * OPDemoRealloc(void *addr, size_t size) __attribute__((malloc))</div><div class="ttdef"><b>Definition:</b> <a href="../../df/df6/demomalloc_8c_source.html#l00088">demomalloc.c:88</a></div></div>
-<div class="ttc" id="op__macros_8h_html_ac32bbe2e2e8b1c3b4ac94736ee797963"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html#ac32bbe2e2e8b1c3b4ac94736ee797963">OP_END_DECLS</a></div><div class="ttdeci">#define OP_END_DECLS</div><div class="ttdef"><b>Definition:</b> <a href="../../d4/d90/op__macros_8h_source.html#l00058">op_macros.h:58</a></div></div>
 <div class="ttc" id="op__malloc_8h_html"><div class="ttname"><a href="../../de/d87/op__malloc_8h.html">op_malloc.h</a></div></div>
-<div class="ttc" id="op__macros_8h_html_a589912b6d6a4054ba69636fbacdbbcb3"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html#a589912b6d6a4054ba69636fbacdbbcb3">OP_BEGIN_DECLS</a></div><div class="ttdeci">#define OP_BEGIN_DECLS</div><div class="ttdef"><b>Definition:</b> <a href="../../d4/d90/op__macros_8h_source.html#l00057">op_macros.h:57</a></div></div>
-<div class="ttc" id="op__macros_8h_html"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html">op_macros.h</a></div></div>
-<div class="ttc" id="demomalloc_8h_html_a04b6e8d3e5e2866e1824b7d6cc0955fd"><div class="ttname"><a href="../../d2/dd0/demomalloc_8h.html#a04b6e8d3e5e2866e1824b7d6cc0955fd">OPDemoFree</a></div><div class="ttdeci">void OPDemoFree(void *addr)</div><div class="ttdef"><b>Definition:</b> <a href="../../df/df6/demomalloc_8c_source.html#l00105">demomalloc.c:105</a></div></div>
-<div class="ttc" id="demomalloc_8h_html_adf9d48630b5a0b710ade6d796ce882ba"><div class="ttname"><a href="../../d2/dd0/demomalloc_8h.html#adf9d48630b5a0b710ade6d796ce882ba">OPDemoCalloc</a></div><div class="ttdeci">void * OPDemoCalloc(size_t num, size_t size) __attribute__((malloc))</div><div class="ttdef"><b>Definition:</b> <a href="../../df/df6/demomalloc_8c_source.html#l00081">demomalloc.c:81</a></div></div>
-<div class="ttc" id="demomalloc_8h_html_a26845f843f1bbf6a7d996403eeb188c8"><div class="ttname"><a href="../../d2/dd0/demomalloc_8h.html#a26845f843f1bbf6a7d996403eeb188c8">OPDemoMalloc</a></div><div class="ttdeci">OP_BEGIN_DECLS void * OPDemoMalloc(size_t size) __attribute__((malloc))</div><div class="ttdef"><b>Definition:</b> <a href="../../df/df6/demomalloc_8c_source.html#l00074">demomalloc.c:74</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Apr 27 2017 22:22:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Apr 27 2017 23:43:43 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="../../doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

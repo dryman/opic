@@ -40,7 +40,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
     <ul class="tablist">
       <li><a href="../../index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="../../pages.html"><span>Related&#160;Pages</span></a></li>
-      <li><a href="../../annotated.html"><span>Classes</span></a></li>
+      <li><a href="../../annotated.html"><span>Data&#160;Structures</span></a></li>
       <li class="current"><a href="../../files.html"><span>Files</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
@@ -63,7 +63,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
   <div id="navrow2" class="tabs2">
     <ul class="tablist">
       <li><a href="../../files.html"><span>File&#160;List</span></a></li>
-      <li><a href="../../globals.html"><span>File&#160;Members</span></a></li>
+      <li><a href="../../globals.html"><span>Globals</span></a></li>
     </ul>
   </div>
 <!-- window showing the filter options -->
@@ -94,32 +94,31 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="title">op_malloc.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><code>#include &lt;stdbool.h&gt;</code><br />
-<code>#include &lt;stdio.h&gt;</code><br />
-<code>#include &lt;stdint.h&gt;</code><br />
-<code>#include &quot;<a class="el" href="../../d4/d90/op__macros_8h_source.html">opic/common/op_macros.h</a>&quot;</code><br />
-</div>
+
 <p><a href="../../de/d87/op__malloc_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a5632d985bb170a09cd1d4e1360d4c91a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d87/op__malloc_8h.html#a5632d985bb170a09cd1d4e1360d4c91a">OPHEAP_BITS</a>&#160;&#160;&#160;36</td></tr>
+<tr class="memitem:a5632d985bb170a09cd1d4e1360d4c91a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5632d985bb170a09cd1d4e1360d4c91a"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>OPHEAP_BITS</b>&#160;&#160;&#160;36</td></tr>
 <tr class="separator:a5632d985bb170a09cd1d4e1360d4c91a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3e5e2ac9ff293eeee30b97cdfc8121b3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d87/op__malloc_8h.html#a3e5e2ac9ff293eeee30b97cdfc8121b3">OPHEAP_SIZE</a>&#160;&#160;&#160;(1UL &lt;&lt; OPHEAP_BITS)</td></tr>
+<tr class="memitem:a3e5e2ac9ff293eeee30b97cdfc8121b3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3e5e2ac9ff293eeee30b97cdfc8121b3"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>OPHEAP_SIZE</b>&#160;&#160;&#160;(1UL &lt;&lt; OPHEAP_BITS)</td></tr>
 <tr class="separator:a3e5e2ac9ff293eeee30b97cdfc8121b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:a5ca70bed4fe0ef2642d0e27c479ebc23"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d87/op__malloc_8h.html#a5ca70bed4fe0ef2642d0e27c479ebc23">OPHeap</a></td></tr>
+<tr class="memitem:a5ca70bed4fe0ef2642d0e27c479ebc23"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5ca70bed4fe0ef2642d0e27c479ebc23"></a>
+typedef struct <a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a>&#160;</td><td class="memItemRight" valign="bottom"><b>OPHeap</b></td></tr>
 <tr class="separator:a5ca70bed4fe0ef2642d0e27c479ebc23"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2410dcf39c07e467e980fec46db48acf"><td class="memItemLeft" align="right" valign="top">typedef uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d87/op__malloc_8h.html#a2410dcf39c07e467e980fec46db48acf">opref_t</a></td></tr>
-<tr class="memdesc:a2410dcf39c07e467e980fec46db48acf"><td class="mdescLeft">&#160;</td><td class="mdescRight">pointer replacement for object allocated in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>. The conversions between opref_t and regular pointer  <a href="#a2410dcf39c07e467e980fec46db48acf">More...</a><br /></td></tr>
+<tr class="memdesc:a2410dcf39c07e467e980fec46db48acf"><td class="mdescLeft">&#160;</td><td class="mdescRight">pointer replacement for object allocated in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. The conversions between opref_t and regular pointer  <a href="#a2410dcf39c07e467e980fec46db48acf">More...</a><br /></td></tr>
 <tr class="separator:a2410dcf39c07e467e980fec46db48acf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:a21549a129c945c88f2164365485b19e7"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="../../de/d87/op__malloc_8h.html#a2410dcf39c07e467e980fec46db48acf">opref_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d87/op__malloc_8h.html#a21549a129c945c88f2164365485b19e7">OPPtr2Ref</a> (void *addr)</td></tr>
-<tr class="memdesc:a21549a129c945c88f2164365485b19e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a pointer allocated in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> to an opref_t.  <a href="#a21549a129c945c88f2164365485b19e7">More...</a><br /></td></tr>
+<tr class="memdesc:a21549a129c945c88f2164365485b19e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a pointer allocated in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> to an opref_t.  <a href="#a21549a129c945c88f2164365485b19e7">More...</a><br /></td></tr>
 <tr class="separator:a21549a129c945c88f2164365485b19e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab5f885921a1b6bd7fee87068c0623ef2"><td class="memItemLeft" align="right" valign="top">static void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d87/op__malloc_8h.html#ab5f885921a1b6bd7fee87068c0623ef2">OPRef2Ptr</a> (void *ptr_in_heap, <a class="el" href="../../de/d87/op__malloc_8h.html#a2410dcf39c07e467e980fec46db48acf">opref_t</a> ref)</td></tr>
 <tr class="memdesc:ab5f885921a1b6bd7fee87068c0623ef2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts an opref_t reference to a regular pointer.  <a href="#ab5f885921a1b6bd7fee87068c0623ef2">More...</a><br /></td></tr>
@@ -129,50 +128,7 @@ Functions</h2></td></tr>
 <div class="textblock"><p>Filename: <a class="el" href="../../de/d87/op__malloc_8h.html">op_malloc.h</a> Description: Author: Felix Chern Maintainer: Created: Sat Oct 1 20:12:46 2016 (-0700) Version: Package-Requires: () Last-Updated: By: Update #: 0 URL: Doc URL: Keywords: Compatibility: </p>
 
 <p>Definition in file <a class="el" href="../../de/d87/op__malloc_8h_source.html">op_malloc.h</a>.</p>
-</div><h2 class="groupheader">Macro Definition Documentation</h2>
-<a class="anchor" id="a5632d985bb170a09cd1d4e1360d4c91a"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define OPHEAP_BITS&#160;&#160;&#160;36</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="../../de/d87/op__malloc_8h_source.html#l00059">59</a> of file <a class="el" href="../../de/d87/op__malloc_8h_source.html">op_malloc.h</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a3e5e2ac9ff293eeee30b97cdfc8121b3"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define OPHEAP_SIZE&#160;&#160;&#160;(1UL &lt;&lt; OPHEAP_BITS)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="../../de/d87/op__malloc_8h_source.html#l00060">60</a> of file <a class="el" href="../../de/d87/op__malloc_8h_source.html">op_malloc.h</a>.</p>
-
-</div>
-</div>
-<h2 class="groupheader">Typedef Documentation</h2>
-<a class="anchor" id="a5ca70bed4fe0ef2642d0e27c479ebc23"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef struct <a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> <a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="../../de/d87/op__malloc_8h_source.html#l00066">66</a> of file <a class="el" href="../../de/d87/op__malloc_8h_source.html">op_malloc.h</a>.</p>
-
-</div>
-</div>
+</div><h2 class="groupheader">Typedef Documentation</h2>
 <a class="anchor" id="a2410dcf39c07e467e980fec46db48acf"></a>
 <div class="memitem">
 <div class="memproto">
@@ -183,7 +139,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>pointer replacement for object allocated in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>. The conversions between opref_t and regular pointer </p>
+<p>pointer replacement for object allocated in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. The conversions between opref_t and regular pointer </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../de/d87/op__malloc_8h.html#a21549a129c945c88f2164365485b19e7" title="Converts a pointer allocated in OPHeap to an opref_t. ">OPPtr2Ref</a> </dd>
 <dd>
 <a class="el" href="../../de/d87/op__malloc_8h.html#ab5f885921a1b6bd7fee87068c0623ef2" title="Converts an opref_t reference to a regular pointer. ">OPRef2Ptr</a> </dd></dl>
@@ -215,10 +171,10 @@ Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Converts a pointer allocated in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> to an opref_t. </p>
+<p>Converts a pointer allocated in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> to an opref_t. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">addr</td><td>Any pointer that is allocated with <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>. </td></tr>
+    <tr><td class="paramname">addr</td><td>Any pointer that is allocated with <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </td></tr>
   </table>
   </dd>
 </dl>
@@ -277,7 +233,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Apr 27 2017 22:22:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Apr 27 2017 23:43:43 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="../../doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

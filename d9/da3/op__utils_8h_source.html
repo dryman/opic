@@ -40,7 +40,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
     <ul class="tablist">
       <li><a href="../../index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="../../pages.html"><span>Related&#160;Pages</span></a></li>
-      <li><a href="../../annotated.html"><span>Classes</span></a></li>
+      <li><a href="../../annotated.html"><span>Data&#160;Structures</span></a></li>
       <li class="current"><a href="../../files.html"><span>Files</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
@@ -63,7 +63,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
   <div id="navrow2" class="tabs2">
     <ul class="tablist">
       <li><a href="../../files.html"><span>File&#160;List</span></a></li>
-      <li><a href="../../globals.html"><span>File&#160;Members</span></a></li>
+      <li><a href="../../globals.html"><span>Globals</span></a></li>
     </ul>
   </div>
 <!-- window showing the filter options -->
@@ -90,7 +90,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="title">op_utils.h</div>  </div>
 </div><!--header-->
 <div class="contents">
-<a href="../../d9/da3/op__utils_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* op_utils.h ---</span></div>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* op_utils.h ---</span></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment"> *</span></div>
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Filename: op_utils.h</span></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * Description: Utility functions</span></div>
@@ -136,14 +136,14 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;</div>
 <div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="preprocessor">#include &lt;stdint.h&gt;</span></div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="../../d4/d90/op__macros_8h.html">op_macros.h</a>&quot;</span></div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="preprocessor">#include &quot;op_macros.h&quot;</span></div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="preprocessor">#include &quot;config.h&quot;</span></div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<a class="code" href="../../d4/d90/op__macros_8h.html#a589912b6d6a4054ba69636fbacdbbcb3">OP_BEGIN_DECLS</a></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;OP_BEGIN_DECLS</div>
 <div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;</div>
-<div class="line"><a name="l00052"></a><span class="lineno"><a class="line" href="../../d9/da3/op__utils_8h.html#aa8be275dd28b3a1b4863d93d703a901b">   52</a></span>&#160;<span class="preprocessor">#define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)</span></div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="preprocessor">#define round_up_div(X, Y) ((X) + (Y) - 1)/(Y)</span></div>
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;</div>
-<div class="line"><a name="l00054"></a><span class="lineno"><a class="line" href="../../d9/da3/op__utils_8h.html#a30cc393bc7f69c5d4bff98e9268aae0c">   54</a></span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="../../d9/da3/op__utils_8h.html#a30cc393bc7f69c5d4bff98e9268aae0c">fftstr1</a> (uint32_t x, <span class="keywordtype">int</span> n)</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">int</span> fftstr1 (uint32_t x, <span class="keywordtype">int</span> n)</div>
 <div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;{</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;  <span class="keywordtype">int</span> s;</div>
 <div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  <span class="keywordflow">while</span> (n &gt; 1)</div>
@@ -156,15 +156,15 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;  <span class="keywordflow">return</span> __builtin_ctz(x);</div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;}</div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;</div>
-<div class="line"><a name="l00067"></a><span class="lineno"><a class="line" href="../../d9/da3/op__utils_8h.html#a6a0dcded637c9db792b2878065d1cc5c">   67</a></span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="../../d9/da3/op__utils_8h.html#a6a0dcded637c9db792b2878065d1cc5c">fftstr0</a> (uint32_t x, <span class="keywordtype">int</span> n)</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">int</span> fftstr0 (uint32_t x, <span class="keywordtype">int</span> n)</div>
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;{</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;  <span class="keywordflow">return</span> <a class="code" href="../../d9/da3/op__utils_8h.html#a30cc393bc7f69c5d4bff98e9268aae0c">fftstr1</a>(~x, n);</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;  <span class="keywordflow">return</span> fftstr1(~x, n);</div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;}</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;</div>
 <div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="comment">// find first trailing string of 1 bits</span></div>
 <div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="comment">// return -1 if no such string exists</span></div>
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="comment">// TODO: docuemnt this better. This is used for some bitmap magic</span></div>
-<div class="line"><a name="l00075"></a><span class="lineno"><a class="line" href="../../d9/da3/op__utils_8h.html#a2058cffeaa3f14e20a768028f2b7b8f4">   75</a></span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="../../d9/da3/op__utils_8h.html#a2058cffeaa3f14e20a768028f2b7b8f4">fftstr1l</a> (uint64_t x, <span class="keywordtype">int</span> n)</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">int</span> fftstr1l (uint64_t x, <span class="keywordtype">int</span> n)</div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;{</div>
 <div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;  <span class="keywordtype">int</span> s;</div>
 <div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;  <span class="keywordflow">while</span> (n &gt; 1)</div>
@@ -177,26 +177,19 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;  <span class="keywordflow">return</span> __builtin_ctzl(x);</div>
 <div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;}</div>
 <div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;</div>
-<div class="line"><a name="l00088"></a><span class="lineno"><a class="line" href="../../d9/da3/op__utils_8h.html#a0ce3093d9b2a096b94959fe3c8ebeb3f">   88</a></span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="../../d9/da3/op__utils_8h.html#a0ce3093d9b2a096b94959fe3c8ebeb3f">fftstr0l</a> (uint64_t x, <span class="keywordtype">int</span> n)</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">int</span> fftstr0l (uint64_t x, <span class="keywordtype">int</span> n)</div>
 <div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;{</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;  <span class="keywordflow">return</span> <a class="code" href="../../d9/da3/op__utils_8h.html#a2058cffeaa3f14e20a768028f2b7b8f4">fftstr1l</a>(~x, n);</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;  <span class="keywordflow">return</span> fftstr1l(~x, n);</div>
 <div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;}</div>
 <div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<a class="code" href="../../d4/d90/op__macros_8h.html#ac32bbe2e2e8b1c3b4ac94736ee797963">OP_END_DECLS</a></div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;OP_END_DECLS</div>
 <div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;</div>
 <div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;<span class="comment">/* op_utils.h ends here */</span></div>
-<div class="ttc" id="op__macros_8h_html_ac32bbe2e2e8b1c3b4ac94736ee797963"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html#ac32bbe2e2e8b1c3b4ac94736ee797963">OP_END_DECLS</a></div><div class="ttdeci">#define OP_END_DECLS</div><div class="ttdef"><b>Definition:</b> <a href="../../d4/d90/op__macros_8h_source.html#l00058">op_macros.h:58</a></div></div>
-<div class="ttc" id="op__utils_8h_html_a6a0dcded637c9db792b2878065d1cc5c"><div class="ttname"><a href="../../d9/da3/op__utils_8h.html#a6a0dcded637c9db792b2878065d1cc5c">fftstr0</a></div><div class="ttdeci">static int fftstr0(uint32_t x, int n)</div><div class="ttdef"><b>Definition:</b> <a href="../../d9/da3/op__utils_8h_source.html#l00067">op_utils.h:67</a></div></div>
-<div class="ttc" id="op__utils_8h_html_a30cc393bc7f69c5d4bff98e9268aae0c"><div class="ttname"><a href="../../d9/da3/op__utils_8h.html#a30cc393bc7f69c5d4bff98e9268aae0c">fftstr1</a></div><div class="ttdeci">static int fftstr1(uint32_t x, int n)</div><div class="ttdef"><b>Definition:</b> <a href="../../d9/da3/op__utils_8h_source.html#l00054">op_utils.h:54</a></div></div>
-<div class="ttc" id="op__utils_8h_html_a0ce3093d9b2a096b94959fe3c8ebeb3f"><div class="ttname"><a href="../../d9/da3/op__utils_8h.html#a0ce3093d9b2a096b94959fe3c8ebeb3f">fftstr0l</a></div><div class="ttdeci">static int fftstr0l(uint64_t x, int n)</div><div class="ttdef"><b>Definition:</b> <a href="../../d9/da3/op__utils_8h_source.html#l00088">op_utils.h:88</a></div></div>
-<div class="ttc" id="op__macros_8h_html_a589912b6d6a4054ba69636fbacdbbcb3"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html#a589912b6d6a4054ba69636fbacdbbcb3">OP_BEGIN_DECLS</a></div><div class="ttdeci">#define OP_BEGIN_DECLS</div><div class="ttdef"><b>Definition:</b> <a href="../../d4/d90/op__macros_8h_source.html#l00057">op_macros.h:57</a></div></div>
-<div class="ttc" id="op__macros_8h_html"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html">op_macros.h</a></div></div>
-<div class="ttc" id="op__utils_8h_html_a2058cffeaa3f14e20a768028f2b7b8f4"><div class="ttname"><a href="../../d9/da3/op__utils_8h.html#a2058cffeaa3f14e20a768028f2b7b8f4">fftstr1l</a></div><div class="ttdeci">static int fftstr1l(uint64_t x, int n)</div><div class="ttdef"><b>Definition:</b> <a href="../../d9/da3/op__utils_8h_source.html#l00075">op_utils.h:75</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Apr 27 2017 22:22:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Apr 27 2017 23:43:43 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="../../doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

@@ -40,7 +40,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
     <ul class="tablist">
       <li><a href="../../index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="../../pages.html"><span>Related&#160;Pages</span></a></li>
-      <li><a href="../../annotated.html"><span>Classes</span></a></li>
+      <li><a href="../../annotated.html"><span>Data&#160;Structures</span></a></li>
       <li class="current"><a href="../../files.html"><span>Files</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
@@ -63,7 +63,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
   <div id="navrow2" class="tabs2">
     <ul class="tablist">
       <li><a href="../../files.html"><span>File&#160;List</span></a></li>
-      <li><a href="../../globals.html"><span>File&#160;Members</span></a></li>
+      <li><a href="../../globals.html"><span>Globals</span></a></li>
     </ul>
   </div>
 <!-- window showing the filter options -->
@@ -90,7 +90,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="title">op_log.c</div>  </div>
 </div><!--header-->
 <div class="contents">
-<a href="../../d7/d1a/op__log_8c.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* op_log.c ---</span></div>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* op_log.c ---</span></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment"> *</span></div>
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Filename: op_log.c</span></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * Description:</span></div>
@@ -140,27 +140,24 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;</div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#include &lt;stdbool.h&gt;</span></div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="preprocessor">#include &quot;config.h&quot;</span></div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="../../d3/daf/op__log_8h.html">op_log.h</a>&quot;</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#include &quot;op_log.h&quot;</span></div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;</div>
-<div class="line"><a name="l00053"></a><span class="lineno"><a class="line" href="../../d7/d1a/op__log_8c.html#aafd51a2c9e8e087eaae7f93d42ba6f82">   53</a></span>&#160;<span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code" href="../../d7/d1a/op__log_8c.html#aafd51a2c9e8e087eaae7f93d42ba6f82">_log4c_initialized</a>;</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="keyword">static</span> <span class="keywordtype">bool</span> _log4c_initialized;</div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;</div>
-<div class="line"><a name="l00055"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#a4d94b2b0924a1cc4edaa5eeefaa5594e">   55</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="../../d7/d1a/op__log_8c.html#a1644a4cae96275b740243c148fb4832b">opic_log4c_init</a>()</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="keywordtype">void</span> opic_log4c_init()</div>
 <div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;{</div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  <span class="keywordflow">if</span> (!<a class="code" href="../../d7/d1a/op__log_8c.html#aafd51a2c9e8e087eaae7f93d42ba6f82">_log4c_initialized</a>)</div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  <span class="keywordflow">if</span> (!_log4c_initialized)</div>
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;    {</div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;      log4c_init();</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;      <a class="code" href="../../d7/d1a/op__log_8c.html#aafd51a2c9e8e087eaae7f93d42ba6f82">_log4c_initialized</a> = <span class="keyword">true</span>;</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;      _log4c_initialized = <span class="keyword">true</span>;</div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;    }</div>
 <div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;}</div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;</div>
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="comment">/* op_log.c ends here */</span></div>
-<div class="ttc" id="op__log_8h_html"><div class="ttname"><a href="../../d3/daf/op__log_8h.html">op_log.h</a></div></div>
-<div class="ttc" id="op__log_8c_html_a1644a4cae96275b740243c148fb4832b"><div class="ttname"><a href="../../d7/d1a/op__log_8c.html#a1644a4cae96275b740243c148fb4832b">opic_log4c_init</a></div><div class="ttdeci">void opic_log4c_init()</div><div class="ttdef"><b>Definition:</b> <a href="../../d7/d1a/op__log_8c_source.html#l00055">op_log.c:55</a></div></div>
-<div class="ttc" id="op__log_8c_html_aafd51a2c9e8e087eaae7f93d42ba6f82"><div class="ttname"><a href="../../d7/d1a/op__log_8c.html#aafd51a2c9e8e087eaae7f93d42ba6f82">_log4c_initialized</a></div><div class="ttdeci">static bool _log4c_initialized</div><div class="ttdef"><b>Definition:</b> <a href="../../d7/d1a/op__log_8c_source.html#l00053">op_log.c:53</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Apr 27 2017 22:22:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Apr 27 2017 23:43:43 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="../../doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

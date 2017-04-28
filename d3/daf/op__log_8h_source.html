@@ -40,7 +40,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
     <ul class="tablist">
       <li><a href="../../index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="../../pages.html"><span>Related&#160;Pages</span></a></li>
-      <li><a href="../../annotated.html"><span>Classes</span></a></li>
+      <li><a href="../../annotated.html"><span>Data&#160;Structures</span></a></li>
       <li class="current"><a href="../../files.html"><span>Files</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
@@ -63,7 +63,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
   <div id="navrow2" class="tabs2">
     <ul class="tablist">
       <li><a href="../../files.html"><span>File&#160;List</span></a></li>
-      <li><a href="../../globals.html"><span>File&#160;Members</span></a></li>
+      <li><a href="../../globals.html"><span>Globals</span></a></li>
     </ul>
   </div>
 <!-- window showing the filter options -->
@@ -90,7 +90,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="title">op_log.h</div>  </div>
 </div><!--header-->
 <div class="contents">
-<a href="../../d3/daf/op__log_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* op_log.h ---</span></div>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/* op_log.h ---</span></div>
 <div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment"> *</span></div>
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment"> * Filename: op_log.h</span></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"> * Description:</span></div>
@@ -140,14 +140,14 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;</div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#ifndef OPIC_COMMON_OP_LOG_H</span></div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="preprocessor">#define OPIC_COMMON_OP_LOG_H 1</span></div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="../../d4/d90/op__macros_8h.html">op_macros.h</a>&quot;</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#include &quot;op_macros.h&quot;</span></div>
 <div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="preprocessor">#include &lt;log4c.h&gt;</span></div>
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<a class="code" href="../../d4/d90/op__macros_8h.html#a589912b6d6a4054ba69636fbacdbbcb3">OP_BEGIN_DECLS</a></div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="keyword">extern</span> <span class="keywordtype">void</span> <a class="code" href="../../d3/daf/op__log_8h.html#a4d94b2b0924a1cc4edaa5eeefaa5594e">opic_log4c_init</a>();</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<a class="code" href="../../d4/d90/op__macros_8h.html#ac32bbe2e2e8b1c3b4ac94736ee797963">OP_END_DECLS</a></div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;OP_BEGIN_DECLS</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="keyword">extern</span> <span class="keywordtype">void</span> opic_log4c_init();</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;OP_END_DECLS</div>
 <div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;</div>
-<div class="line"><a name="l00058"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#a99862486301e049e31e770030591bcc2">   58</a></span>&#160;<span class="preprocessor">#define OP_LOGGER_FACTORY(logger, catName) \</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<span class="preprocessor">#define OP_LOGGER_FACTORY(logger, catName) \</span></div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="preprocessor">static const log4c_category_t* logger; \</span></div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="preprocessor">__attribute__((constructor)) \</span></div>
 <div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="preprocessor">static void init_##logger() \</span></div>
@@ -156,15 +156,15 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="preprocessor">  logger = log4c_category_get(catName); \</span></div>
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="preprocessor">}</span></div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;</div>
-<div class="line"><a name="l00067"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#aa412c948d2531a4a2bdd4d856e8b5a1c">   67</a></span>&#160;<span class="preprocessor">#define OP_LOG_ARGS(LOGGER, CATEGORY, MESSAGE, ...) \</span></div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="preprocessor">#define OP_LOG_ARGS(LOGGER, CATEGORY, MESSAGE, ...) \</span></div>
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;<span class="preprocessor">  log4c_category_log(LOGGER, CATEGORY, &quot;%s():%d &quot; \</span></div>
 <div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="preprocessor">      MESSAGE, __func__, __LINE__, __VA_ARGS__)</span></div>
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;</div>
-<div class="line"><a name="l00071"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#a4a5376b1d821770523c5ac18fe86bc5b">   71</a></span>&#160;<span class="preprocessor">#define OP_LOG_NO_ARGS(LOGGER, CATEGORY, MESSAGE) \</span></div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="preprocessor">#define OP_LOG_NO_ARGS(LOGGER, CATEGORY, MESSAGE) \</span></div>
 <div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="preprocessor">  log4c_category_log(LOGGER, CATEGORY, &quot;%s():%d &quot; \</span></div>
 <div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="preprocessor">      MESSAGE, __func__, __LINE__)</span></div>
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;</div>
-<div class="line"><a name="l00075"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#ab54b3a6913eb731ca7531af024501afb">   75</a></span>&#160;<span class="preprocessor">#define OP_LOG_FATAL(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="preprocessor">#define OP_LOG_FATAL(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -176,7 +176,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_FATAL, __VA_ARGS__)</span></div>
 <div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;</div>
-<div class="line"><a name="l00087"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#aa5326e4ab2fb68f0b2bbcfe4fbdcea62">   87</a></span>&#160;<span class="preprocessor">#define OP_LOG_ALERT(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;<span class="preprocessor">#define OP_LOG_ALERT(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -188,7 +188,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_ALERT, __VA_ARGS__)</span></div>
 <div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;</div>
-<div class="line"><a name="l00099"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#a3e1960393b57dc681713165a8802a1d3">   99</a></span>&#160;<span class="preprocessor">#define OP_LOG_CRIT(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;<span class="preprocessor">#define OP_LOG_CRIT(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -200,7 +200,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_CRIT, __VA_ARGS__)</span></div>
 <div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;</div>
-<div class="line"><a name="l00111"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#a7f401d78072ca95914b07f923522d8bd">  111</a></span>&#160;<span class="preprocessor">#define OP_LOG_ERROR(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;<span class="preprocessor">#define OP_LOG_ERROR(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -212,7 +212,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_ERROR, __VA_ARGS__)</span></div>
 <div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;</div>
-<div class="line"><a name="l00123"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#ae9af69fb01aae61878bc09a4fad79270">  123</a></span>&#160;<span class="preprocessor">#define OP_LOG_WARN(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;<span class="preprocessor">#define OP_LOG_WARN(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -224,7 +224,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_WARN, __VA_ARGS__)</span></div>
 <div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;</div>
-<div class="line"><a name="l00135"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#a7703e4cc0b70b598fffbf9bbcc5a2e24">  135</a></span>&#160;<span class="preprocessor">#define OP_LOG_NOTICE(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;<span class="preprocessor">#define OP_LOG_NOTICE(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -236,7 +236,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_NOTICE, __VA_ARGS__)</span></div>
 <div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;</div>
-<div class="line"><a name="l00147"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#ac224151a2a26255438bf95847b973479">  147</a></span>&#160;<span class="preprocessor">#define OP_LOG_INFO(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;<span class="preprocessor">#define OP_LOG_INFO(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -250,7 +250,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;</div>
 <div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;<span class="preprocessor">#ifndef NDEBUG</span></div>
 <div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;</div>
-<div class="line"><a name="l00161"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#aefa0ebc6ce5eb2afa3c4dc39e600265d">  161</a></span>&#160;<span class="preprocessor">#define OP_LOG_DEBUG(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;<span class="preprocessor">#define OP_LOG_DEBUG(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -262,7 +262,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_DEBUG, __VA_ARGS__)</span></div>
 <div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;</div>
-<div class="line"><a name="l00173"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#ad38f05058098e185ad561983a145eceb">  173</a></span>&#160;<span class="preprocessor">#define OP_LOG_TRACE(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;<span class="preprocessor">#define OP_LOG_TRACE(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -283,7 +283,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;</div>
 <div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;<span class="preprocessor">#ifndef UNIT_TESTING</span></div>
 <div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;</div>
-<div class="line"><a name="l00194"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#a016966df1264ddbc574b3ef463e3292c">  194</a></span>&#160;<span class="preprocessor">#define OP_LOG_NOTEST(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;<span class="preprocessor">#define OP_LOG_NOTEST(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -301,7 +301,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;</div>
 <div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;</div>
-<div class="line"><a name="l00212"></a><span class="lineno"><a class="line" href="../../d3/daf/op__log_8h.html#aeef8c53332dd3213e5ade9d702a9c7b6">  212</a></span>&#160;<span class="preprocessor">#define OP_LOG_UNKNOWN(LOGGER, ...) \</span></div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;<span class="preprocessor">#define OP_LOG_UNKNOWN(LOGGER, ...) \</span></div>
 <div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;<span class="preprocessor">  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \</span></div>
 <div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
 <div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;<span class="preprocessor">   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \</span></div>
@@ -316,14 +316,10 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 <div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;</div>
 <div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;<span class="comment">/* op_log.h ends here */</span></div>
-<div class="ttc" id="op__macros_8h_html_ac32bbe2e2e8b1c3b4ac94736ee797963"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html#ac32bbe2e2e8b1c3b4ac94736ee797963">OP_END_DECLS</a></div><div class="ttdeci">#define OP_END_DECLS</div><div class="ttdef"><b>Definition:</b> <a href="../../d4/d90/op__macros_8h_source.html#l00058">op_macros.h:58</a></div></div>
-<div class="ttc" id="op__log_8h_html_a4d94b2b0924a1cc4edaa5eeefaa5594e"><div class="ttname"><a href="../../d3/daf/op__log_8h.html#a4d94b2b0924a1cc4edaa5eeefaa5594e">opic_log4c_init</a></div><div class="ttdeci">OP_BEGIN_DECLS void opic_log4c_init()</div><div class="ttdef"><b>Definition:</b> <a href="../../d7/d1a/op__log_8c_source.html#l00055">op_log.c:55</a></div></div>
-<div class="ttc" id="op__macros_8h_html_a589912b6d6a4054ba69636fbacdbbcb3"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html#a589912b6d6a4054ba69636fbacdbbcb3">OP_BEGIN_DECLS</a></div><div class="ttdeci">#define OP_BEGIN_DECLS</div><div class="ttdef"><b>Definition:</b> <a href="../../d4/d90/op__macros_8h_source.html#l00057">op_macros.h:57</a></div></div>
-<div class="ttc" id="op__macros_8h_html"><div class="ttname"><a href="../../d4/d90/op__macros_8h.html">op_macros.h</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Apr 27 2017 22:22:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Apr 27 2017 23:43:43 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="../../doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

@@ -40,7 +40,7 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
     <ul class="tablist">
       <li><a href="../../index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="../../pages.html"><span>Related&#160;Pages</span></a></li>
-      <li class="current"><a href="../../annotated.html"><span>Classes</span></a></li>
+      <li class="current"><a href="../../annotated.html"><span>Data&#160;Structures</span></a></li>
       <li><a href="../../files.html"><span>Files</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
@@ -62,9 +62,9 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
   </div>
   <div id="navrow2" class="tabs2">
     <ul class="tablist">
-      <li><a href="../../annotated.html"><span>Class&#160;List</span></a></li>
-      <li><a href="../../classes.html"><span>Class&#160;Index</span></a></li>
-      <li><a href="../../functions.html"><span>Class&#160;Members</span></a></li>
+      <li><a href="../../annotated.html"><span>Data&#160;Structures</span></a></li>
+      <li><a href="../../classes.html"><span>Data&#160;Structure&#160;Index</span></a></li>
+      <li><a href="../../functions.html"><span>Data&#160;Fields</span></a></li>
     </ul>
   </div>
 <!-- window showing the filter options -->
@@ -84,61 +84,58 @@ var searchBox = new SearchBox("searchBox", "../../search",false,'Search');
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#related">Related Functions</a> &#124;
-<a href="../../d5/d09/struct_o_p_heap-members.html">List of all members</a>  </div>
+<a href="#related">Related Functions</a>  </div>
   <div class="headertitle">
 <div class="title">OPHeap Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>opaque object for memory allocation.  
+<p>Opaque object for memory allocation.  
  <a href="../../da/d12/struct_o_p_heap.html#details">More...</a></p>
-
-<p><code>#include &lt;<a class="el" href="../../de/d87/op__malloc_8h_source.html">op_malloc.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="related"></a>
 Related Functions</h2></td></tr>
 <tr><td class="ititle" colspan="2"><p>(Note that these are not member functions.) </p>
 </td></tr>
 <tr class="memitem:a241fdd4753c618b3cceaa6d1aae2f8b0"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a241fdd4753c618b3cceaa6d1aae2f8b0">OPHeapNew</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> **heap_ref)</td></tr>
-<tr class="memdesc:a241fdd4753c618b3cceaa6d1aae2f8b0"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> constructor.  <a href="#a241fdd4753c618b3cceaa6d1aae2f8b0">More...</a><br /></td></tr>
+<tr class="memdesc:a241fdd4753c618b3cceaa6d1aae2f8b0"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> constructor.  <a href="#a241fdd4753c618b3cceaa6d1aae2f8b0">More...</a><br /></td></tr>
 <tr class="separator:a241fdd4753c618b3cceaa6d1aae2f8b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3a0773b74fca26b74ed713383b84373c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a3a0773b74fca26b74ed713383b84373c">OPHeapWrite</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *<a class="el" href="../../df/df6/demomalloc_8c.html#a30410e46d50cc865f7bdf15b34617d8b">heap</a>, FILE *stream)</td></tr>
+<tr class="memitem:a3a0773b74fca26b74ed713383b84373c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a3a0773b74fca26b74ed713383b84373c">OPHeapWrite</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *heap, FILE *stream)</td></tr>
 <tr class="memdesc:a3a0773b74fca26b74ed713383b84373c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes the heap data to a file.  <a href="#a3a0773b74fca26b74ed713383b84373c">More...</a><br /></td></tr>
 <tr class="separator:a3a0773b74fca26b74ed713383b84373c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a97ea76d5ef9d779ada2ed5067a7d8e57"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a97ea76d5ef9d779ada2ed5067a7d8e57">OPHeapRead</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> **heap_ref, FILE *stream)</td></tr>
-<tr class="memdesc:a97ea76d5ef9d779ada2ed5067a7d8e57"><td class="mdescLeft">&#160;</td><td class="mdescRight">Memory map a file as an <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. (read only)  <a href="#a97ea76d5ef9d779ada2ed5067a7d8e57">More...</a><br /></td></tr>
+<tr class="memdesc:a97ea76d5ef9d779ada2ed5067a7d8e57"><td class="mdescLeft">&#160;</td><td class="mdescRight">Memory map a file as an <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. (read only)  <a href="#a97ea76d5ef9d779ada2ed5067a7d8e57">More...</a><br /></td></tr>
 <tr class="separator:a97ea76d5ef9d779ada2ed5067a7d8e57"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acbbbf9b96b7a3ded4c3bda8e79477d5e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#acbbbf9b96b7a3ded4c3bda8e79477d5e">OPHeapDestroy</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *<a class="el" href="../../df/df6/demomalloc_8c.html#a30410e46d50cc865f7bdf15b34617d8b">heap</a>)</td></tr>
-<tr class="memdesc:acbbbf9b96b7a3ded4c3bda8e79477d5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance.  <a href="#acbbbf9b96b7a3ded4c3bda8e79477d5e">More...</a><br /></td></tr>
+<tr class="memitem:acbbbf9b96b7a3ded4c3bda8e79477d5e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#acbbbf9b96b7a3ded4c3bda8e79477d5e">OPHeapDestroy</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *heap)</td></tr>
+<tr class="memdesc:acbbbf9b96b7a3ded4c3bda8e79477d5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroy the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance.  <a href="#acbbbf9b96b7a3ded4c3bda8e79477d5e">More...</a><br /></td></tr>
 <tr class="separator:acbbbf9b96b7a3ded4c3bda8e79477d5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9344a2d48d87540c6504047a8ec81f8d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a9344a2d48d87540c6504047a8ec81f8d">OPHeapStorePtr</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *<a class="el" href="../../df/df6/demomalloc_8c.html#a30410e46d50cc865f7bdf15b34617d8b">heap</a>, void *ptr, int pos)</td></tr>
-<tr class="memdesc:a9344a2d48d87540c6504047a8ec81f8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Store a pointer to a root pointer slot in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>.  <a href="#a9344a2d48d87540c6504047a8ec81f8d">More...</a><br /></td></tr>
+<tr class="memitem:a9344a2d48d87540c6504047a8ec81f8d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a9344a2d48d87540c6504047a8ec81f8d">OPHeapStorePtr</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *heap, void *ptr, int pos)</td></tr>
+<tr class="memdesc:a9344a2d48d87540c6504047a8ec81f8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Store a pointer to a root pointer slot in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a9344a2d48d87540c6504047a8ec81f8d">More...</a><br /></td></tr>
 <tr class="separator:a9344a2d48d87540c6504047a8ec81f8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa5fe27e04dfe7e1cfe83f9be71f06fb5"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#aa5fe27e04dfe7e1cfe83f9be71f06fb5">OPHeapRestorePtr</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *<a class="el" href="../../df/df6/demomalloc_8c.html#a30410e46d50cc865f7bdf15b34617d8b">heap</a>, int pos)</td></tr>
+<tr class="memitem:aa5fe27e04dfe7e1cfe83f9be71f06fb5"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#aa5fe27e04dfe7e1cfe83f9be71f06fb5">OPHeapRestorePtr</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *heap, int pos)</td></tr>
 <tr class="memdesc:aa5fe27e04dfe7e1cfe83f9be71f06fb5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Restore a pointer from specified root pointer slot.  <a href="#aa5fe27e04dfe7e1cfe83f9be71f06fb5">More...</a><br /></td></tr>
 <tr class="separator:aa5fe27e04dfe7e1cfe83f9be71f06fb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11f047ff62574e119f17635b169fac61"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a11f047ff62574e119f17635b169fac61">ObtainOPHeap</a> (void *addr)</td></tr>
-<tr class="memdesc:a11f047ff62574e119f17635b169fac61"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given any pointer in the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>.  <a href="#a11f047ff62574e119f17635b169fac61">More...</a><br /></td></tr>
+<tr class="memdesc:a11f047ff62574e119f17635b169fac61"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given any pointer in the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a11f047ff62574e119f17635b169fac61">More...</a><br /></td></tr>
 <tr class="separator:a11f047ff62574e119f17635b169fac61"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acfef6e9691c89eb8dd4b19f7fd8521c1"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#acfef6e9691c89eb8dd4b19f7fd8521c1">OPMalloc</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *<a class="el" href="../../df/df6/demomalloc_8c.html#a30410e46d50cc865f7bdf15b34617d8b">heap</a>, size_t size) __attribute__((malloc))</td></tr>
-<tr class="memdesc:acfef6e9691c89eb8dd4b19f7fd8521c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate an object from <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> with given size.  <a href="#acfef6e9691c89eb8dd4b19f7fd8521c1">More...</a><br /></td></tr>
+<tr class="memitem:acfef6e9691c89eb8dd4b19f7fd8521c1"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#acfef6e9691c89eb8dd4b19f7fd8521c1">OPMalloc</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *heap, size_t size) __attribute__((malloc))</td></tr>
+<tr class="memdesc:acfef6e9691c89eb8dd4b19f7fd8521c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate an object from <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> with given size.  <a href="#acfef6e9691c89eb8dd4b19f7fd8521c1">More...</a><br /></td></tr>
 <tr class="separator:acfef6e9691c89eb8dd4b19f7fd8521c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a20b1d0c823710be05b1145b3cfb0323a"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a20b1d0c823710be05b1145b3cfb0323a">OPCalloc</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *<a class="el" href="../../df/df6/demomalloc_8c.html#a30410e46d50cc865f7bdf15b34617d8b">heap</a>, size_t num, size_t size) __attribute__((malloc))</td></tr>
+<tr class="memitem:a20b1d0c823710be05b1145b3cfb0323a"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a20b1d0c823710be05b1145b3cfb0323a">OPCalloc</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *heap, size_t num, size_t size) __attribute__((malloc))</td></tr>
 <tr class="memdesc:a20b1d0c823710be05b1145b3cfb0323a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate a chunk of memory filled with 0s.  <a href="#a20b1d0c823710be05b1145b3cfb0323a">More...</a><br /></td></tr>
 <tr class="separator:a20b1d0c823710be05b1145b3cfb0323a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae2140559236ba0383bffaaa2d90ace58"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#ae2140559236ba0383bffaaa2d90ace58">OPMallocAdviced</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *<a class="el" href="../../df/df6/demomalloc_8c.html#a30410e46d50cc865f7bdf15b34617d8b">heap</a>, size_t size, int advice) __attribute__((malloc))</td></tr>
+<tr class="memitem:ae2140559236ba0383bffaaa2d90ace58"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#ae2140559236ba0383bffaaa2d90ace58">OPMallocAdviced</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *heap, size_t size, int advice) __attribute__((malloc))</td></tr>
 <tr class="memdesc:ae2140559236ba0383bffaaa2d90ace58"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate an object of given size with an arena hint.  <a href="#ae2140559236ba0383bffaaa2d90ace58">More...</a><br /></td></tr>
 <tr class="separator:ae2140559236ba0383bffaaa2d90ace58"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a03df0e6061c14ea2d0f840bf4e493a47"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a03df0e6061c14ea2d0f840bf4e493a47">OPCallocAdviced</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *<a class="el" href="../../df/df6/demomalloc_8c.html#a30410e46d50cc865f7bdf15b34617d8b">heap</a>, size_t num, size_t size, int advice) __attribute__((malloc))</td></tr>
+<tr class="memitem:a03df0e6061c14ea2d0f840bf4e493a47"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a03df0e6061c14ea2d0f840bf4e493a47">OPCallocAdviced</a> (<a class="el" href="../../da/d12/struct_o_p_heap.html">OPHeap</a> *heap, size_t num, size_t size, int advice) __attribute__((malloc))</td></tr>
 <tr class="memdesc:a03df0e6061c14ea2d0f840bf4e493a47"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate a chunk of memory filled with 0s with an arena hint.  <a href="#a03df0e6061c14ea2d0f840bf4e493a47">More...</a><br /></td></tr>
 <tr class="separator:a03df0e6061c14ea2d0f840bf4e493a47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9e80c02486f21a6480407261ea31934b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d12/struct_o_p_heap.html#a9e80c02486f21a6480407261ea31934b">OPDealloc</a> (void *addr)</td></tr>
-<tr class="memdesc:a9e80c02486f21a6480407261ea31934b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dealloc an object created with <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>.  <a href="#a9e80c02486f21a6480407261ea31934b">More...</a><br /></td></tr>
+<tr class="memdesc:a9e80c02486f21a6480407261ea31934b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dealloc an object created with <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a9e80c02486f21a6480407261ea31934b">More...</a><br /></td></tr>
 <tr class="separator:a9e80c02486f21a6480407261ea31934b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>opaque object for memory allocation. </p>
+<div class="textblock"><p>Opaque object for memory allocation. </p>
 </div><h2 class="groupheader">Friends And Related Function Documentation</h2>
 <a class="anchor" id="a11f047ff62574e119f17635b169fac61"></a>
 <div class="memitem">
@@ -162,14 +159,14 @@ Related Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Given any pointer in the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>. </p>
+<p>Given any pointer in the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">addr</td><td>A pointer allocated with <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>. </td></tr>
+    <tr><td class="paramname">addr</td><td>A pointer allocated with <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </dd></dl>
 
 <p>Definition at line <a class="el" href="../../de/d87/op__malloc_8h_source.html#l00156">156</a> of file <a class="el" href="../../de/d87/op__malloc_8h_source.html">op_malloc.h</a>.</p>
 
@@ -216,7 +213,7 @@ Related Functions</h2></td></tr>
 <p>Allocate a chunk of memory filled with 0s. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">num</td><td>number of contiguous objects. </td></tr>
     <tr><td class="paramname">size</td><td>the size of an object. </td></tr>
   </table>
@@ -273,7 +270,7 @@ Related Functions</h2></td></tr>
 <p>Allocate a chunk of memory filled with 0s with an arena hint. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">num</td><td>number of contiguous objects. </td></tr>
     <tr><td class="paramname">size</td><td>the size of an object. </td></tr>
     <tr><td class="paramname">advice</td><td>hint to which arena slot to use. </td></tr>
@@ -306,7 +303,7 @@ Related Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Dealloc an object created with <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>. </p>
+<p>Dealloc an object created with <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">addr</td><td>the address of the object to be dealloc. </td></tr>
@@ -338,10 +335,10 @@ Related Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Destroy the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </p>
+<p>Destroy the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance to destroy. </td></tr>
+    <tr><td class="paramname">heap</td><td>the <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance to destroy. </td></tr>
   </table>
   </dd>
 </dl>
@@ -370,11 +367,11 @@ Related Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p><a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> constructor. </p>
+<p><a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> constructor. </p>
 <p>Example: OPHeap* heap; assert(OPHeapNew(&amp;heap); // now the heap pointer is set.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap_ref</td><td>reference to a <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> pointer. The pointer is set when the allocation succeeded. </td></tr>
+    <tr><td class="paramname">heap_ref</td><td>reference to a <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> pointer. The pointer is set when the allocation succeeded. </td></tr>
   </table>
   </dd>
 </dl>
@@ -414,11 +411,11 @@ Related Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Memory map a file as an <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. (read only) </p>
-<p>We only support read only access for now. The memory footprint of the read <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance would have the same size as the file. Write support and resizing the heap is on our roadmap.</p>
+<p>Memory map a file as an <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. (read only) </p>
+<p>We only support read only access for now. The memory footprint of the read <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance would have the same size as the file. Write support and resizing the heap is on our roadmap.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap_ref</td><td>reference to the heap pointer for assigning <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap_ref</td><td>reference to the heap pointer for assigning <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">stream</td><td>an opened FILE pointer. </td></tr>
   </table>
   </dd>
@@ -462,7 +459,7 @@ Related Functions</h2></td></tr>
 <p>Restore a pointer from specified root pointer slot. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">pos</td><td>index in the root pointer slot. 0 &lt;= pos &lt; 8. </td></tr>
   </table>
   </dd>
@@ -509,10 +506,10 @@ Related Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Store a pointer to a root pointer slot in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a>. </p>
+<p>Store a pointer to a root pointer slot in <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">ptr</td><td>the pointer we want to store in root pointer slot. </td></tr>
     <tr><td class="paramname">pos</td><td>index in the root pointer slot. 0 &lt;= pos &lt; 8. </td></tr>
   </table>
@@ -554,10 +551,10 @@ Related Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Writes the heap data to a file. </p>
-<p>The file sizes would be multiple of 2MB. This is due to the internal huge pages of <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> are 2MB, and <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> writes out file base on the huge pages.</p>
+<p>The file sizes would be multiple of 2MB. This is due to the internal huge pages of <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> are 2MB, and <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> writes out file base on the huge pages.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">stream</td><td>an opened FILE pointer. </td></tr>
   </table>
   </dd>
@@ -597,10 +594,10 @@ Related Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Allocate an object from <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> with given size. </p>
+<p>Allocate an object from <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> with given size. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">size</td><td>the size of object. </td></tr>
   </table>
   </dd>
@@ -650,7 +647,7 @@ Related Functions</h2></td></tr>
 <p>Allocate an object of given size with an arena hint. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="../../da/d12/struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">size</td><td>the size of object. </td></tr>
     <tr><td class="paramname">advice</td><td>hint to which arena slot to use. </td></tr>
   </table>
@@ -666,7 +663,7 @@ Related Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Apr 27 2017 22:22:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Apr 27 2017 23:43:43 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="../../doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

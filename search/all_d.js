@@ -15,7 +15,7 @@ var searchData=
   ['rhhiterate',['RHHIterate',['../da/d39/robin__hood_8c.html#ad8663600d7375137427ab3f3475fec9f',1,'RHHIterate(RobinHoodHash *rhh, RHHIterator iterator, void *context):&#160;robin_hood.c'],['../d2/d84/robin__hood_8h.html#ad8663600d7375137427ab3f3475fec9f',1,'RHHIterate(RobinHoodHash *rhh, RHHIterator iterator, void *context):&#160;robin_hood.c']]],
   ['rhhiterator',['RHHIterator',['../d2/d84/robin__hood_8h.html#a17ba877f13518e49bd5baed987b1bf60',1,'robin_hood.h']]],
   ['rhhkeysize',['RHHKeysize',['../da/d39/robin__hood_8c.html#aa818738b011f293ec1111d8681addaa6',1,'RHHKeysize(RobinHoodHash *rhh):&#160;robin_hood.c'],['../d2/d84/robin__hood_8h.html#aa818738b011f293ec1111d8681addaa6',1,'RHHKeysize(RobinHoodHash *rhh):&#160;robin_hood.c']]],
-  ['rhhnew',['RHHNew',['../da/d39/robin__hood_8c.html#a6f9b0f8e5061098360e26b4a5fd9d649',1,'RHHNew(OPHeap *heap, RobinHoodHash **rhh, uint64_t num_objects, double load, size_t keysize, size_t valsize):&#160;robin_hood.c'],['../d2/d84/robin__hood_8h.html#a6f9b0f8e5061098360e26b4a5fd9d649',1,'RHHNew(OPHeap *heap, RobinHoodHash **rhh, uint64_t num_objects, double load, size_t keysize, size_t valsize):&#160;robin_hood.c']]],
+  ['rhhnew',['RHHNew',['../da/d39/robin__hood_8c.html#a6f9b0f8e5061098360e26b4a5fd9d649',1,'robin_hood.c']]],
   ['rhhobjcnt',['RHHObjcnt',['../da/d39/robin__hood_8c.html#a9d09f9b3326760a0964ae0a64b263804',1,'RHHObjcnt(RobinHoodHash *rhh):&#160;robin_hood.c'],['../d2/d84/robin__hood_8h.html#a9d09f9b3326760a0964ae0a64b263804',1,'RHHObjcnt(RobinHoodHash *rhh):&#160;robin_hood.c']]],
   ['rhhprintstat',['RHHPrintStat',['../da/d39/robin__hood_8c.html#a84f60f4e670821553ab0c0d4f2f68f63',1,'RHHPrintStat(RobinHoodHash *rhh):&#160;robin_hood.c'],['../d2/d84/robin__hood_8h.html#a84f60f4e670821553ab0c0d4f2f68f63',1,'RHHPrintStat(RobinHoodHash *rhh):&#160;robin_hood.c']]],
   ['rhhput',['RHHPut',['../d2/d84/robin__hood_8h.html#afdabff62d4f466acbefa1dbe3386d5a3',1,'robin_hood.h']]],
@@ -27,7 +27,7 @@ var searchData=
   ['robin_5fhood_2ec',['robin_hood.c',['../da/d39/robin__hood_8c.html',1,'']]],
   ['robin_5fhood_2eh',['robin_hood.h',['../d2/d84/robin__hood_8h.html',1,'']]],
   ['robin_5fhood_5ftest_2ec',['robin_hood_test.c',['../dd/d99/robin__hood__test_8c.html',1,'']]],
-  ['robinhoodhash',['RobinHoodHash',['../d2/d84/robin__hood_8h.html#a9e64e20dc1b7bc5f8c5bcdc652027793',1,'robin_hood.h']]],
+  ['robinhoodhash',['RobinHoodHash',['../d2/d84/robin__hood_8h.html#acc4ada35dc8482fb1739e9910afa5bce',1,'robin_hood.h']]],
   ['rotl32',['ROTL32',['../d7/d3f/murmurhash3_8c.html#ab32bb365c62dcb0da675e248b7e814a9',1,'ROTL32():&#160;murmurhash3.c'],['../d7/d3f/murmurhash3_8c.html#a773c5f9ea23b0cc10fbb505676f51f8c',1,'rotl32(uint32_t x, int8_t r):&#160;murmurhash3.c']]],
   ['rotl64',['rotl64',['../d7/d3f/murmurhash3_8c.html#af4adfdbf8bebc46e62a78cba7ead57ba',1,'rotl64(uint64_t x, int8_t r):&#160;murmurhash3.c'],['../d7/d3f/murmurhash3_8c.html#a612c70207b96b27f06eff614e3b9ffd9',1,'ROTL64():&#160;murmurhash3.c']]],
   ['round_5fup_5fdiv',['round_up_div',['../d9/da3/op__utils_8h.html#aa8be275dd28b3a1b4863d93d703a901b',1,'op_utils.h']]]

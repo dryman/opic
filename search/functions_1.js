@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['checkobjects',['CheckObjects',['../dd/d99/robin__hood__test_8c.html#a0e0f997ed6ffce0662de31f77611db94',1,'robin_hood_test.c']]],
-  ['countobjects',['CountObjects',['../dd/d99/robin__hood__test_8c.html#ac3580437673e57994f0c205d074cab5d',1,'robin_hood_test.c']]]
+  ['rhhfixkey',['RHHFixkey',['../struct_robin_hood_hash　.html#a06c3761782087dce31e41cd6b3c14813',1,'RobinHoodHash　']]],
+  ['rhhnew',['RHHNew',['../robin__hood_8h.html#a6f9b0f8e5061098360e26b4a5fd9d649',1,'robin_hood.c']]]
 ];

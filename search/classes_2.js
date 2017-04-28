@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['magic',['Magic',['../d0/d16/union_magic.html',1,'']]]
+  ['robinhood',['RobinHood',['../struct_robin_hood.html',1,'']]]
 ];
