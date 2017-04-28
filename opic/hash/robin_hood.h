@@ -1,32 +1,10 @@
-/* robin_hood.h ---
- *
- * Filename: robin_hood.h
- * Description:
- * Author: Felix Chern
- * Maintainer:
+/**
+ * @file robin_hood.h
+ * @brief A general hashmap/hashset/hashmultimap implemantation using
+ * robin hood hashing.
+ * @author Felix Chern
+ * @date Sun Apr  2 07:09:50 2017 (-0700)
  * Copyright: (c) 2017 Felix Chern
- * Created: Sun Apr  2 07:09:50 2017 (-0700)
- * Version:
- * Package-Requires: ()
- * Last-Updated:
- *           By:
- *     Update #: 0
- * URL:
- * Doc URL:
- * Keywords:
- * Compatibility:
- *
- */
-
-/* Commentary:
- *
- *
- *
- */
-
-/* Change Log:
- *
- *
  */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -54,15 +32,42 @@
 
 OP_BEGIN_DECLS
 
+/**
+ * @struct RobinHoodHash　
+ * @brief Opaque object for fixed length key hashmap/hashset/hashmultimap.
+ *
+ * @todo there is a wide space character "　" appended after
+ * "RobinHoodHash" in this document. Somehow doxygen (1.8.13) cannot
+ * process "RobinHoodHash" as a struct name. Any character edit to the
+ * string works, except the form "RobinHoodHash". As a workaround, I use
+ * a wide space character to finish up the document first. The real struct
+ * in code does not use the wide space character.
+ */
 typedef struct RobinHoodHash RobinHoodHash;
+
+/**
+ * @typedef OPHash
+ * @brief Hash function interface.
+ */
 typedef uint64_t(*OPHash)(void* key, size_t size);
+
+/**
+ * @relates RobinHoodHash　
+ * @brief RobinHoodHash iterator interface.
+ */
 typedef void(*RHHIterator)(void* keyval, size_t keysize, size_t valsize,
                            void* context);
 
-// Default OPHash function for RobinHoodHashing
+/**
+ * @relates RobinHoodHash　
+ * @brief Default hash function for RobinHoodHash.
+ */
 uint64_t RHHFixkey(void* key, size_t size);
 
 
+/**
+ * @brief Constructor for RobinHoodHash.
+ */
 bool RHHNew(OPHeap* heap, RobinHoodHash** rhh, uint64_t num_objects,
             double load, size_t keysize, size_t valsize);
 void RHHDestroy(RobinHoodHash* rhh);

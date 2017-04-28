@@ -61,7 +61,7 @@ OP_BEGIN_DECLS
 
 /**
  * @struct OPHeap
- * @brief opaque object for memory allocation.
+ * @brief Opaque object for memory allocation.
  */
 typedef struct OPHeap OPHeap;
 
