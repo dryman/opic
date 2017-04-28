@@ -1,10 +1,13 @@
 var indexSectionsWithContent =
 {
-  0: "cloprt",
-  1: "clopt",
-  2: "o",
-  3: "o",
-  4: "or"
+  0: "_abcdfghilmoprt",
+  1: "o",
+  2: "dimor",
+  3: "acfghmort",
+  4: "_ahlo",
+  5: "aor",
+  6: "_abdfoprt",
+  7: "or"
 };
 
 var indexSectionNames =
@@ -12,8 +15,11 @@ var indexSectionNames =
   0: "all",
   1: "classes",
   2: "files",
-  3: "defines",
-  4: "pages"
+  3: "functions",
+  4: "variables",
+  5: "typedefs",
+  6: "defines",
+  7: "pages"
 };
 
 var indexSectionLabels =
@@ -21,7 +27,10 @@ var indexSectionLabels =
   0: "All",
   1: "Classes",
   2: "Files",
-  3: "Macros",
-  4: "Pages"
+  3: "Functions",
+  4: "Variables",
+  5: "Typedefs",
+  6: "Macros",
+  7: "Pages"
 };
 

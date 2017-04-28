@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['typeclass',['TypeClass',['../struct_type_class.html',1,'']]]
+  ['rawtype',['RawType',['../d2/dd8/struct_raw_type.html',1,'']]],
+  ['robinhoodhash',['RobinHoodHash',['../d6/d80/struct_robin_hood_hash.html',1,'']]]
 ];
