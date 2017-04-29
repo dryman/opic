@@ -73,15 +73,17 @@ void ResetObjmap(void)
   memset(objmap, 0x00, sizeof(objmap));
 }
 
-void CountObjects(void* keyval, size_t keysize, size_t valsize, void* ctx)
+void CountObjects(void* key, void* val,
+                  size_t keysize, size_t valsize, void* ctx)
 {
   objcnt++;
 }
 
-void CheckObjects(void* keyval, size_t keysize, size_t valsize, void* ctx)
+void CheckObjects(void* key, void* val,
+                  size_t keysize, size_t valsize, void* ctx)
 {
-  int* key = (int*)keyval;
-  objmap[*key] = 1;
+  int* intkey = key;
+  objmap[*intkey] = 1;
 }
 
 static void

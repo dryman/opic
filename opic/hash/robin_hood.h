@@ -48,27 +48,75 @@ typedef struct RobinHoodHash RobinHoodHash;
 /**
  * @typedef OPHash
  * @brief Hash function interface.
+ *
+ * @param key pointer to the key
+ * @param size size of the key
  */
 typedef uint64_t(*OPHash)(void* key, size_t size);
 
 /**
  * @relates RobinHoodHash　
- * @brief RobinHoodHash iterator interface.
+ * @brief HashTable iterator interface.
+ *
+ * @param key pointer to key
+ * @param value pointer to value
+ * @param keysize length of the key
+ * @param valsize length of the value
+ * @param context user defined context
+ *
+ * Usage example:
+ *
+ * @code
+ * // Function interface matches OPHashIterator
+ * void my_iterator(void* key, void* value,
+ *                  size_t keysize, size_t valsize,
+ *                  void* context)
+ * {
+ *   // Obtain the object we passed in.
+ *   struct MyStruct* my_s = (struct MyStruct*) context;
+ *
+ *   // assumes both key and value were null terminated string
+ *   printf("key: %s, value: %s\n", key, value);
+ * }
+ *
+ * // User defined context
+ * struct MyStruct my_s;
+ *
+ * // RHHIterate takes in a RobinHoodHash object, a fuction pointer
+ * // OPHashIterator and a user defined context for iteration.
+ * RHHIterate(rhh, &my_iterator, &my_s);
+ * @endcode
+ *
  */
-typedef void(*RHHIterator)(void* keyval, size_t keysize, size_t valsize,
-                           void* context);
+typedef void(*OPHashIterator)(void* key, void* value,
+                              size_t keysize, size_t valsize,
+                              void* context);
 
 /**
  * @relates RobinHoodHash　
  * @brief Default hash function for RobinHoodHash.
+ *
+ * This is the implementation of OPHash.
  */
 uint64_t RHHFixkey(void* key, size_t size);
 
 
 /**
+ * @relates RobinHoodHash　
  * @brief Constructor for RobinHoodHash.
+ *
+ * @param heap OPHeap instance.
+ * @param rhh_ref reference to the RobinHoodHash pointer for assigining
+ * RobinHoodHash instance.
+ * @param uint64_t num_objects number of objects we decided to put in.
+ * @param double load (0.0-1.0) how full the hash table could be
+ * before expansion.
+ * @param size_t keysize length of key measured in bytes. Cannot be zero.
+ * @param size_t valsize length of value measured in bytes. This vlaue
+ * can be zero and the hash table would work like a hash set.
+ * @return true when the allocation succeeded, false otherwise.
  */
-bool RHHNew(OPHeap* heap, RobinHoodHash** rhh, uint64_t num_objects,
+bool RHHNew(OPHeap* heap, RobinHoodHash** rhh_ref, uint64_t num_objects,
             double load, size_t keysize, size_t valsize);
 void RHHDestroy(RobinHoodHash* rhh);
 
@@ -80,7 +128,7 @@ uint64_t RHHObjcnt(RobinHoodHash* rhh);
 uint64_t RHHCapacity(RobinHoodHash* rhh);
 size_t RHHKeysize(RobinHoodHash* rhh);
 size_t RHHValsize(RobinHoodHash* rhh);
-void RHHIterate(RobinHoodHash* rhh, RHHIterator iterator, void* context);
+void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context);
 void RHHPrintStat(RobinHoodHash* rhh);
 
 static inline bool

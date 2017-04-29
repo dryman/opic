@@ -579,7 +579,7 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
 }
 
 
-void RHHIterate(RobinHoodHash* rhh, RHHIterator iterator, void* context)
+void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
@@ -591,6 +591,7 @@ void RHHIterate(RobinHoodHash* rhh, RHHIterator iterator, void* context)
     {
       if (buckets[idx*bucket_size] == 1)
         iterator(&buckets[idx*bucket_size + 1],
+                 &buckets[idx*bucket_size + 1 + keysize],
                  keysize, valsize, context);
     }
 }
