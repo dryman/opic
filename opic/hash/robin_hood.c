@@ -153,13 +153,6 @@ size_t RHHValsize(RobinHoodHash* rhh)
   return rhh->valsize;
 }
 
-uint64_t RHHFixkey(void* key, size_t size)
-{
-  uint64_t hashed_val[2];
-  MurmurHash3_x64_128(key, size, 421439783, hashed_val);
-  return hashed_val[0];
-}
-
 static inline uintptr_t
 hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
 {
