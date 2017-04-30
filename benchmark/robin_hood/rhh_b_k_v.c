@@ -107,7 +107,7 @@ RHH_b_k_v_New(OPHeap* heap, RHH_b_k_v ** rhh,
   *rhh = OPCalloc(heap, 1, alloc_size);
   if (!*rhh)
     return false;
-  rhh_base = (uintptr_t)rhh;
+  rhh_base = (uintptr_t)(*rhh);
 
   (*rhh)->bmap = (uint64_t*)(rhh_base + header_size);
   (*rhh)->key = (uint8_t*)(rhh_base + header_size + bmap_size);
