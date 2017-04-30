@@ -56,16 +56,31 @@
 
 OP_BEGIN_DECLS
 
+/**
+ * @defgroup malloc
+ */
+
+/**
+ * @ingroup malloc
+ * @brief Size of OPHeap represented in bits offset.
+ */
 #define OPHEAP_BITS 36
+
+/**
+ * @ingroup malloc
+ * @brief Size of OPHeap.
+ */
 #define OPHEAP_SIZE (1UL << OPHEAP_BITS)
 
 /**
+ * @ingroup malloc
  * @struct OPHeap
  * @brief Opaque object for memory allocation.
  */
 typedef struct OPHeap OPHeap;
 
 /**
+ * @ingroup malloc
  * @typedef opref_t
  * @brief The "pointer type" used within objects created by OPHeap.
  *
@@ -199,6 +214,7 @@ ObtainOPHeap(void* addr)
 }
 
 /**
+ * @ingroup malloc
  * @brief Converts a pointer allocated in OPHeap to an opref_t.
  *
  * @param addr Any pointer that is allocated with OPHeap.
@@ -211,6 +227,7 @@ OPPtr2Ref(void* addr)
 }
 
 /**
+ * @ingroup malloc
  * @brief Converts an opref_t reference to a regular pointer.
  *
  * @param ptr_in_heap Any pointer in the heap, including OPHeap*.
