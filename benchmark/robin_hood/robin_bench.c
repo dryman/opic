@@ -56,9 +56,17 @@
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
 #include "opic/hash/robin_hood.h"
+#include "rhh_b_k_v.h"
 
 typedef uint64_t (*HashFunc)(void* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
+
+typedef bool (*RHHNew_t)(OPHeap* heap, void* rhh,
+                         uint64_t num_objects, double load,
+                         size_t keysize, size_t valsize);
+typedef void (*RHHDestroy_t)(void* rhh);
+typedef void (*RHHPrintStat_t)(void* rhh);
+
 static void run_short_keys(int size, HashFunc hash_func, void* context);
 static void run_mid_keys(int size, HashFunc hash_func, void* context);
 static void run_long_keys(int size, HashFunc hash_func, void* context);
@@ -66,36 +74,16 @@ static void run_long_int(int size, HashFunc hash_func, void* context);
 static void print_timediff(const char* info,
                            struct timeval start, struct timeval end);
 
-enum HASH_IMPL
-  {
-    ROBIN_HOOD,
-    DENSE_HASH_MAP,
-    SPARSE_HASH_MAP,
-    STD_UNORDERED_MAP,
-    CUCKOO,
-    KHASH,
-  };
-
-enum BENCHMARK_MODE
-  {
-    IN_MEMORY,
-    SERIALIZE,
-    DESERIALIZE,
-    DE_NO_CACHE,
-  };
-
-uint64_t rhh_put(void* key, void* context)
+uint64_t RHHPutWrap(void* key, void* context)
 {
-  RobinHoodHash* rhh = (RobinHoodHash*)context;
   uint64_t val = 0;
-  RHHPut(rhh, key, &val);
+  RHHPut(context, key, &val);
   return 0;
 }
 
-uint64_t rhh_get(void* key, void* context)
+uint64_t RHHGetWrap(void* key, void* context)
 {
-  RobinHoodHash* rhh = (RobinHoodHash*)context;
-  return *(uint64_t*)RHHGet(rhh, key);
+  return *(uint64_t*)RHHGet(context, key);
 }
 
 void help(char* program)
@@ -133,7 +121,12 @@ int main(int argc, char* argv[])
   uint64_t num;
   double load = 0.8;
   bool print_stat = false;
-  enum HASH_IMPL hash_impl = ROBIN_HOOD;
+
+  RHHNew_t rhh_new = (RHHNew_t)RHHNew;
+  RHHDestroy_t rhh_destroy = (RHHDestroy_t)RHHDestroy;
+  HashFunc rhh_put = RHHPutWrap;
+  HashFunc rhh_get = RHHGetWrap;
+  RHHPrintStat_t rhh_printstat = (RHHPrintStat_t)RHHPrintStat;
 
   num_power = 20;
 
@@ -173,7 +166,18 @@ int main(int argc, char* argv[])
           break;
         case 'i':
           if (!strcmp("rhh", optarg))
-            hash_impl = ROBIN_HOOD;
+            {
+              printf("Using official robin_hood\n");
+            }
+          else if (!strcmp("rhh_b_k_v", optarg))
+            {
+              printf("Using rhh_b_k_v\n");
+              rhh_new = (RHHNew_t)RHH_b_k_v_New;
+              rhh_destroy = (RHHDestroy_t)RHH_b_k_v_Destroy;
+              rhh_put = RHH_b_k_v_PutWrap;
+              rhh_get = RHH_b_k_v_GetWrap;
+              rhh_printstat = (RHHPrintStat_t)RHH_b_k_v_PrintStat;
+            }
           else
             help(argv[0]);
           break;
@@ -198,7 +202,7 @@ int main(int argc, char* argv[])
   for (int i = 0; i < repeat; i++)
     {
       printf("attempt %d\n", i + 1);
-      op_assert(RHHNew(heap, &rhh, num,
+      op_assert(rhh_new(heap, &rhh, num,
                        load, k_len, 8), "Create RobinHoodHash\n");
       gettimeofday(&start, NULL);
       key_func(num_power, rhh_put, rhh);
@@ -211,8 +215,8 @@ int main(int argc, char* argv[])
       print_timediff("Query time: ", mid, end);
 
       if (print_stat)
-        RHHPrintStat(rhh);
-      RHHDestroy(rhh);
+        rhh_printstat(rhh);
+      rhh_destroy(rhh);
     }
 
   return 0;

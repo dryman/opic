@@ -45,7 +45,6 @@
 
 /* Code: */
 
-#include <math.h>
 #include <stdio.h> // TODO use op_log instead
 #include <inttypes.h>
 #include <stdint.h>
