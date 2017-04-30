@@ -89,7 +89,7 @@ Typedefs</h2></td></tr>
 typedef struct <a class="el" href="struct_o_p_heap.html">OPHeap</a>&#160;</td><td class="memItemRight" valign="bottom"><b>OPHeap</b></td></tr>
 <tr class="separator:a5ca70bed4fe0ef2642d0e27c479ebc23"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2410dcf39c07e467e980fec46db48acf"><td class="memItemLeft" align="right" valign="top">typedef uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="op__malloc_8h.html#a2410dcf39c07e467e980fec46db48acf">opref_t</a></td></tr>
-<tr class="memdesc:a2410dcf39c07e467e980fec46db48acf"><td class="mdescLeft">&#160;</td><td class="mdescRight">pointer replacement for object allocated in <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. The conversions between opref_t and regular pointer  <a href="#a2410dcf39c07e467e980fec46db48acf">More...</a><br /></td></tr>
+<tr class="memdesc:a2410dcf39c07e467e980fec46db48acf"><td class="mdescLeft">&#160;</td><td class="mdescRight">The "pointer type" used within objects created by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a2410dcf39c07e467e980fec46db48acf">More...</a><br /></td></tr>
 <tr class="separator:a2410dcf39c07e467e980fec46db48acf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -118,12 +118,20 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>pointer replacement for object allocated in <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. The conversions between opref_t and regular pointer </p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="op__malloc_8h.html#a21549a129c945c88f2164365485b19e7" title="Converts a pointer allocated in OPHeap to an opref_t. ">OPPtr2Ref</a> </dd>
-<dd>
-<a class="el" href="op__malloc_8h.html#ab5f885921a1b6bd7fee87068c0623ef2" title="Converts an opref_t reference to a regular pointer. ">OPRef2Ptr</a> </dd></dl>
+<p>The "pointer type" used within objects created by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
+<p>For all the objects relationship in <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, user must use opref_t instead of regular pointer. Regular pointers would be invalid when <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> is written to disk. To access the object referenced by opref_t, first dereference opref_t to regular pointer, then dereference the pointer.</p>
+<p>Unfortunately, C type system is quite weak. It would be better if we have the following features:</p><ol type="1">
+<li>preserve the type information of the address we points to.</li>
+<li>operator overload, or makes every symbol posible to be used as an operator like what Haskell does. Common operation like dereferencing should have its own operator.</li>
+</ol>
+<p>Here is an example of how to reference other objects using opref_t:</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>A {</div><div class="line">  <a class="code" href="op__malloc_8h.html#a2410dcf39c07e467e980fec46db48acf">opref_t</a> ref_b;</div><div class="line">};</div><div class="line"></div><div class="line"><span class="keyword">struct </span>B {</div><div class="line">  <span class="keywordtype">int</span> x;</div><div class="line">};</div><div class="line"></div><div class="line"><a class="code" href="struct_o_p_heap.html">OPHeap</a>* heap;</div><div class="line">OPHeapNew(&amp;heap);</div><div class="line"></div><div class="line"><span class="keyword">struct </span>A* a = OPMalloc(heap, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> A));</div><div class="line"><span class="keyword">struct </span>B* b = OPMalloc(heap, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> B));</div><div class="line"><span class="keyword">struct </span>B* b2;</div><div class="line"></div><div class="line"><span class="comment">// We store the pointer as opref_t</span></div><div class="line">a-&gt;ref_b = <a class="code" href="op__malloc_8h.html#a21549a129c945c88f2164365485b19e7">OPPtr2Ref</a>(b);</div><div class="line"></div><div class="line"><span class="comment">// When accessing the memory, restore it back to a pointer</span></div><div class="line">b2 = <a class="code" href="op__malloc_8h.html#ab5f885921a1b6bd7fee87068c0623ef2">OPRef2Ptr</a>(a, a-&gt;ref_b);</div></div><!-- fragment --><dl class="section see"><dt>See also</dt><dd><ul>
+<li><a class="el" href="op__malloc_8h.html#a21549a129c945c88f2164365485b19e7" title="Converts a pointer allocated in OPHeap to an opref_t. ">OPPtr2Ref</a></li>
+<li><a class="el" href="op__malloc_8h.html#ab5f885921a1b6bd7fee87068c0623ef2" title="Converts an opref_t reference to a regular pointer. ">OPRef2Ptr</a>. </li>
+</ul>
+</dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00075">75</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00114">114</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
 
 </div>
 </div>
@@ -161,7 +169,7 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>An opref_t value. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00168">168</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00207">207</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
 
 </div>
 </div>
@@ -209,14 +217,14 @@ Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A regular pointer. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00181">181</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00220">220</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Apr 28 2017 07:38:25 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 29 2017 09:34:28 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

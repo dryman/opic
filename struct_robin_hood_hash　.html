@@ -73,25 +73,182 @@ $(function() {
 Related Functions</h2></td></tr>
 <tr><td class="ititle" colspan="2"><p>(Note that these are not member functions.) </p>
 </td></tr>
-<tr class="memitem:a17ba877f13518e49bd5baed987b1bf60"><td class="memItemLeft" align="right" valign="top"><a id="a17ba877f13518e49bd5baed987b1bf60"></a>
-typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a17ba877f13518e49bd5baed987b1bf60">RHHIterator</a>) (void *keyval, size_t keysize, size_t valsize, void *context)</td></tr>
-<tr class="memdesc:a17ba877f13518e49bd5baed987b1bf60"><td class="mdescLeft">&#160;</td><td class="mdescRight">RobinHoodHash iterator interface. <br /></td></tr>
-<tr class="separator:a17ba877f13518e49bd5baed987b1bf60"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a06c3761782087dce31e41cd6b3c14813"><td class="memItemLeft" align="right" valign="top"><a id="a06c3761782087dce31e41cd6b3c14813"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a06c3761782087dce31e41cd6b3c14813">RHHFixkey</a> (void *key, size_t size)</td></tr>
-<tr class="memdesc:a06c3761782087dce31e41cd6b3c14813"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default hash function for RobinHoodHash. <br /></td></tr>
+<tr class="memitem:a0d5e125f496f03099590b179c3e893b6"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a0d5e125f496f03099590b179c3e893b6">OPHashIterator</a>) (void *key, void *value, size_t keysize, size_t valsize, void *context)</td></tr>
+<tr class="memdesc:a0d5e125f496f03099590b179c3e893b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">HashTable iterator interface.  <a href="#a0d5e125f496f03099590b179c3e893b6">More...</a><br /></td></tr>
+<tr class="separator:a0d5e125f496f03099590b179c3e893b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a06c3761782087dce31e41cd6b3c14813"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a06c3761782087dce31e41cd6b3c14813">RHHFixkey</a> (void *key, size_t size)</td></tr>
+<tr class="memdesc:a06c3761782087dce31e41cd6b3c14813"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default hash function for RobinHoodHash.  <a href="#a06c3761782087dce31e41cd6b3c14813">More...</a><br /></td></tr>
 <tr class="separator:a06c3761782087dce31e41cd6b3c14813"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6f9b0f8e5061098360e26b4a5fd9d649"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a6f9b0f8e5061098360e26b4a5fd9d649">RHHNew</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, RobinHoodHash **rhh, uint64_t num_objects, double load, size_t keysize, size_t valsize)</td></tr>
+<tr class="memdesc:a6f9b0f8e5061098360e26b4a5fd9d649"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor for RobinHoodHash.  <a href="#a6f9b0f8e5061098360e26b4a5fd9d649">More...</a><br /></td></tr>
+<tr class="separator:a6f9b0f8e5061098360e26b4a5fd9d649"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Opaque object for fixed length key hashmap/hashset/hashmultimap. </p>
 <dl class="todo"><dt><b><a class="el" href="todo.html#_todo000001">Todo:</a></b></dt><dd>there is a wide space character "　" appended after "RobinHoodHash" in this document. Somehow doxygen (1.8.13) cannot process "RobinHoodHash" as a struct name. Any character edit to the string works, except the form "RobinHoodHash". As a workaround, I use a wide space character to finish up the document first. The real struct in code does not use the wide space character. </dd></dl>
-</div><hr/>The documentation for this struct was generated from the following file:<ul>
+</div><h2 class="groupheader">Friends And Related Function Documentation</h2>
+<a id="a0d5e125f496f03099590b179c3e893b6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0d5e125f496f03099590b179c3e893b6">&#9670;&nbsp;</a></span>OPHashIterator</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* OPHashIterator) (void *key, void *value, size_t keysize, size_t valsize, void *context)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>HashTable iterator interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">key</td><td>pointer to key </td></tr>
+    <tr><td class="paramname">value</td><td>pointer to value </td></tr>
+    <tr><td class="paramname">keysize</td><td>length of the key </td></tr>
+    <tr><td class="paramname">valsize</td><td>length of the value </td></tr>
+    <tr><td class="paramname">context</td><td>user defined context</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>Usage example:</p>
+<div class="fragment"><div class="line"><span class="comment">// Function interface matches OPHashIterator</span></div><div class="line"><span class="keywordtype">void</span> my_iterator(<span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value,</div><div class="line">                 <span class="keywordtype">size_t</span> keysize, <span class="keywordtype">size_t</span> valsize,</div><div class="line">                 <span class="keywordtype">void</span>* context)</div><div class="line">{</div><div class="line">  <span class="comment">// Obtain the object we passed in.</span></div><div class="line">  <span class="keyword">struct </span>MyStruct* my_s = (<span class="keyword">struct </span>MyStruct*) context;</div><div class="line"></div><div class="line">  <span class="comment">// assumes both key and value were null terminated string</span></div><div class="line">  printf(<span class="stringliteral">&quot;key: %s, value: %s\n&quot;</span>, key, value);</div><div class="line">}</div><div class="line"></div><div class="line"><span class="comment">// User defined context</span></div><div class="line"><span class="keyword">struct </span>MyStruct my_s;</div><div class="line"></div><div class="line"><span class="comment">// RHHIterate takes in a RobinHoodHash object, a fuction pointer</span></div><div class="line"><span class="comment">// OPHashIterator and a user defined context for iteration.</span></div><div class="line">RHHIterate(rhh, &amp;my_iterator, &amp;my_s);</div></div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00091">91</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
+
+</div>
+</div>
+<a id="a06c3761782087dce31e41cd6b3c14813"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a06c3761782087dce31e41cd6b3c14813">&#9670;&nbsp;</a></span>RHHFixkey()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t RHHFixkey </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>key</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Default hash function for RobinHoodHash. </p>
+<p>This is the implementation of OPHash. </p>
+
+<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00156">156</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
+
+</div>
+</div>
+<a id="a6f9b0f8e5061098360e26b4a5fd9d649"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6f9b0f8e5061098360e26b4a5fd9d649">&#9670;&nbsp;</a></span>RHHNew()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RHHNew </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="struct_o_p_heap.html">OPHeap</a> *&#160;</td>
+          <td class="paramname"><em>heap</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">RobinHoodHash **&#160;</td>
+          <td class="paramname"><em>rhh</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>num_objects</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">double&#160;</td>
+          <td class="paramname"><em>load</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>keysize</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>valsize</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Constructor for RobinHoodHash. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">heap</td><td>the allocator. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rhh</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00083">83</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
 <li>opic/hash/<a class="el" href="robin__hood_8h_source.html">robin_hood.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Apr 28 2017 07:38:25 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 29 2017 09:34:28 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

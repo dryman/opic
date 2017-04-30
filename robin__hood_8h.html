@@ -81,17 +81,12 @@ Typedefs</h2></td></tr>
 <tr class="memitem:acc4ada35dc8482fb1739e9910afa5bce"><td class="memItemLeft" align="right" valign="top"><a id="acc4ada35dc8482fb1739e9910afa5bce"></a>
 typedef struct RobinHoodHash&#160;</td><td class="memItemRight" valign="bottom"><b>RobinHoodHash</b></td></tr>
 <tr class="separator:acc4ada35dc8482fb1739e9910afa5bce"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a677a811a212f37504245763418cae6d8"><td class="memItemLeft" align="right" valign="top"><a id="a677a811a212f37504245763418cae6d8"></a>
-typedef uint64_t(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="robin__hood_8h.html#a677a811a212f37504245763418cae6d8">OPHash</a>) (void *key, size_t size)</td></tr>
-<tr class="memdesc:a677a811a212f37504245763418cae6d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hash function interface. <br /></td></tr>
+<tr class="memitem:a677a811a212f37504245763418cae6d8"><td class="memItemLeft" align="right" valign="top">typedef uint64_t(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="robin__hood_8h.html#a677a811a212f37504245763418cae6d8">OPHash</a>) (void *key, size_t size)</td></tr>
+<tr class="memdesc:a677a811a212f37504245763418cae6d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hash function interface.  <a href="#a677a811a212f37504245763418cae6d8">More...</a><br /></td></tr>
 <tr class="separator:a677a811a212f37504245763418cae6d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a6f9b0f8e5061098360e26b4a5fd9d649"><td class="memItemLeft" align="right" valign="top"><a id="a6f9b0f8e5061098360e26b4a5fd9d649"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="robin__hood_8h.html#a6f9b0f8e5061098360e26b4a5fd9d649">RHHNew</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, RobinHoodHash **rhh, uint64_t num_objects, double load, size_t keysize, size_t valsize)</td></tr>
-<tr class="memdesc:a6f9b0f8e5061098360e26b4a5fd9d649"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor for RobinHoodHash. <br /></td></tr>
-<tr class="separator:a6f9b0f8e5061098360e26b4a5fd9d649"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a42db886058e901550e623e69faca3b54"><td class="memItemLeft" align="right" valign="top"><a id="a42db886058e901550e623e69faca3b54"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHDestroy</b> (RobinHoodHash *rhh)</td></tr>
 <tr class="separator:a42db886058e901550e623e69faca3b54"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -117,7 +112,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><b>RHHKeysize</b> (Rob
 size_t&#160;</td><td class="memItemRight" valign="bottom"><b>RHHValsize</b> (RobinHoodHash *rhh)</td></tr>
 <tr class="separator:ae5765e5d01fd2fd3ef03ad20edb5e3d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad8663600d7375137427ab3f3475fec9f"><td class="memItemLeft" align="right" valign="top"><a id="ad8663600d7375137427ab3f3475fec9f"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHIterate</b> (RobinHoodHash *rhh, <a class="el" href="struct_robin_hood_hash　.html#a17ba877f13518e49bd5baed987b1bf60">RHHIterator</a> iterator, void *context)</td></tr>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHIterate</b> (RobinHoodHash *rhh, RHHIterator iterator, void *context)</td></tr>
 <tr class="separator:ad8663600d7375137427ab3f3475fec9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a84f60f4e670821553ab0c0d4f2f68f63"><td class="memItemLeft" align="right" valign="top"><a id="a84f60f4e670821553ab0c0d4f2f68f63"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHPrintStat</b> (RobinHoodHash *rhh)</td></tr>
@@ -138,10 +133,36 @@ static void *&#160;</td><td class="memItemRight" valign="bottom"><b>RHHDelete</b
 <dl class="section date"><dt>Date</dt><dd>Sun Apr 2 07:09:50 2017 (-0700) Copyright: (c) 2017 Felix Chern </dd></dl>
 
 <p class="definition">Definition in file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Typedef Documentation</h2>
+<a id="a677a811a212f37504245763418cae6d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a677a811a212f37504245763418cae6d8">&#9670;&nbsp;</a></span>OPHash</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">OPHash</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Hash function interface. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">key</td><td>pointer to the key </td></tr>
+    <tr><td class="paramname">size</td><td>size of the key </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00055">55</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
+
+</div>
+</div>
+</div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Apr 28 2017 07:38:25 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 29 2017 09:34:28 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>
