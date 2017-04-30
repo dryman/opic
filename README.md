@@ -7,7 +7,9 @@ OPIC is a revolutionary serialization framework for C.  Unlike traditional
 approaches which walk through the in-memory objects and write it to disk, OPIC
 itself is a memory allocator where all the objects created with it have the same
 representation in memory and on disk. "Serializing/deserializing" is extreme
-cheap with OPIC because it only requires memory dump and mmap syscalls.
+cheap with OPIC, because the memory can write directly to disk, and the
+deserialization is simply a mmap syscall.
+
 
 OPIC is suitable for building database indexes, key-value store, or even search
 engines. At the moment of writing we provide a POC hash table to demonstrate how
@@ -93,7 +95,7 @@ sudo sysctl vm.overcommit_memory=1
 DATA STRUCTURES INCLUDED
 ------------------------
 
-* RobinHoodHashing, can be used as
+* RobinHoodHash, can be used as
   - HashMap
   - HashSet
   - HashMultimap
