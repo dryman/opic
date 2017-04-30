@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>OPIC: OPIC</title>
+<title>OPIC: Object Persistence In C (Beta)</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -60,25 +60,81 @@ $(function() {
 
 <div class="header">
   <div class="headertitle">
-<div class="title">OPIC </div>  </div>
+<div class="title">Object Persistence In C (Beta) </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2>Object Persistence In C </h2>
-<p>OPIC is a new approach to serialize general data structures, object types, and primitive types. It's a new data stack from the ground up &ndash; from object oriented model, generics, to memory management. With everything redesigned for scalability, we visioned a new distributed computing ecosystem for the 21st century.</p>
-<p>Our key to success is to extend the memory oriented programming model to other tier of storages: disk, SSD, network, or even tape. Accessing data should not be limited by memory address on single machine; instead, all data types should be serializable so that it can be shared across network or save for future use. Having serialzability as the core design brings many benefits for free:</p>
+<div class="textblock"><p><a href="https://travis-ci.org/dryman/opic"></a></p>
+<p>OPIC is a revolutionary serialization framework for C. Unlike traditional approaches which walk through the in-memory objects and write it to disk, OPIC itself is a memory allocator where all the objects created with it have the same representation in memory and on disk. "Serializing/deserializing" is extreme cheap with OPIC, because the memory can write directly to disk, and the deserialization is simply a mmap syscall.</p>
+<p>OPIC is suitable for building database indexes, key-value store, or even search engines. At the moment of writing we provide a POC hash table to demonstrate how easy it is to build an embedded key-value store engine.</p>
+<p>TODO: link to post or tutorial for the hash table.</p>
+<h2>SYNOPSIS </h2>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &quot;<a class="code" href="op__malloc_8h.html">opic/op_malloc.h</a>&quot;</span></div><div class="line"></div><div class="line"><span class="keywordtype">void</span> simple_object_database(<span class="keywordtype">char</span>* filename)</div><div class="line">{</div><div class="line">  <a class="code" href="struct_o_p_heap.html">OPHeap</a>* heap1, heap2;</div><div class="line">  FILE* fd;</div><div class="line"></div><div class="line">  <a class="code" href="struct_o_p_heap.html#a241fdd4753c618b3cceaa6d1aae2f8b0">OPHeapNew</a>(&amp;heap1);</div><div class="line"></div><div class="line">  <span class="keyword">struct </span>S1* s1 = (<span class="keyword">struct </span>S1*)OPMallocRaw(heap1, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> S1));</div><div class="line">  <span class="keyword">struct </span>S2* s2 = (<span class="keyword">struct </span>S2*)OPMallocRaw(heap1, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> S2));</div><div class="line"></div><div class="line">  <span class="comment">// object relationships in OPIC must convert to opref_t</span></div><div class="line">  s1-&gt;s2_ref = <a class="code" href="group__malloc.html#ga21549a129c945c88f2164365485b19e7">OPPtr2Ref</a>(s2);</div><div class="line"></div><div class="line">  <span class="comment">// opref_t can convert back to pointer via OPRef2Ptr</span></div><div class="line">  <span class="keyword">struct </span>S2* s2_ptr = <a class="code" href="group__malloc.html#gab5f885921a1b6bd7fee87068c0623ef2">OPRef2Ptr</a>(heap1, s1-&gt;s2ref);</div><div class="line"></div><div class="line">  <span class="comment">// Serialize the heap to a file</span></div><div class="line">  <a class="code" href="struct_o_p_heap.html#a9344a2d48d87540c6504047a8ec81f8d">OPHeapStorePtr</a>(heap1, s1, 0);</div><div class="line">  fd = fopen(filename, <span class="stringliteral">&quot;w&quot;</span>);</div><div class="line">  <a class="code" href="struct_o_p_heap.html#a3a0773b74fca26b74ed713383b84373c">OPHeapWrite</a>(heap1, fd)</div><div class="line">  fclose(fd);</div><div class="line">  <a class="code" href="struct_o_p_heap.html#acbbbf9b96b7a3ded4c3bda8e79477d5e">OPHeapDestroy</a>(heap1);</div><div class="line"></div><div class="line">  <span class="comment">// Deserialize the heap and restore the objects</span></div><div class="line">  fd = fopen(filename, <span class="stringliteral">&quot;r&quot;</span>);</div><div class="line">  <a class="code" href="struct_o_p_heap.html#a97ea76d5ef9d779ada2ed5067a7d8e57">OPHeapRead</a>(&amp;heap2, fd);</div><div class="line">  fclose(fd);</div><div class="line"></div><div class="line">  s1 = (<span class="keyword">struct </span>S1*)<a class="code" href="struct_o_p_heap.html#aa5fe27e04dfe7e1cfe83f9be71f06fb5">OPHeapRestorePtr</a>(heap2, 0);</div><div class="line">  s2 = s2_ptr = <a class="code" href="group__malloc.html#gab5f885921a1b6bd7fee87068c0623ef2">OPRef2Ptr</a>(heap2, s1-&gt;s2_ref);</div><div class="line">  <a class="code" href="struct_o_p_heap.html#acbbbf9b96b7a3ded4c3bda8e79477d5e">OPHeapDestroy</a>(heap2);</div><div class="line">}</div></div><!-- fragment --><h2>DEPENDENCY </h2>
 <ul>
-<li>Scalability. When all the data types are serializable, the application can easily scale up with multiple strategies, including sharing data between nodes, off load certain data for later use, or build caches from the same serialization abstraction.</li>
-<li>Data persistence. Think of databases' durability. Since all the data types are serializable, you can save the snapshot of the entire program state whenever you want. This can make database applications way easier to build, and also make debugging easier.</li>
-<li>Generality for data processing applications. All the data processing systems, including RDBMS, map reduce, search engines, even RPC involves are some sort of special case of serialization. Why duplicates the effort for each of those applications instead of having one powerful and optimized framework?</li>
+<li>C compiler with support of C11 atomics.<ul>
+<li>gcc 4.9, gcc 5, gcc 6</li>
+<li>TODO: figure out which versions of clang support C11 atomics.</li>
 </ul>
-<p>Most of the functionalities will be implemented in C. Our end goal is to embed this framework into other higher level languages like python, java, nodejs for wider adoption.</p>
-<ol type="1">
-<li><a class="el" href="rationale.html">RATIONALE AND ROADMAP</a> and roadmap of this project </li>
-</ol>
+</li>
+<li><a href="http://log4c.sourceforge.net">log4c (&gt;= 1.2.4)</a><ul>
+<li>I guess 1.2.1 also works, but 1.2.4 was released since 2008. Getting it on most distros shouldn't be hard.</li>
+</ul>
+</li>
+<li><a href="https://cmocka.org">cmocka (&gt;= 1.0.1)</a><ul>
+<li>Required for unit testing.</li>
+</ul>
+</li>
+<li>GNU Autotools for people who want to build from head<ul>
+<li>autoconf</li>
+<li>automake</li>
+<li>libtools</li>
+</ul>
+</li>
+</ul>
+<h2>INSTALL </h2>
+<div class="fragment"><div class="line"># For people who download the tarball release</div><div class="line">./configure; make; make install</div><div class="line"></div><div class="line"># For people who clone from github</div><div class="line">./bootstrap.sh</div><div class="line">./configure; make; make install</div></div><!-- fragment --><p>User who runs OPIC on linux need to disable overcommit accounting. This is because OPIC pre-allocates large memory in 64bit memory space.</p>
+<div class="fragment"><div class="line">sudo sysctl vm.overcommit_memory=1</div></div><!-- fragment --><h2>DATA STRUCTURES INCLUDED </h2>
+<ul>
+<li>RobinHoodHash, can be used as<ul>
+<li>HashMap</li>
+<li>HashSet</li>
+<li>HashMultimap</li>
+<li>TODO: document benchmark results</li>
+</ul>
+</li>
+<li>TODO (like a wishlist):<ul>
+<li>Integer DS which support predecessor quries</li>
+<li>Tries</li>
+<li>Succinct data structures</li>
+<li>Integer compression (for columnar store)</li>
+</ul>
+</li>
+</ul>
+<h2>DOCUMENTATION </h2>
+<ul>
+<li><a href="http://dryman.github.com/opic/">API documentation</a></li>
+<li>TODO: tutorial</li>
+<li>TODO: advanced examples which explains how it work</li>
+</ul>
+<h2>LICENSE </h2>
+<p>Copyright (c) 2016, 2017 Felix Chern </p><pre class="fragment">OPIC is free software: you can redistribute it and/or modify it under the
+terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version.
+
+OPIC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with OPIC.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+</pre><p>In future we may also form a commercial license and support.</p>
+<h2>CODE STYLE FOR CONTRIBUTORS </h2>
+<p>Please follow the <a href="https://www.gnu.org/prep/standards/standards.html">GNU Coding Standards</a>. On the moment of this writing we still have some portion of the code hasn't yet convert to GNU formatting styles, but this should be fixed in near future. </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Apr 29 2017 09:34:28 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 29 2017 19:51:46 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

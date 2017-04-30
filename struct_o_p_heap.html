@@ -62,7 +62,7 @@ $(function() {
   <div class="summary">
 <a href="#related">Related Functions</a>  </div>
   <div class="headertitle">
-<div class="title">OPHeap Struct Reference</div>  </div>
+<div class="title">OPHeap Struct Reference<div class="ingroups"><a class="el" href="group__malloc.html">Malloc</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -107,7 +107,7 @@ Related Functions</h2></td></tr>
 <tr class="memdesc:a03df0e6061c14ea2d0f840bf4e493a47"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate a chunk of memory filled with 0s with an arena hint.  <a href="#a03df0e6061c14ea2d0f840bf4e493a47">More...</a><br /></td></tr>
 <tr class="separator:a03df0e6061c14ea2d0f840bf4e493a47"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9e80c02486f21a6480407261ea31934b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_o_p_heap.html#a9e80c02486f21a6480407261ea31934b">OPDealloc</a> (void *addr)</td></tr>
-<tr class="memdesc:a9e80c02486f21a6480407261ea31934b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dealloc an object created with <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a9e80c02486f21a6480407261ea31934b">More...</a><br /></td></tr>
+<tr class="memdesc:a9e80c02486f21a6480407261ea31934b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dealloc an object created by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a9e80c02486f21a6480407261ea31934b">More...</a><br /></td></tr>
 <tr class="separator:a9e80c02486f21a6480407261ea31934b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -138,15 +138,14 @@ Related Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> constructor. </p>
-<p>Example: OPHeap* heap; assert(OPHeapNew(&amp;heap); // now the heap pointer is set.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">heap_ref</td><td>reference to a <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> pointer. The pointer is set when the allocation succeeded. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>true when allocation succeeded, false otherwise. </dd></dl>
-
+<dl class="section return"><dt>Returns</dt><dd>true when allocation succeeded, false otherwise.</dd></dl>
+<div class="fragment"><div class="line"><a class="code" href="struct_o_p_heap.html">OPHeap</a>* heap;</div><div class="line">assert(<a class="code" href="struct_o_p_heap.html#a241fdd4753c618b3cceaa6d1aae2f8b0">OPHeapNew</a>(&amp;heap));</div><div class="line"><span class="comment">// now the heap pointer is set.</span></div></div><!-- fragment --> 
 </div>
 </div>
 <a id="a3a0773b74fca26b74ed713383b84373c"></a>
@@ -187,7 +186,7 @@ Related Functions</h2></td></tr>
 <p>The file sizes would be multiple of 2MB. This is due to the internal huge pages of <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> are 2MB, and <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> writes out file base on the huge pages.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">stream</td><td>an opened FILE pointer. </td></tr>
   </table>
   </dd>
@@ -319,7 +318,7 @@ Related Functions</h2></td></tr>
 <p>Store a pointer to a root pointer slot in <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">ptr</td><td>the pointer we want to store in root pointer slot. </td></tr>
     <tr><td class="paramname">pos</td><td>index in the root pointer slot. 0 &lt;= pos &lt; 8. </td></tr>
   </table>
@@ -365,7 +364,7 @@ Related Functions</h2></td></tr>
 <p>Restore a pointer from specified root pointer slot. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">pos</td><td>index in the root pointer slot. 0 &lt;= pos &lt; 8. </td></tr>
   </table>
   </dd>
@@ -401,13 +400,13 @@ Related Functions</h2></td></tr>
 <p>Given any pointer in the <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">addr</td><td>A pointer allocated with <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </td></tr>
+    <tr><td class="paramname">addr</td><td>A pointer allocated by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00195">195</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00188">188</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
 
 </div>
 </div>
@@ -448,7 +447,7 @@ Related Functions</h2></td></tr>
 <p>Allocate an object from <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> with given size. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">size</td><td>the size of object. </td></tr>
   </table>
   </dd>
@@ -500,7 +499,7 @@ Related Functions</h2></td></tr>
 <p>Allocate a chunk of memory filled with 0s. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">num</td><td>number of contiguous objects. </td></tr>
     <tr><td class="paramname">size</td><td>the size of an object. </td></tr>
   </table>
@@ -553,7 +552,7 @@ Related Functions</h2></td></tr>
 <p>Allocate an object of given size with an arena hint. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">size</td><td>the size of object. </td></tr>
     <tr><td class="paramname">advice</td><td>hint to which arena slot to use. </td></tr>
   </table>
@@ -612,7 +611,7 @@ Related Functions</h2></td></tr>
 <p>Allocate a chunk of memory filled with 0s with an arena hint. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">num</td><td>number of contiguous objects. </td></tr>
     <tr><td class="paramname">size</td><td>the size of an object. </td></tr>
     <tr><td class="paramname">advice</td><td>hint to which arena slot to use. </td></tr>
@@ -647,7 +646,7 @@ Related Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Dealloc an object created with <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
+<p>Dealloc an object created by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">addr</td><td>the address of the object to be dealloc. </td></tr>
@@ -663,7 +662,7 @@ Related Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Apr 29 2017 09:34:28 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 29 2017 19:51:46 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

@@ -1,11 +1,12 @@
 var indexSectionsWithContent =
 {
-  0: "ort",
+  0: "ahlmor",
   1: "or",
   2: "or",
   3: "or",
   4: "o",
-  5: "ort"
+  5: "ahlm",
+  6: "o"
 };
 
 var indexSectionNames =
@@ -15,7 +16,8 @@ var indexSectionNames =
   2: "files",
   3: "functions",
   4: "typedefs",
-  5: "pages"
+  5: "groups",
+  6: "pages"
 };
 
 var indexSectionLabels =
@@ -25,6 +27,7 @@ var indexSectionLabels =
   2: "Files",
   3: "Functions",
   4: "Typedefs",
-  5: "Pages"
+  5: "Modules",
+  6: "Pages"
 };
 

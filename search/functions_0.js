@@ -4,6 +4,7 @@ var searchData=
   ['opcalloc',['OPCalloc',['../struct_o_p_heap.html#a20b1d0c823710be05b1145b3cfb0323a',1,'OPHeap']]],
   ['opcallocadviced',['OPCallocAdviced',['../struct_o_p_heap.html#a03df0e6061c14ea2d0f840bf4e493a47',1,'OPHeap']]],
   ['opdealloc',['OPDealloc',['../struct_o_p_heap.html#a9e80c02486f21a6480407261ea31934b',1,'OPHeap']]],
+  ['opdefaulthash',['OPDefaultHash',['../group__hash.html#ga99b4f7c7c66c52879672596f3240e9c1',1,'op_hash.h']]],
   ['opheapdestroy',['OPHeapDestroy',['../struct_o_p_heap.html#acbbbf9b96b7a3ded4c3bda8e79477d5e',1,'OPHeap']]],
   ['opheapnew',['OPHeapNew',['../struct_o_p_heap.html#a241fdd4753c618b3cceaa6d1aae2f8b0',1,'OPHeap']]],
   ['opheapread',['OPHeapRead',['../struct_o_p_heap.html#a97ea76d5ef9d779ada2ed5067a7d8e57',1,'OPHeap']]],
@@ -12,6 +13,6 @@ var searchData=
   ['opheapwrite',['OPHeapWrite',['../struct_o_p_heap.html#a3a0773b74fca26b74ed713383b84373c',1,'OPHeap']]],
   ['opmalloc',['OPMalloc',['../struct_o_p_heap.html#acfef6e9691c89eb8dd4b19f7fd8521c1',1,'OPHeap']]],
   ['opmallocadviced',['OPMallocAdviced',['../struct_o_p_heap.html#ae2140559236ba0383bffaaa2d90ace58',1,'OPHeap']]],
-  ['opptr2ref',['OPPtr2Ref',['../op__malloc_8h.html#a21549a129c945c88f2164365485b19e7',1,'op_malloc.h']]],
-  ['opref2ptr',['OPRef2Ptr',['../op__malloc_8h.html#ab5f885921a1b6bd7fee87068c0623ef2',1,'op_malloc.h']]]
+  ['opptr2ref',['OPPtr2Ref',['../group__malloc.html#ga21549a129c945c88f2164365485b19e7',1,'op_malloc.h']]],
+  ['opref2ptr',['OPRef2Ptr',['../group__malloc.html#gab5f885921a1b6bd7fee87068c0623ef2',1,'op_malloc.h']]]
 ];
