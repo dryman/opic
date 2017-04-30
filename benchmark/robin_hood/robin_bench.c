@@ -50,13 +50,14 @@
 #include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <stdbool.h>
 #include <inttypes.h>
 #include <unistd.h>
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
 #include "opic/hash/robin_hood.h"
 
-typedef uint64_t (*HashFunc)(char* key, void* context);
+typedef uint64_t (*HashFunc)(void* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
 static void run_short_keys(int size, HashFunc hash_func, void* context);
 static void run_mid_keys(int size, HashFunc hash_func, void* context);
@@ -83,7 +84,7 @@ enum BENCHMARK_MODE
     DE_NO_CACHE,
   };
 
-uint64_t rhh_put(char* key, void* context)
+uint64_t rhh_put(void* key, void* context)
 {
   RobinHoodHash* rhh = (RobinHoodHash*)context;
   uint64_t val = 0;
@@ -91,52 +92,29 @@ uint64_t rhh_put(char* key, void* context)
   return 0;
 }
 
-uint64_t rhh_get(char* key, void* context)
+uint64_t rhh_get(void* key, void* context)
 {
   RobinHoodHash* rhh = (RobinHoodHash*)context;
   return *(uint64_t*)RHHGet(rhh, key);
-}
-
-void rhh_in_memory(int num_power, uint64_t num, RunKey key_func, int keysize)
-{
-  OPHeap* heap;
-  RobinHoodHash* rhh;
-  struct timeval start, mid, end;
-
-  printf("RobinHoodHash in memory\n");
-  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
-  op_assert(RHHNew(heap, &rhh, num,
-                   0.95, keysize, 8), "Create RobinHoodHash\n");
-
-  gettimeofday(&start, NULL);
-  key_func(num_power, rhh_put, rhh);
-  printf("insert finished\n");
-  gettimeofday(&mid, NULL);
-  key_func(num_power, rhh_get, rhh);
-  gettimeofday(&end, NULL);
-
-  print_timediff("Insert time: ", start, mid);
-  print_timediff("Query time: ", mid, end);
-  RHHPrintStat(rhh);
-  RHHDestroy(rhh);
-  OPHeapDestroy(heap);
 }
 
 void help(char* program)
 {
   printf
     ("usage: %s [-n power_of_2] [-r repeat] [-k keytype] [-i impl]\n"
+     "       [-l load] [-p]\n"
      "Options:\n"
      "  -n num     Number of elements measured in power of 2.\n"
      "             -n 20 => run 2^20 = 1 million elements.\n"
      "             defaults to 20\n"
      "  -r repeat  Repeat the benchmar for `repeat` times.\n"
-     "  -k keytype keytype = short_string, mid_string, long_string or\n"
-     "             long_int\n"
-     "             short_string: 6 bytes, mid_string: 32 bytes,\n"
-     "             long_string: 256 bytes, long_int: 8 bytes\n"
+     "  -k keytype keytype = s_string, m_string, l_string l_int\n"
+     "             s_string: 6 bytes, m_string: 32 bytes,\n"
+     "             l_string: 256 bytes, l_int: 8 bytes\n"
      "             For now only robin_hood hash supports long_int benchmark\n"
      "  -i impl    impl = rhh\n"
+     "  -l load    load number for rhh range from 0.0 to 1.0.\n"
+     "  -p         print probing stats of RHH\n"
      "  -h         print help.\n"
      ,program);
   exit(1);
@@ -144,18 +122,22 @@ void help(char* program)
 
 int main(int argc, char* argv[])
 {
+  OPHeap* heap;
+  void* rhh;
+  struct timeval start, mid, end;
+
   int num_power, opt;
   int repeat = 1;
-  enum HASH_IMPL hash_impl = ROBIN_HOOD;
-  enum BENCHMARK_MODE b_mode = IN_MEMORY;
   RunKey key_func = run_short_keys;
   int k_len = 6;
-  char* file_name = NULL;
   uint64_t num;
+  double load = 0.8;
+  bool print_stat = false;
+  enum HASH_IMPL hash_impl = ROBIN_HOOD;
 
   num_power = 20;
 
-  while ((opt = getopt(argc, argv, "n:r:k:i:h")) > -1)
+  while ((opt = getopt(argc, argv, "n:r:k:i:l:ph")) > -1)
     {
       switch (opt)
         {
@@ -166,22 +148,22 @@ int main(int argc, char* argv[])
           repeat = atoi(optarg);
           break;
         case 'k':
-          if (!strcmp("short_string", optarg))
+          if (!strcmp("s_string", optarg))
             {
               key_func = run_short_keys;
               k_len = 6;
             }
-          else if (!strcmp("mid_string", optarg))
+          else if (!strcmp("m_string", optarg))
             {
               key_func = run_mid_keys;
               k_len = 32;
             }
-          else if (!strcmp("long_string", optarg))
+          else if (!strcmp("l_string", optarg))
             {
               key_func = run_long_keys;
               k_len = 256;
             }
-          else if (!strcmp("long_int", optarg))
+          else if (!strcmp("l_int", optarg))
             {
               key_func = run_long_int;
               k_len = 8;
@@ -195,6 +177,12 @@ int main(int argc, char* argv[])
           else
             help(argv[0]);
           break;
+        case 'l':
+          load = atof(optarg);
+          break;
+        case 'p':
+          print_stat = true;
+          break;
         case 'h':
         case '?':
         default:
@@ -205,10 +193,26 @@ int main(int argc, char* argv[])
   num = 1UL << num_power;
   printf("running elements %" PRIu64 "\n", num);
 
+  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
+
   for (int i = 0; i < repeat; i++)
     {
       printf("attempt %d\n", i + 1);
-      rhh_in_memory(num_power, num, key_func, k_len);
+      op_assert(RHHNew(heap, &rhh, num,
+                       load, k_len, 8), "Create RobinHoodHash\n");
+      gettimeofday(&start, NULL);
+      key_func(num_power, rhh_put, rhh);
+      printf("insert finished\n");
+      gettimeofday(&mid, NULL);
+      key_func(num_power, rhh_get, rhh);
+      gettimeofday(&end, NULL);
+
+      print_timediff("Insert time: ", start, mid);
+      print_timediff("Query time: ", mid, end);
+
+      if (print_stat)
+        RHHPrintStat(rhh);
+      RHHDestroy(rhh);
     }
 
   return 0;
@@ -313,10 +317,9 @@ void run_long_int(int size, HashFunc hash_func, void* context)
 {
   op_assert(size >= 12, "iteration size must > 2^12\n");
   uint64_t i_bound = 1 << size;
-  uint64_t counter = 0;
   for (uint64_t i = 0; i < i_bound; i++)
     {
-      hash_func((char*)&i, context);
+      hash_func(&i, context);
     }
 }
 
