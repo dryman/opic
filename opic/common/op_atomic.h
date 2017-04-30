@@ -1,31 +1,8 @@
-/* op_atomic.h ---
- *
- * Filename: op_atomic.h
- * Description:
- * Author: Felix Chern
- * Maintainer:
- * Created: Fri Nov 25 12:25:48 2016 (-0800)
- * Version:
- * Package-Requires: ()
- * Last-Updated:
- *           By:
- *     Update #: 0
- * URL:
- * Doc URL:
- * Keywords:
- * Compatibility:
- *
- */
-
-/* Commentary:
- *
- *
- *
- */
-
-/* Change Log:
- *
- *
+/**
+ * @file op_atomic.h
+ * @author Felix Chern
+ * @date: Fri Nov 25 12:25:48 2016 (-0800)
+ * @copyright 2016-2017 Felix Chern
  */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -51,7 +28,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdatomic.h>
-
 #include "op_macros.h"
 
 OP_BEGIN_DECLS

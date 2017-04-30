@@ -1,32 +1,8 @@
-/* op_log.h ---
- *
- * Filename: op_log.h
- * Description:
- * Author: Felix Chern
- * Maintainer:
- * Copyright: (c) 2016-2017 Felix Chern
- * Created: Sep 3, 2016
- * Version:
- * Package-Requires: ()
- * Last-Updated:
- *           By:
- *     Update #: 0
- * URL:
- * Doc URL:
- * Keywords:
- * Compatibility:
- *
- */
-
-/* Commentary:
- *
- *
- *
- */
-
-/* Change Log:
- *
- *
+/**
+ * @file op_log.h
+ * @author Felix Chern
+ * @date Sep 3, 2016
+ * @copyright 2016-2017 Felix Chern
  */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -51,17 +27,45 @@
 #include "op_macros.h"
 #include <log4c.h>
 
+/**
+ * @defgroup log
+ */
+
 OP_BEGIN_DECLS
 extern void opic_log4c_init();
 OP_END_DECLS
 
-#define OP_LOGGER_FACTORY(logger, catName) \
+/**
+ * @ingroup log
+ * @brief Creates a logger with namespace.
+ *
+ * @param logger logger variable name.
+ * @param logger_namespace logger namespace
+ *
+ * Example:
+ * @code
+ * #include "opic/common/op_log.h"
+ *
+ * OP_LOGGER_FACTORY(logger, "example.main")
+ *
+ * int main() {
+ *   OP_LOG_INFO(logger, "Hello World");
+ *   return 0;
+ * }
+ * @endcode
+ *
+ * The code above prints
+ * ```
+ * [stdout] INFO     example.main - main() Hello World
+ * ```
+ */
+#define OP_LOGGER_FACTORY(logger, logger_namespace) \
 static const log4c_category_t* logger; \
 __attribute__((constructor)) \
 static void init_##logger() \
 { \
   opic_log4c_init(); \
-  logger = log4c_category_get(catName); \
+  logger = log4c_category_get(logger_namespace); \
 }
 
 #define OP_LOG_ARGS(LOGGER, CATEGORY, MESSAGE, ...) \
@@ -72,6 +76,10 @@ static void init_##logger() \
   log4c_category_log(LOGGER, CATEGORY, "%s():%d " \
       MESSAGE, __func__, __LINE__)
 
+/**
+ * @ingroup log
+ * @brief Log fatal messages
+ */
 #define OP_LOG_FATAL(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -84,6 +92,10 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_FATAL, __VA_ARGS__)
 
+/**
+ * @ingroup log
+ * @brief Log assert messages
+ */
 #define OP_LOG_ALERT(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -96,6 +108,10 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_ALERT, __VA_ARGS__)
 
+/**
+ * @ingroup log
+ * @brief Log critcal messages
+ */
 #define OP_LOG_CRIT(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -108,6 +124,10 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_CRIT, __VA_ARGS__)
 
+/**
+ * @ingroup log
+ * @brief Log error messages
+ */
 #define OP_LOG_ERROR(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -120,6 +140,10 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_ERROR, __VA_ARGS__)
 
+/**
+ * @ingroup log
+ * @brief Log warning messages
+ */
 #define OP_LOG_WARN(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -132,6 +156,10 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_WARN, __VA_ARGS__)
 
+/**
+ * @ingroup log
+ * @brief Log notice messages
+ */
 #define OP_LOG_NOTICE(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -144,6 +172,10 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_NOTICE, __VA_ARGS__)
 
+/**
+ * @ingroup log
+ * @brief Log info messages
+ */
 #define OP_LOG_INFO(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -158,6 +190,13 @@ static void init_##logger() \
 
 #ifndef NDEBUG
 
+/**
+ * @ingroup log
+ * @brief Log debug messages.
+ *
+ * If the flag `-DNDEBUG` is defined, this logger would not
+ * print anything.
+ */
 #define OP_LOG_DEBUG(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -170,6 +209,13 @@ static void init_##logger() \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_DEBUG, __VA_ARGS__)
 
+/**
+ * @ingroup log
+ * @brief Log trace messages.
+ *
+ * If the flag `-DNDEBUG` is defined, this logger would not
+ * print anything.
+ */
 #define OP_LOG_TRACE(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -191,6 +237,10 @@ static void init_##logger() \
 
 #ifndef UNIT_TESTING
 
+/**
+ * @ingroup log
+ * @brief Log messages only in non unit environment.
+ */
 #define OP_LOG_NOTEST(LOGGER, ...) \
   _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
    OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
@@ -208,18 +258,6 @@ static void init_##logger() \
 #define OP_LOG_NOTEST(LOGGER, ...) ((void) 0)
 
 #endif
-
-#define OP_LOG_UNKNOWN(LOGGER, ...) \
-  _OP_GET_MACRO_BY_ARGS(__VA_ARGS__, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, \
-   OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_ARGS, OP_LOG_NO_ARGS)(LOGGER, LOG4C_PRIORITY_UNKNOWN, __VA_ARGS__)
 
 #endif
 

@@ -1,31 +1,8 @@
-/** @file op_malloc.h
- *
- * Filename: op_malloc.h
- * Description:
- * Author: Felix Chern
- * Maintainer:
- * Created: Sat Oct  1 20:12:46 2016 (-0700)
- * Version:
- * Package-Requires: ()
- * Last-Updated:
- *           By:
- *     Update #: 0
- * URL:
- * Doc URL:
- * Keywords:
- * Compatibility:
- *
- */
-
-/* Commentary:
- *
- *
- *
- */
-
-/* Change Log:
- *
- *
+/**
+ * @file op_malloc.h
+ * @author Felix Chern
+ * @date Sat Oct  1 20:12:46 2016 (-0700)
+ * @copyright 2016-2017 Felix Chern
  */
 
 /* This program is free software: you can redistribute it and/or
