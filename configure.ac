@@ -52,6 +52,8 @@ AC_CONFIG_FILES([
   opic/malloc/Makefile
   opic/hash/Makefile
   benchmark/Makefile
+  benchmark/malloc/Makefile
+  benchmark/robin_hood/Makefile
 ])
 
 AC_OUTPUT
