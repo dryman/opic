@@ -1,32 +1,8 @@
-/* op_assert.h ---
- *
- * Filename: op_assert.h
- * Description:
- * Author: Felix Chern
- * Maintainer:
- * Copyright: (c) 2016-2017 Felix Chern
- * Created: May 2, 2016
- * Version:
- * Package-Requires: ()
- * Last-Updated:
- *           By:
- *     Update #: 0
- * URL:
- * Doc URL:
- * Keywords:
- * Compatibility:
- *
- */
-
-/* Commentary:
- *
- *
- *
- */
-
-/* Change Log:
- *
- *
+/**
+ * @file op_assert.h
+ * @author Felix Chern
+ * @date: May 2, 2016
+ * @copyright 2016-2017 Felix Chern
  */
 
 /* This program is free software: you can redistribute it and/or modify
@@ -44,7 +20,6 @@
  */
 
 /* Code: */
-
 
 #include <stdio.h>
 #include <assert.h>
@@ -81,6 +56,24 @@
 
 #ifndef NDEBUG
 
+/**
+ * @defgroup assert
+ */
+
+/**
+ * @ingroup assert
+ * @brief assert with diagnosis messages. This macro emits
+ * the function, file, line nuber and stack traces.
+ *
+ * @param X A C expression user expects to be true
+ * @param ... `printf` like format string and arguments.
+ *
+ * Example usage:
+ * @code
+ * int x = 2;
+ * op_assert(x == 1, "x should be 1 but was %d", x);
+ * @endcode
+ */
 #define op_assert(X, ...)                               \
   do{                                                   \
     if (op_unlikely(!(X))) {                            \
@@ -92,6 +85,29 @@
   } while(0)
 
 
+/**
+ * @ingroup assert
+ * @brief assert with callback.
+ *
+ * @param X A C expression user expects to be true
+ * @param cb A callback function.
+ * @param ... Arguments to pass to the callback function.
+ *
+ * When the assertion failed, it first print the function
+ * name, file name, and line number where this macro was written.
+ * Then it invokes the callback with the arguments user specified.
+ * Finally it prints the stacktrace.
+ *
+ * Example usage:
+ * @code
+ * void my_diagnose(int x) {
+ *   fprintf(stderr, "x should be 1 but was %d", x)
+ * }
+ *
+ * int x = 2;
+ * op_assert_diagnose(x == 1, &my_diagnose, x);
+ * @endcode
+ */
 #define op_assert_diagnose(X,cb, ...)                   \
   do {                                                  \
     if (op_unlikely(!(X))) {                            \

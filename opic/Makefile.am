@@ -9,7 +9,6 @@ lib_LTLIBRARIES = libopic.la
 
 
 libopic_la_SOURCES = \
-  demomalloc.c \
   common/op_log.c \
   malloc/op_malloc.c \
   malloc/allocator.c \
