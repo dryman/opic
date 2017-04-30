@@ -57,6 +57,7 @@
 #include "opic/op_malloc.h"
 #include "opic/hash/robin_hood.h"
 #include "rhh_b_k_v.h"
+#include "rhh_b_kv.h"
 
 typedef uint64_t (*HashFunc)(void* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
@@ -100,7 +101,7 @@ void help(char* program)
      "             s_string: 6 bytes, m_string: 32 bytes,\n"
      "             l_string: 256 bytes, l_int: 8 bytes\n"
      "             For now only robin_hood hash supports long_int benchmark\n"
-     "  -i impl    impl = rhh\n"
+     "  -i impl    impl = rhh, rhh_b_k_v, rhh_b_kv\n"
      "  -l load    load number for rhh range from 0.0 to 1.0.\n"
      "  -p         print probing stats of RHH\n"
      "  -h         print help.\n"
@@ -177,6 +178,15 @@ int main(int argc, char* argv[])
               rhh_put = RHH_b_k_v_PutWrap;
               rhh_get = RHH_b_k_v_GetWrap;
               rhh_printstat = (RHHPrintStat_t)RHH_b_k_v_PrintStat;
+            }
+          else if (!strcmp("rhh_b_kv", optarg))
+            {
+              printf("Using rhh_b_k_v\n");
+              rhh_new = (RHHNew_t)RHH_b_kv_New;
+              rhh_destroy = (RHHDestroy_t)RHH_b_kv_Destroy;
+              rhh_put = RHH_b_kv_PutWrap;
+              rhh_get = RHH_b_kv_GetWrap;
+              rhh_printstat = (RHHPrintStat_t)RHH_b_kv_PrintStat;
             }
           else
             help(argv[0]);
