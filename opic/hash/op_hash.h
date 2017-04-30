@@ -24,7 +24,9 @@
 
 #ifndef OPIC_HASH_OP_HASH_H
 #define OPIC_HASH_OP_HASH_H 1
+
 #include "opic/common/op_macros.h"
+#include "murmurhash3.h"
 
 OP_BEGIN_DECLS
 
@@ -72,6 +74,7 @@ uint64_t OPDefaultHash(void* key, size_t size)
   return hashed_val[0];
 }
 
-#OP_END_DECLS
+OP_END_DECLS
+
 #endif
 /* op_hash.h ends here */

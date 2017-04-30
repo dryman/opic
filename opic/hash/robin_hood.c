@@ -55,7 +55,6 @@
 #include "opic/common/op_utils.h"
 #include "opic/common/op_log.h"
 #include "opic/op_malloc.h"
-#include "murmurhash3.h"
 #include "robin_hood.h"
 
 #define PROBE_STATS_SIZE 64
