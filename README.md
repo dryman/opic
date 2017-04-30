@@ -108,10 +108,9 @@ DATA STRUCTURES INCLUDED
 DOCUMENTATION
 -------------
 
-* [documentation page][doc].
+* [API documentation][doc]
 * TODO: tutorial
 * TODO: advanced examples which explains how it work
-* TODO: API doc
 
 [doc]: http://dryman.github.com/opic/
 
