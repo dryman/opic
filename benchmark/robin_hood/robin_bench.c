@@ -58,6 +58,7 @@
 #include "opic/hash/robin_hood.h"
 #include "rhh_b_k_v.h"
 #include "rhh_b_kv.h"
+#include "rhh_bkv.h"
 
 typedef uint64_t (*HashFunc)(void* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
@@ -181,12 +182,21 @@ int main(int argc, char* argv[])
             }
           else if (!strcmp("rhh_b_kv", optarg))
             {
-              printf("Using rhh_b_k_v\n");
+              printf("Using rhh_b_kv\n");
               rhh_new = (RHHNew_t)RHH_b_kv_New;
               rhh_destroy = (RHHDestroy_t)RHH_b_kv_Destroy;
               rhh_put = RHH_b_kv_PutWrap;
               rhh_get = RHH_b_kv_GetWrap;
               rhh_printstat = (RHHPrintStat_t)RHH_b_kv_PrintStat;
+            }
+          else if (!strcmp("rhh_bkv", optarg))
+            {
+              printf("Using rhh_bkv\n");
+              rhh_new = (RHHNew_t)RHH_bkv_New;
+              rhh_destroy = (RHHDestroy_t)RHH_bkv_Destroy;
+              rhh_put = RHH_bkv_PutWrap;
+              rhh_get = RHH_bkv_GetWrap;
+              rhh_printstat = (RHHPrintStat_t)RHH_bkv_PrintStat;
             }
           else
             help(argv[0]);
