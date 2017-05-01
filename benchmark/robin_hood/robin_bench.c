@@ -60,6 +60,7 @@
 #include "rhh_b_kv.h"
 #include "rhh_bkv.h"
 #include "rhh_bkv_v4qu.h"
+#include "rhh_b16kv.h"
 
 typedef uint64_t (*HashFunc)(void* key, void* context);
 typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
@@ -201,12 +202,21 @@ int main(int argc, char* argv[])
             }
           else if (!strcmp("rhh_bkv_v4qu", optarg))
             {
-              printf("Using rhh_bkv\n");
+              printf("Using rhh_bkv_v4qu\n");
               rhh_new = (RHHNew_t)RHH_bkv_v4qu_New;
               rhh_destroy = (RHHDestroy_t)RHH_bkv_v4qu_Destroy;
               rhh_put = RHH_bkv_v4qu_PutWrap;
               rhh_get = RHH_bkv_v4qu_GetWrap;
               rhh_printstat = (RHHPrintStat_t)RHH_bkv_v4qu_PrintStat;
+            }
+          else if (!strcmp("rhh_b16kv", optarg))
+            {
+              printf("Using rhh_b16kv\n");
+              rhh_new = (RHHNew_t)RHH_b16kv_New;
+              rhh_destroy = (RHHDestroy_t)RHH_b16kv_Destroy;
+              rhh_put = RHH_b16kv_PutWrap;
+              rhh_get = RHH_b16kv_GetWrap;
+              rhh_printstat = (RHHPrintStat_t)RHH_b16kv_PrintStat;
             }
           else
             help(argv[0]);

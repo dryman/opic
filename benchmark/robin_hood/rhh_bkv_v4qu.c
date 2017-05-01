@@ -100,6 +100,7 @@ RHH_bkv_v4qu_New(OPHeap* heap, RHH_bkv_v4qu ** rhh,
 
   header_size = sizeof(RHH_bkv_v4qu);
   alloc_size = header_size + capacity * (1 + keysize + valsize);
+  OP_LOG_INFO(logger, "alloc size %zu", alloc_size);
 
   *rhh = OPCalloc(heap, 1, alloc_size);
   if (!*rhh)

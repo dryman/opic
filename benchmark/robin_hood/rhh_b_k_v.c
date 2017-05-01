@@ -103,6 +103,7 @@ RHH_b_k_v_New(OPHeap* heap, RHH_b_k_v ** rhh,
   key_size = capacity * keysize;
   val_size = capacity * valsize;
   alloc_size = header_size + bmap_size + key_size + val_size;
+  OP_LOG_INFO(logger, "alloc size %zu", alloc_size);
 
   *rhh = OPCalloc(heap, 1, alloc_size);
   if (!*rhh)
