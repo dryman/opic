@@ -175,9 +175,9 @@ findprobe(RobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uint64_t hashed_key;
 
+  hashed_key = hasher(&buckets[idx*bucket_size + 1], keysize);
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
-      hashed_key = hasher(&buckets[idx*bucket_size + 1], keysize);
       if (hash_with_probe(rhh, hashed_key, i) == idx)
         return i;
     }

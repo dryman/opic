@@ -1,11 +1,11 @@
-/* rhh_b_k_v.c ---
+/* rhh_bkv_v4qu.c ---
  *
- * Filename: rhh_b_k_v.c
+ * Filename: rhh_bkv_v4qu.c
  * Description:
  * Author: Felix Chern
  * Maintainer:
  * Copyright: (c) 2017 Felix Chern
- * Created: Sun Apr 30 13:44:27 2017 (-0700)
+ * Created: Sun Apr 30 16:05:21 2017 (-0700)
  * Version:
  * Package-Requires: ()
  * Last-Updated:
@@ -45,7 +45,9 @@
 
 /* Code: */
 
+
 #include <stdio.h> // TODO use op_log instead
+#include <stdlib.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <string.h>
@@ -54,15 +56,15 @@
 #include "opic/common/op_utils.h"
 #include "opic/common/op_log.h"
 #include "opic/op_malloc.h"
-#include "rhh_b_k_v.h"
+#include "rhh_bkv_v4qu.h"
 
 #define PROBE_STATS_SIZE 64
-// 128MB
-#define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
 
-OP_LOGGER_FACTORY(logger, "benchmark.robin_hood.rhh_b_k_v");
+OP_LOGGER_FACTORY(logger, "benchmark.robin_hood.rhh_bkv_v4qu");
 
-struct RHH_b_k_v
+typedef uint64_t v4qu __attribute__ ((vector_size (32)));
+
+struct RHH_bkv_v4qu
 {
   uint64_t objcnt;
   uint64_t objcnt_high;
@@ -72,19 +74,17 @@ struct RHH_b_k_v
   size_t keysize;
   size_t valsize;
   uint32_t stats[PROBE_STATS_SIZE];
-  uint64_t* bmap;
-  uint8_t* key;
-  uint8_t* val;
+  uint8_t* bucket;
 };
 
 bool
-RHH_b_k_v_New(OPHeap* heap, RHH_b_k_v ** rhh,
+RHH_bkv_v4qu_New(OPHeap* heap, RHH_bkv_v4qu ** rhh,
               uint64_t num_objects, double load,
               size_t keysize, size_t valsize)
 {
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
-  size_t alloc_size, header_size, bmap_size, key_size, val_size;
+  size_t alloc_size, header_size;
   uintptr_t rhh_base;
 
   op_assert(load > 0.0 && load < 1.0,
@@ -98,20 +98,15 @@ RHH_b_k_v_New(OPHeap* heap, RHH_b_k_v ** rhh,
   capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
 
 
-  header_size = sizeof(RHH_b_k_v);
-  bmap_size = round_up_div(capacity, 64) * sizeof(uint64_t);
-  key_size = capacity * keysize;
-  val_size = capacity * valsize;
-  alloc_size = header_size + bmap_size + key_size + val_size;
+  header_size = sizeof(RHH_bkv_v4qu);
+  alloc_size = header_size + capacity * (1 + keysize + valsize);
 
   *rhh = OPCalloc(heap, 1, alloc_size);
   if (!*rhh)
     return false;
   rhh_base = (uintptr_t)(*rhh);
 
-  (*rhh)->bmap = (uint64_t*)(rhh_base + header_size);
-  (*rhh)->key = (uint8_t*)(rhh_base + header_size + bmap_size);
-  (*rhh)->val = (uint8_t*)(rhh_base + header_size + bmap_size + key_size);
+  (*rhh)->bucket = (uint8_t*)(rhh_base + header_size);
 
   (*rhh)->capacity_clz = capacity_clz;
   (*rhh)->capacity_ms4b = capacity_ms4b;
@@ -122,13 +117,13 @@ RHH_b_k_v_New(OPHeap* heap, RHH_b_k_v ** rhh,
 }
 
 void
-RHH_b_k_v_Destroy(RHH_b_k_v* rhh)
+RHH_bkv_v4qu_Destroy(RHH_bkv_v4qu* rhh)
 {
   OPDealloc(rhh);
 }
 
 static inline uintptr_t
-hash_with_probe(RHH_b_k_v* rhh, uint64_t key, int probe)
+hash_with_probe(RHH_bkv_v4qu* rhh, uint64_t key, int probe)
 {
   uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
@@ -139,54 +134,79 @@ hash_with_probe(RHH_b_k_v* rhh, uint64_t key, int probe)
   return (probed_hash & mask) * rhh->capacity_ms4b >> 4;
 }
 
+static inline v4qu
+v4qu_hash_with_probe(RHH_bkv_v4qu* rhh, uint64_t key, int probe)
+{
+  v4qu vkey, vprobe, vmask, vprobed_hash, vms4b, vout;
+  uint64_t mask, ms4b;
+  mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  ms4b = rhh->capacity_ms4b;
+
+  vkey = (v4qu){key, key, key, key};
+  vprobe = (v4qu){probe, probe + 1, probe + 2, probe + 3};
+  vmask = (v4qu){mask, mask, mask, mask};
+  vms4b = (v4qu){ms4b, ms4b, ms4b, ms4b};
+
+  vprobed_hash = vkey + ((vprobe * vprobe) << (v4qu){1, 1, 1, 1});
+  vout = ((vprobed_hash & vmask) * vms4b) >> (v4qu){4, 4, 4, 4};
+
+  return vout;
+}
+
 static inline int
-findprobe(RHH_b_k_v* rhh, OPHash hasher, uintptr_t idx)
+findprobe(RHH_bkv_v4qu* rhh, OPHash hasher, uintptr_t idx)
 {
   const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
   uint64_t hashed_key;
+  v4qu probed_idxes;
 
-  hashed_key = hasher(&rhh->key[idx * keysize], keysize);
-  for (int i = 0; i <= rhh->longest_probes; i++)
+  hashed_key = hasher(&rhh->bucket[idx * bucket_size + 1], keysize);
+  for (int i = 0; i <= rhh->longest_probes; i+=4)
     {
-      if (hash_with_probe(rhh, hashed_key, i) == idx)
+      probed_idxes = v4qu_hash_with_probe(rhh, hashed_key, i);
+      if (probed_idxes[0] == idx)
         return i;
+      if (probed_idxes[1] == idx)
+        return i + 1;
+      if (probed_idxes[2] == idx)
+        return i + 2;
+      if (probed_idxes[3] == idx)
+        return i + 3;
     }
   OP_LOG_ERROR(logger, "Didn't find any match probe!\n");
   return -1;
 }
 
-bool RHH_b_k_v_PutCustom(RHH_b_k_v* rhh,
+bool RHH_bkv_v4qu_PutCustom(RHH_bkv_v4qu* rhh,
                          OPHash hasher, void* key, void* val)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
   uintptr_t idx;
   int probe, old_probe;
-  uint8_t key_cpy[keysize];
-  uint8_t key_tmp[keysize];
-  uint8_t val_cpy[valsize];
-  uint8_t val_tmp[valsize];
+  uint8_t bucket_cpy[bucket_size];
+  uint8_t bucket_tmp[bucket_size];
   uint64_t hashed_key;
-  int bm_idx, bm_bit;
 
   if (rhh->objcnt > rhh->objcnt_high)
     return false;
 
-  memcpy(key_cpy, key, keysize);
-  memcpy(val_cpy, val, valsize);
+  bucket_cpy[0] = 1;
+  memcpy(&bucket_cpy[1], key, keysize);
+  memcpy(&bucket_cpy[keysize + 1], val, valsize);
 
   probe = 0;
   while (true)
     {
-      hashed_key = hasher(key_cpy, keysize);
+      hashed_key = hasher(&bucket_cpy[1], keysize);
       idx = hash_with_probe(rhh, hashed_key, probe);
-      bm_idx = idx / 64;
-      bm_bit = idx % 64;
-      if ((rhh->bmap[bm_idx] & (1ULL << bm_bit)) == 0)
+
+      if (rhh->bucket[idx * bucket_size] != 1)
         {
-          memcpy(&rhh->key[idx * keysize], key_cpy, keysize);
-          memcpy(&rhh->val[idx * valsize], val_cpy, valsize);
-          rhh->bmap[bm_idx] |= (1ULL << bm_bit);
+          memcpy(&rhh->bucket[idx * bucket_size], bucket_cpy, bucket_size);
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
           rhh->objcnt++;
@@ -196,9 +216,10 @@ bool RHH_b_k_v_PutCustom(RHH_b_k_v* rhh,
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
           return true;
         }
-      else if (!memcmp(&rhh->key[idx * keysize], key_cpy, keysize))
+      else if (!memcmp(&rhh->bucket[idx * bucket_size + 1],
+                       &bucket_cpy[1], keysize))
         {
-          memcpy(&rhh->val[idx * valsize], val_cpy, valsize);
+          memcpy(&rhh->bucket[idx*bucket_size], bucket_cpy, bucket_size);
           return true;
         }
       old_probe = findprobe(rhh, hasher, idx);
@@ -212,58 +233,62 @@ bool RHH_b_k_v_PutCustom(RHH_b_k_v* rhh,
           else
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
 
-          memcpy(key_tmp, &rhh->key[idx * keysize], keysize);
-          memcpy(val_tmp, &rhh->val[idx * valsize], valsize);
-          memcpy(&rhh->key[idx * keysize], key_cpy, keysize);
-          memcpy(&rhh->val[idx * valsize], val_cpy, valsize);
-          memcpy(key_cpy, key_tmp, keysize);
-          memcpy(val_cpy, val_tmp, valsize);
+          memcpy(bucket_tmp, &rhh->bucket[idx*bucket_size], bucket_size);
+          memcpy(&rhh->bucket[idx*bucket_size], bucket_cpy, bucket_size);
+          memcpy(bucket_cpy, bucket_tmp, bucket_size);
 
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
           probe = old_probe;
         }
-        probe++;
+      probe++;
     }
 }
 
 static inline bool
-RHHSearchIdx(RHH_b_k_v* rhh, OPHash hasher, void* key, uintptr_t* idx)
+RHHSearchIdx(RHH_bkv_v4qu* rhh, OPHash hasher, void* key, uintptr_t* idx)
 {
   const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
   uint64_t hashed_key;
-  int bm_idx, bm_bit;
+  v4qu probed_idxes;
 
   hashed_key = hasher(key, keysize);
 
-  for (int probe = 0; probe <= rhh->longest_probes; probe++)
+  for (int probe = 0; probe <= rhh->longest_probes; probe+=4)
     {
-      *idx = hash_with_probe(rhh, hashed_key, probe);
-      bm_idx = *idx / 64;
-      bm_bit = *idx % 64;
-      if ((rhh->bmap[bm_idx] & (1ULL << bm_bit)) == 0)
-        return false;
-      if (!memcmp(key, &rhh->key[*idx*keysize], keysize))
-        return true;
+      probed_idxes = v4qu_hash_with_probe(rhh, hashed_key, probe);
+      for (int i = 0; i < 4; i++)
+        {
+          *idx = probed_idxes[i];
+          if (rhh->bucket[*idx * bucket_size] != 1)
+            return false;
+          if (!memcmp(key, &rhh->bucket[*idx * bucket_size + 1], keysize))
+            return true;
+        }
     }
   return false;
 }
 
-void* RHH_b_k_v_GetCustom(RHH_b_k_v* rhh, OPHash hasher, void* key)
+void* RHH_bkv_v4qu_GetCustom(RHH_bkv_v4qu* rhh, OPHash hasher, void* key)
 {
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
   uintptr_t idx;
   if (RHHSearchIdx(rhh, hasher, key, &idx))
     {
-      return &rhh->val[idx];
+      return &rhh->bucket[idx * bucket_size + keysize + 1];
     }
   return NULL;
 }
 
-void RHH_b_k_v_PrintStat(RHH_b_k_v* rhh)
+void RHH_bkv_v4qu_PrintStat(RHH_bkv_v4qu* rhh)
 {
   for (int i = 0; i < PROBE_STATS_SIZE; i++)
     if (rhh->stats[i])
       printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
-/* rhh_b_k_v.c ends here */
+/* rhh_bkv_v4qu.c ends here */

@@ -139,9 +139,9 @@ findprobe(RHH_bkv* rhh, OPHash hasher, uintptr_t idx)
   const size_t bucket_size = keysize + valsize + 1;
   uint64_t hashed_key;
 
+  hashed_key = hasher(&rhh->bucket[idx * bucket_size + 1], keysize);
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
-      hashed_key = hasher(&rhh->bucket[idx * bucket_size + 1], keysize);
       if (hash_with_probe(rhh, hashed_key, i) == idx)
         return i;
     }
