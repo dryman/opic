@@ -12,6 +12,7 @@ AC_CONFIG_MACRO_DIR([m4])
 #AC_PROG_CC_C11
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
+AC_PROG_CXX
 # This doesn't work on travis-ci.
 # But it's ok. Right now the SIMD version of robin_hood is not faster than the
 # one without SIMD, so not having arch flag should be fine for us.
@@ -60,4 +61,5 @@ AC_CONFIG_FILES([
   benchmark/robin_hood/Makefile
 ])
 
+AC_CONFIG_SUBDIRS([cityhash])
 AC_OUTPUT

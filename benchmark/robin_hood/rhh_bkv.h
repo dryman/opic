@@ -58,6 +58,8 @@ OP_BEGIN_DECLS
 
 typedef struct RHH_bkv RHH_bkv;
 
+uint64_t CCityHash64(const char *buf, size_t len);
+
 bool
 RHH_bkv_New(OPHeap* heap, RHH_bkv ** rhh,
               uint64_t num_objects, double load,
@@ -71,10 +73,16 @@ bool RHH_bkv_PutCustom(RHH_bkv* rhh,
 
 void* RHH_bkv_GetCustom(RHH_bkv* rhh, OPHash hasher, void* key);
 
+static inline uint64_t
+OPCityHash(void* key, size_t size)
+{
+  return CCityHash64(key, size);
+}
+
 static inline bool
 RHH_bkv_Put(RHH_bkv* rhh, void* key, void* val)
 {
-  return RHH_bkv_PutCustom(rhh, OPDefaultHash, key, val);
+  return RHH_bkv_PutCustom(rhh, OPCityHash, key, val);
 }
 
 static inline uint64_t
@@ -88,7 +96,7 @@ RHH_bkv_PutWrap(void* key, void* context)
 static inline void*
 RHH_bkv_Get(RHH_bkv* rhh, void* key)
 {
-  return RHH_bkv_GetCustom(rhh, OPDefaultHash, key);
+  return RHH_bkv_GetCustom(rhh, OPCityHash, key);
 }
 
 static inline uint64_t
