@@ -12,7 +12,10 @@ AC_CONFIG_MACRO_DIR([m4])
 #AC_PROG_CC_C11
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
-AX_GCC_ARCHFLAG
+# This doesn't work on travis-ci.
+# But it's ok. Right now the SIMD version of robin_hood is not faster than the
+# one without SIMD, so not having arch flag should be fine for us.
+# AX_GCC_ARCHFLAG
 AC_PROG_LIBTOOL
 AC_C_INLINE
 AC_HEADER_STDBOOL
