@@ -5,6 +5,8 @@
 #ifndef _MURMURHASH3_H_
 #define _MURMURHASH3_H_
 
+#include "opic/common/op_macros.h"
+
 //-----------------------------------------------------------------------------
 // Platform-specific functions and macros
 
@@ -26,12 +28,16 @@ typedef unsigned __int64 uint64_t;
 
 //-----------------------------------------------------------------------------
 
+OP_BEGIN_DECLS
+
 void MurmurHash3_x64_128 ( const void * key, const int len,
                            const uint32_t seed, void * out );
 
 void MurmurHash3_crc_x64_128 (const void * key, int len,
                               uint32_t seed, void * out,
                               uint32_t * crc_out);
+
+OP_END_DECLS
 
 //-----------------------------------------------------------------------------
 

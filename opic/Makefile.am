@@ -15,5 +15,5 @@ libopic_la_SOURCES = \
   malloc/deallocator.c \
   malloc/init_helper.c \
   malloc/lookup_helper.c \
-  hash/robin_hood.c \
-  hash/murmurhash3.c
+  hash/murmurhash3.c \
+  hash/robin_hood.c
