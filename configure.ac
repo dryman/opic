@@ -15,7 +15,7 @@ AM_PROG_CC_C_O
 # This doesn't work on travis-ci.
 # But it's ok. Right now the SIMD version of robin_hood is not faster than the
 # one without SIMD, so not having arch flag should be fine for us.
-# AX_GCC_ARCHFLAG
+AX_GCC_ARCHFLAG
 AC_PROG_LIBTOOL
 AC_C_INLINE
 AC_HEADER_STDBOOL
@@ -58,6 +58,12 @@ AC_CONFIG_FILES([
   benchmark/Makefile
   benchmark/malloc/Makefile
   benchmark/robin_hood/Makefile
+])
+
+AC_CONFIG_SUBDIRS([
+  benchmark/robin_hood/spookyhash-c
+  benchmark/robin_hood/cityhash-c
+  benchmark/robin_hood/farmhash-c
 ])
 
 AC_OUTPUT
