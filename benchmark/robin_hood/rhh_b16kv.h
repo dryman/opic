@@ -78,10 +78,10 @@ RHH_b16kv_Put(RHH_b16kv* rhh, void* key, void* val)
 }
 
 static inline uint64_t
-RHH_b16kv_PutWrap(void* key, void* context)
+RHH_b16kv_PutWrap(void* key, void* context, OPHash hash_impl)
 {
   uint64_t val = 0;
-  op_assert(RHH_b16kv_Put(context, key, &val), "insert success\n");
+  RHH_b16kv_PutCustom(context, hash_impl, key, &val);
   return 0;
 }
 
@@ -92,9 +92,9 @@ RHH_b16kv_Get(RHH_b16kv* rhh, void* key)
 }
 
 static inline uint64_t
-RHH_b16kv_GetWrap(void* key, void* context)
+RHH_b16kv_GetWrap(void* key, void* context, OPHash hash_impl)
 {
-  uint64_t* val = RHH_b16kv_Get(context, key);
+  uint64_t* val = RHH_b16kv_GetCustom(context, hash_impl, key);
   op_assert(val, "get successful\n");
   return *val;
 }
