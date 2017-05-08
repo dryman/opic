@@ -1,4 +1,4 @@
-AC_INIT([OPIC],[0.4.1])
+AC_INIT([OPIC],[0.4.2])
 
 AC_CONFIG_SRCDIR([README.md])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -58,6 +58,12 @@ AC_CONFIG_FILES([
   benchmark/Makefile
   benchmark/malloc/Makefile
   benchmark/robin_hood/Makefile
+])
+
+AC_CONFIG_SUBDIRS([
+  benchmark/robin_hood/spookyhash-c
+  benchmark/robin_hood/cityhash-c
+  benchmark/robin_hood/farmhash-c
 ])
 
 AC_OUTPUT

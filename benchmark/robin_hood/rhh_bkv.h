@@ -78,10 +78,10 @@ RHH_bkv_Put(RHH_bkv* rhh, void* key, void* val)
 }
 
 static inline uint64_t
-RHH_bkv_PutWrap(void* key, void* context)
+RHH_bkv_PutWrap(void* key, void* context, OPHash hash_impl)
 {
   uint64_t val = 0;
-  RHH_bkv_Put(context, key, &val);
+  RHH_bkv_PutCustom(context, hash_impl, key, &val);
   return 0;
 }
 
@@ -92,9 +92,9 @@ RHH_bkv_Get(RHH_bkv* rhh, void* key)
 }
 
 static inline uint64_t
-RHH_bkv_GetWrap(void* key, void* context)
+RHH_bkv_GetWrap(void* key, void* context, OPHash hash_impl)
 {
-  return *(uint64_t*)RHH_bkv_Get(context, key);
+  return *(uint64_t*)RHH_bkv_GetCustom(context, hash_impl, key);
 }
 
 void RHH_bkv_PrintStat(RHH_bkv* rhh);

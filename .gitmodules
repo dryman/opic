@@ -1,0 +1,6 @@
+[submodule "benchmark/robin_hood/spookyhash-c"]
+	path = benchmark/robin_hood/spookyhash-c
+	url = https://github.com/dryman/spookyhash-c.git
+[submodule "benchmark/robin_hood/farmhash-c"]
+	path = benchmark/robin_hood/farmhash-c
+	url = https://github.com/dryman/farmhash-c.git

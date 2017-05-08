@@ -767,7 +767,7 @@ OPHeapObtainLargeHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
                            memory_order_release);
   if (bmidx_iter - bmidx_head == 0)
     {
-      occupy_bmap[bmidx_head] = ((1UL << _hpage_cnt) - 1) << bmbit_head;
+      occupy_bmap[bmidx_head] |= ((1UL << _hpage_cnt) - 1) << bmbit_head;
     }
   else
     {

@@ -108,10 +108,11 @@ test_BasicInsert(void** context)
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
   assert_true(RHHNew(heap, &rhh, 20,
-                     0.95, sizeof(int), 0));
+                     0.80, sizeof(int), 0));
   OP_LOG_DEBUG(logger, "RHH addr %p", rhh);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
+      OP_LOG_DEBUG(logger, "Inserting %d", i);
       RHHPut(rhh, &i, NULL);
     }
   RHHPrintStat(rhh);

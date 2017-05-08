@@ -26,7 +26,7 @@
 #define OPIC_HASH_OP_HASH_H 1
 
 #include "opic/common/op_macros.h"
-#include "murmurhash3.h"
+#include "cityhash.h"
 
 OP_BEGIN_DECLS
 
@@ -69,9 +69,7 @@ typedef void(*OPHashIterator)(void* key, void* value,
 static inline
 uint64_t OPDefaultHash(void* key, size_t size)
 {
-  uint64_t hashed_val[2];
-  MurmurHash3_x64_128(key, size, 421439783, hashed_val);
-  return hashed_val[0];
+  return cityhash64((const uint8_t*)key, size);
 }
 
 OP_END_DECLS

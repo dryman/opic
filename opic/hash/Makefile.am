@@ -7,7 +7,7 @@ check_PROGRAMS = robin_hood_test
 robin_hood_test_SOURCES = \
   robin_hood_test.c \
   robin_hood.c \
-  murmurhash3.c \
+  cityhash.c \
   ../common/op_log.c \
   ../malloc/op_malloc.c \
   ../malloc/allocator.c \

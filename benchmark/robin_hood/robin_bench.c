@@ -55,15 +55,22 @@
 #include <unistd.h>
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
+#include "opic/hash/op_hash.h"
 #include "opic/hash/robin_hood.h"
+
+#include "murmurhash3.h"
+#include "spookyhash-c/spookyhash.h"
+#include "farmhash-c/farmhash.h"
+
 #include "rhh_b_k_v.h"
 #include "rhh_b_kv.h"
 #include "rhh_bkv.h"
 #include "rhh_bkv_v4qu.h"
 #include "rhh_b16kv.h"
 
-typedef uint64_t (*HashFunc)(void* key, void* context);
-typedef void (*RunKey)(int size, HashFunc hash_func, void* context);
+typedef uint64_t (*HashFunc)(void* key, void* context, OPHash hasher);
+typedef void (*RunKey)(int size, HashFunc hash_func,
+                       void* context, OPHash hasher);
 
 typedef bool (*RHHNew_t)(OPHeap* heap, void* rhh,
                          uint64_t num_objects, double load,
@@ -71,23 +78,49 @@ typedef bool (*RHHNew_t)(OPHeap* heap, void* rhh,
 typedef void (*RHHDestroy_t)(void* rhh);
 typedef void (*RHHPrintStat_t)(void* rhh);
 
-static void run_short_keys(int size, HashFunc hash_func, void* context);
-static void run_mid_keys(int size, HashFunc hash_func, void* context);
-static void run_long_keys(int size, HashFunc hash_func, void* context);
-static void run_long_int(int size, HashFunc hash_func, void* context);
+static void run_short_keys(int size, HashFunc hash_func,
+                           void* context, OPHash hasher);
+static void run_mid_keys(int size, HashFunc hash_func,
+                         void* context, OPHash hasher);
+static void run_long_keys(int size, HashFunc hash_func,
+                          void* context, OPHash hasher);
+static void run_long_int(int size, HashFunc hash_func,
+                         void* context, OPHash hasher);
 static void print_timediff(const char* info,
                            struct timeval start, struct timeval end);
 
-uint64_t RHHPutWrap(void* key, void* context)
+uint64_t murmur3(void* key, size_t size)
+{
+  uint64_t hashed_val[2];
+  MurmurHash3_x64_128(key, size, 421439783, hashed_val);
+  return hashed_val[0];
+}
+
+uint64_t spooky(void* key, size_t size)
+{
+  return spookyhash64(key, size, 421439783);
+}
+
+uint64_t city(void* key, size_t size)
+{
+  return cityhash64(key, size);
+}
+
+uint64_t farm(void* key, size_t size)
+{
+  return farmhash64(key, size);
+}
+
+uint64_t RHHPutWrap(void* key, void* context, OPHash hash_impl)
 {
   uint64_t val = 0;
-  RHHPut(context, key, &val);
+  RHHPutCustom(context, hash_impl, key, &val);
   return 0;
 }
 
-uint64_t RHHGetWrap(void* key, void* context)
+uint64_t RHHGetWrap(void* key, void* context, OPHash hash_impl)
 {
-  return *(uint64_t*)RHHGet(context, key);
+  return *(uint64_t*)RHHGetCustom(context, hash_impl, key);
 }
 
 void help(char* program)
@@ -131,10 +164,11 @@ int main(int argc, char* argv[])
   HashFunc rhh_put = RHHPutWrap;
   HashFunc rhh_get = RHHGetWrap;
   RHHPrintStat_t rhh_printstat = (RHHPrintStat_t)RHHPrintStat;
+  OPHash hasher = murmur3;
 
   num_power = 20;
 
-  while ((opt = getopt(argc, argv, "n:r:k:i:l:ph")) > -1)
+  while ((opt = getopt(argc, argv, "n:r:k:i:l:f:ph")) > -1)
     {
       switch (opt)
         {
@@ -224,6 +258,30 @@ int main(int argc, char* argv[])
         case 'l':
           load = atof(optarg);
           break;
+        case 'f':
+          if (!strcmp("murmur3", optarg))
+            {
+              printf("using murmur3 hasher\n");
+              hasher = murmur3;
+            }
+          else if (!strcmp("spooky", optarg))
+            {
+              printf("using spookyhash\n");
+              hasher = spooky;
+            }
+          else if (!strcmp("city", optarg))
+            {
+              printf("using cityhash\n");
+              hasher = city;
+            }
+          else if (!strcmp("farm", optarg))
+            {
+              printf("using farmhash\n");
+              hasher = farm;
+            }
+          else
+            help(argv[0]);
+          break;
         case 'p':
           print_stat = true;
           break;
@@ -245,10 +303,10 @@ int main(int argc, char* argv[])
       op_assert(rhh_new(heap, &rhh, num,
                        load, k_len, 8), "Create RobinHoodHash\n");
       gettimeofday(&start, NULL);
-      key_func(num_power, rhh_put, rhh);
+      key_func(num_power, rhh_put, rhh, hasher);
       printf("insert finished\n");
       gettimeofday(&mid, NULL);
-      key_func(num_power, rhh_get, rhh);
+      key_func(num_power, rhh_get, rhh, hasher);
       gettimeofday(&end, NULL);
 
       print_timediff("Insert time: ", start, mid);
@@ -262,7 +320,8 @@ int main(int argc, char* argv[])
   return 0;
 }
 
-void run_short_keys(int size, HashFunc hash_func, void* context)
+void run_short_keys(int size, HashFunc hash_func,
+                    void* context, OPHash hasher)
 {
   op_assert(size >= 12, "iteration size must > 2^12\n");
   int i_bound = 1 << (size - 12);
@@ -281,13 +340,14 @@ void run_short_keys(int size, HashFunc hash_func, void* context)
             {
               uuid[0] = 0x21 + k;
               counter++;
-              hash_func(uuid, context);
+              hash_func(uuid, context, hasher);
             }
         }
     }
 }
 
-void run_mid_keys(int size, HashFunc hash_func, void* context)
+void run_mid_keys(int size, HashFunc hash_func,
+                  void* context, OPHash hasher)
 {
   op_assert(size >= 12, "iteration size must > 2^12\n");
   int i_bound = 1 << (size - 12);
@@ -315,13 +375,14 @@ void run_mid_keys(int size, HashFunc hash_func, void* context)
               uuid[0+16] = 0x21 + k;
               uuid[0+24] = 0x21 + k;
               counter++;
-              hash_func(uuid, context);
+              hash_func(uuid, context, hasher);
             }
         }
     }
 }
 
-void run_long_keys(int size, HashFunc hash_func, void* context)
+void run_long_keys(int size, HashFunc hash_func,
+                   void* context, OPHash hasher)
 {
   op_assert(size >= 12, "iteration size must > 2^12\n");
   int i_bound = 1 << (size - 12);
@@ -351,19 +412,20 @@ void run_long_keys(int size, HashFunc hash_func, void* context)
               for (int h = 0; h < 256; h+=8)
                 uuid[h] = 0x21 + k;
               counter++;
-              hash_func(uuid, context);
+              hash_func(uuid, context, hasher);
             }
         }
     }
 }
 
-void run_long_int(int size, HashFunc hash_func, void* context)
+void run_long_int(int size, HashFunc hash_func,
+                  void* context, OPHash hasher)
 {
   op_assert(size >= 12, "iteration size must > 2^12\n");
   uint64_t i_bound = 1 << size;
   for (uint64_t i = 0; i < i_bound; i++)
     {
-      hash_func(&i, context);
+      hash_func(&i, context, hasher);
     }
 }
 
