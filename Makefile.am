@@ -9,4 +9,5 @@ nobase_include_HEADERS = \
   opic/common/op_log.h \
   opic/hash/op_hash.h \
   opic/hash/robin_hood.h \
-  opic/hash/murmurhash3.h
+  opic/hash/largeint.h \
+  opic/hash/cityhash.h

@@ -56,11 +56,10 @@
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
 #include "opic/hash/op_hash.h"
-#include "opic/hash/murmurhash3.h"
 #include "opic/hash/robin_hood.h"
 
+#include "murmurhash3.h"
 #include "spookyhash-c/spookyhash.h"
-#include "cityhash-c/cityhash.h"
 #include "farmhash-c/farmhash.h"
 
 #include "rhh_b_k_v.h"

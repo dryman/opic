@@ -1,6 +1,3 @@
-[submodule "benchmark/robin_hood/cityhash-c"]
-	path = benchmark/robin_hood/cityhash-c
-	url = https://github.com/dryman/cityhash-c.git
 [submodule "benchmark/robin_hood/spookyhash-c"]
 	path = benchmark/robin_hood/spookyhash-c
 	url = https://github.com/dryman/spookyhash-c.git
