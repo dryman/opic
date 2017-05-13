@@ -68,6 +68,9 @@
 #include "rhh_bkv_v4qu.h"
 #include "rhh_b16kv.h"
 
+static int objcnt = 0;
+static uint64_t val_sum = 0;
+
 typedef uint64_t (*HashFunc)(void* key, void* context, OPHash hasher);
 typedef void (*RunKey)(int size, HashFunc hash_func,
                        void* context, OPHash hasher);
@@ -123,6 +126,15 @@ uint64_t RHHGetWrap(void* key, void* context, OPHash hash_impl)
   return *(uint64_t*)RHHGetCustom(context, hash_impl, key);
 }
 
+
+void CountObjects(void* key, void* val,
+                  size_t keysize, size_t valsize, void* ctx)
+{
+  objcnt++;
+  uint64_t *val_ptr = val;
+  val_sum += *val_ptr;
+}
+
 void help(char* program)
 {
   printf
@@ -149,7 +161,7 @@ int main(int argc, char* argv[])
 {
   OPHeap* heap;
   void* rhh;
-  struct timeval start, mid, end;
+  struct timeval i_start, i_end, q_start, q_end, s_start, s_end;
 
   int num_power, opt;
   int repeat = 1;
@@ -302,20 +314,27 @@ int main(int argc, char* argv[])
       printf("attempt %d\n", i + 1);
       op_assert(rhh_new(heap, &rhh, num,
                        load, k_len, 8), "Create RobinHoodHash\n");
-      gettimeofday(&start, NULL);
+      gettimeofday(&i_start, NULL);
       key_func(num_power, rhh_put, rhh, hasher);
+      gettimeofday(&i_end, NULL);
       printf("insert finished\n");
-      gettimeofday(&mid, NULL);
+      gettimeofday(&q_start, NULL);
       key_func(num_power, rhh_get, rhh, hasher);
-      gettimeofday(&end, NULL);
+      gettimeofday(&q_end, NULL);
 
-      print_timediff("Insert time: ", start, mid);
-      print_timediff("Query time: ", mid, end);
+      gettimeofday(&s_start, NULL);
+      RHHIterate(rhh, CountObjects, NULL);
+      gettimeofday(&s_end, NULL);
+
+      print_timediff("Insert time: ", i_start, i_end);
+      print_timediff("Query time: ", q_start, q_end);
+      print_timediff("Sequential read time: ", s_start, s_end);
 
       if (print_stat)
         rhh_printstat(rhh);
       rhh_destroy(rhh);
     }
+  printf("objcnt: %d val_sum: %" PRIu64 "\n", objcnt, val_sum);
 
   return 0;
 }
