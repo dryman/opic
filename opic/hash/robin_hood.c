@@ -57,7 +57,6 @@
 #include "robin_hood.h"
 
 #define PROBE_STATS_SIZE 64
-// 128MB
 #define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
