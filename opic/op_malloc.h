@@ -29,6 +29,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
+#include "opic/common/op_assert.h"
 #include "opic/common/op_macros.h"
 
 OP_BEGIN_DECLS
@@ -249,7 +251,7 @@ OPLenRef2Ref(oplenref_t ref)
 static inline void*
 OPLenRef2Ptr(void* ptr_in_heap, oplenref_t ref)
 {
-  return OPRef2Ptr(void* ptr_in_heap, OPLenRef2Ref(ref));
+  return OPRef2Ptr(ptr_in_heap, OPLenRef2Ref(ref));
 }
 
 /**

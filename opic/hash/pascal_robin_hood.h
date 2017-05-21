@@ -40,10 +40,10 @@ typedef struct PascalRobinHoodHash PascalRobinHoodHash;
 bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
              uint64_t num_objects, double load, size_t valsize);
 
-bool PRHHPutCustom(RobinHoodHash* rhh, OPHash hasher,
+bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                    void* key, size_t keysize, void* val);
 
-void* PRHHGetCustom(RobinHoodHash* rhh, OPHash hasher,
+void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                     void* key, size_t keysize);
 
 OP_END_DECLS
