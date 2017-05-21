@@ -57,6 +57,8 @@
 
 #define PROBE_STATS_SIZE 64
 #define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
+#define PRHH_EMPTY_KEY 0
+#define PRHH_TOMBSTONE_KEY ~0ULL
 
 OP_LOGGER_FACTORY(logger, "opic.hash.pascal_robin_hood");
 
@@ -114,8 +116,71 @@ findprobe(PascalRobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   return -1;
 }
 
-bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
-             uint64_t num_objects, double load, size_t valsize);
+bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh,
+             uint64_t num_objects, double load, size_t valsize)
+{
+  uint64_t capacity;
+  uint32_t capacity_clz, capacity_ms4b, capacity_msb;
+  size_t bucket_size;
+  void* bucket_ptr;
+
+  op_assert(load > 0.0 && load < 1.0,
+            "load %lf must within close interval (0.0, 1.0)\n", load);
+  capacity = (uint64_t)(num_objects / load);
+  if (capacity < 8)
+    capacity = 8;
+  capacity_clz = __builtin_clzl(capacity);
+  capacity_msb = 64 - capacity_clz;
+  capacity_ms4b = round_up_div(capacity, 1UL << (capacity_msb - 4));
+  capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
+
+  bucket_size = sizeof(oplenref_t) + valsize;
+
+  *rhh = OPCalloc(heap, 1, sizeof(PascalRobinHoodHash));
+  if (!*rhh)
+    return false;
+  bucket_ptr = OPCalloc(heap, 1, bucket_size * capacity);
+  if (!bucket_ptr)
+    {
+      OPDealloc(rhh);
+      return false;
+    }
+  (*rhh)->bucket_ref = OPPtr2Ref(bucket_ptr);
+
+  (*rhh)->capacity_clz = capacity_clz;
+  (*rhh)->capacity_ms4b = capacity_ms4b;
+  (*rhh)->objcnt_high = (uint64_t)(capacity * load);
+  (*rhh)->objcnt_low = capacity * 2 / 10;
+  (*rhh)->valsize = valsize;
+  return true;
+}
+
+void PRHHDestroy(PascalRobinHoodHash* rhh)
+{
+  const size_t bucket_size = sizeof(oplenref_t) + rhh->valsize;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  oplenref_t* recref;
+  void* recptr;
+  uint64_t capacity = PRHHCapacity(rhh);
+
+  for (uint64_t idx = 0; idx < capacity; idx++)
+    {
+      recref = (oplenref_t*)&buckets[idx * bucket_size];
+      if (*recref != PRHH_EMPTY_KEY &&
+          *recref != PRHH_TOMBSTONE_KEY)
+        {
+          recptr = OPLenRef2Ptr(rhh, *recref);
+          OPDealloc(recptr);
+        }
+    }
+  OPDealloc(OPRef2Ptr(rhh, rhh->bucket_ref));
+  OPDealloc(rhh);
+}
+
+uint64_t PRHHObjcnt(PascalRobinHoodHash* rhh)
+{
+  return rhh->objcnt;
+}
 
 static inline
 uint64_t PRHHCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b)
@@ -127,6 +192,12 @@ uint64_t PRHHCapacity(PascalRobinHoodHash* rhh)
 {
   return PRHHCapacityInternal(rhh->capacity_clz, rhh->capacity_ms4b);
 }
+
+size_t PRHHValsize(PascalRobinHoodHash* rhh)
+{
+  return rhh->valsize;
+}
+
 
 static inline void
 IncreaseProbeStat(PascalRobinHoodHash* rhh, int probe)
@@ -173,21 +244,20 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
     {
       idx = hash_with_probe(rhh, hashed_key, probe);
       recref = (oplenref_t*)&buckets[idx * bucket_size];
-      // empty bucket
-      if (*recref == 0)
+      if (*recref == PRHH_EMPTY_KEY)
         {
           IncreaseProbeStat(rhh, probe);
           *matched_bucket = &buckets[idx * bucket_size];
           return;
         }
-      // tombstoned bucket
-      else if (*recref == ~0ULL)
+      else if (*recref == PRHH_TOMBSTONE_KEY)
         {
           for (int p = probe+1; p <= rhh->longest_probes; p++)
             {
               _idx = hash_with_probe(rhh, hashed_key, p);
               _recref = (oplenref_t*)&buckets[_idx * bucket_size];
-              if (*_recref == 0 || *_recref == ~0ULL)
+              if (*_recref == PRHH_EMPTY_KEY ||
+                  *_recref == PRHH_TOMBSTONE_KEY)
                 continue;
               _recptr = OPLenRef2Ptr(rhh, *_recref);
               _recsize = OPLenRef2Size(*_recref);
@@ -241,13 +311,18 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
       idx = hash_with_probe(rhh, hashed_key, probe);
       recref = (oplenref_t*)&buckets[idx * bucket_size];
       // empty bucket and tombstone bucket
-      if (*recref == 0 || *recref == ~0ULL)
+      if (*recref == PRHH_EMPTY_KEY ||
+          *recref == PRHH_TOMBSTONE_KEY)
         {
           IncreaseProbeStat(rhh, probe);
           return;
         }
       old_probe = findprobe(rhh, hasher, idx);
-      if (probe > old_probe)
+      // If the one we're swaping out is the matched bucket,
+      // we're in a cycle. Break the cycle by skipping the
+      // matched_bucket.
+      if (probe > old_probe &&
+          (void*)&buckets[idx * bucket_size] != matched_bucket)
         {
           if (old_probe < PROBE_STATS_SIZE)
             rhh->stats[old_probe]--;
@@ -348,7 +423,8 @@ PRHHSizeUp(PascalRobinHoodHash* rhh, OPHash hasher)
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
       recref = *(oplenref_t*)&old_buckets[idx * bucket_size];
-      if (recref != 0 && recref != ~0ULL)
+      if (recref != PRHH_EMPTY_KEY &&
+          recref != PRHH_TOMBSTONE_KEY)
         {
           PRHHUpsertInternal(rhh, hasher,
                              &old_buckets[idx * bucket_size], &dummy);
@@ -419,7 +495,8 @@ PRHHSizeDown(PascalRobinHoodHash* rhh, OPHash hasher)
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
       recref = *(oplenref_t*)&old_buckets[idx * bucket_size];
-      if (recref != 0 && recref != ~0ULL)
+      if (recref != PRHH_EMPTY_KEY &&
+          recref != PRHH_TOMBSTONE_KEY)
         {
           PRHHUpsertInternal(rhh, hasher,
                              &old_buckets[idx * bucket_size], &dummy);
@@ -450,14 +527,15 @@ bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
 
   PRHHUpsertInternal(rhh, hasher, bucket_cpy, &matched_bucket);
   recordref = (oplenref_t*)matched_bucket;
-  if (*recordref == 0 || *recordref == ~0ULL ||
-      key_lenref == *recordref)
+  if (*recordref == PRHH_EMPTY_KEY ||
+      *recordref == PRHH_TOMBSTONE_KEY)
     {
       memcpy(matched_bucket, bucket_cpy, bucket_size);
     }
   else // ducplicate key
     {
-      OPDealloc(keyptr);
+      if (key_lenref != *recordref)
+        OPDealloc(keyptr);
       memcpy(&matched_bucket[refsize], val, valsize);
     }
 
@@ -468,8 +546,166 @@ bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   return true;
 }
 
-void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                    void* key, size_t keysize);
+static inline bool
+PRHHSearchIdx(PascalRobinHoodHash* rhh, OPHash hasher,
+              void* key, size_t keysize, uintptr_t* idx)
+{
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + valsize;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint64_t hashed_key;
+  oplenref_t *recref;
+  void* recptr;
+  size_t recsize;
 
+  hashed_key = hasher(key, keysize);
+
+  for (int probe = 0; probe <= rhh->longest_probes; probe++)
+    {
+      *idx = hash_with_probe(rhh, hashed_key, probe);
+      recref = (oplenref_t*)&buckets[*idx * bucket_size];
+      switch (*recref)
+        {
+        case 0: return false;
+        case ~0ULL: continue;
+        default: break;
+        }
+      recptr = OPLenRef2Ptr(rhh, *recref);
+      recsize = OPLenRef2Size(*recref);
+      if (keysize == recsize &&
+          !memcmp(key, recptr, keysize))
+        return true;
+    }
+  return false;
+}
+
+void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
+                    void* key, size_t keysize)
+{
+  const size_t bucket_size = sizeof(oplenref_t) + rhh->valsize;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uintptr_t idx;
+  if (PRHHSearchIdx(rhh, hasher, key, keysize, &idx))
+    {
+      return &buckets[idx * bucket_size + sizeof(oplenref_t)];
+    }
+  return NULL;
+}
+
+void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
+                       void* key, size_t keysize)
+{
+  /*
+   * This works for load that is not super high, i.e. < 0.9.
+   * It slows down the growth for both E[psl] and Var[psl], but only
+   * slows down, not bounding it.
+   */
+  size_t valsize;
+  size_t bucket_size;
+  uint8_t* buckets;
+  uintptr_t idx, premod_idx, candidate_idx;
+  uintptr_t mask;
+  int candidates;
+  int record_probe;
+  oplenref_t* recref;
+  void* recptr;
+  size_t recsize;
+  uint64_t hashed_rec;
+
+  if (rhh->objcnt < rhh->objcnt_low &&
+      rhh->objcnt > 16)
+    {
+      if (!PRHHSizeDown(rhh, hasher))
+        return NULL;
+    }
+
+  if (!PRHHSearchIdx(rhh, hasher, key, keysize, &idx))
+    return NULL;
+
+  valsize = rhh->valsize;
+  bucket_size = sizeof(oplenref_t) + valsize;
+  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+
+  rhh->objcnt--;
+  record_probe = findprobe(rhh, hasher, idx);
+  if (record_probe < PROBE_STATS_SIZE)
+    rhh->stats[record_probe]--;
+  else
+    OP_LOG_WARN(logger, "Large probe: %d\n", record_probe);
+
+  if (record_probe == rhh->longest_probes &&
+      rhh->stats[record_probe] == 0)
+    {
+      rhh->longest_probes--;
+    }
+
+  while (true)
+    {
+    next_iter:
+      if (record_probe == 0)
+        goto end_iter;
+      switch (rhh->capacity_ms4b)
+        {
+        case 8: premod_idx =  round_up_div(16*idx, 8); break;
+        case 9: premod_idx =  round_up_div(16*idx, 9); break;
+        case 10: premod_idx = round_up_div(16*idx, 10); break;
+        case 11: premod_idx = round_up_div(16*idx, 11); break;
+        case 12: premod_idx = round_up_div(16*idx, 12); break;
+        case 13: premod_idx = round_up_div(16*idx, 13); break;
+        case 14: premod_idx = round_up_div(16*idx, 14); break;
+        case 15: premod_idx = round_up_div(16*idx, 15); break;
+        default: op_assert(false, "Unknown capacity_ms4b %d\n",
+                           rhh->capacity_ms4b);
+        }
+      candidates = (((premod_idx + 1) & mask) * rhh->capacity_ms4b >> 4)
+        == idx ? 2 : 1;
+      for (int probe = rhh->longest_probes - 1;
+           probe > 0; probe--)
+        {
+          for (int candidate = 0; candidate < candidates; candidate++)
+            {
+              candidate_idx =
+                ((premod_idx + candidate + (probe + 1)*(probe + 1)*2
+                  - probe*probe*2) & mask) * rhh->capacity_ms4b >> 4;
+              recref = (oplenref_t*)&buckets[candidate_idx * bucket_size];
+              if (*recref == 0 || *recref == ~0ULL)
+                continue;
+              recptr = OPLenRef2Ptr(rhh, *recref);
+              recsize = OPLenRef2Size(*recref);
+              hashed_rec = hasher(recptr, recsize);
+              if (hash_with_probe(rhh, hashed_rec, probe + 1)
+                  == candidate_idx &&
+                  hash_with_probe(rhh, hashed_rec, probe)
+                  == idx)
+                {
+                  if (probe + 1 < PROBE_STATS_SIZE)
+                    rhh->stats[probe + 1]--;
+                  if (probe < PROBE_STATS_SIZE)
+                    rhh->stats[probe]++;
+                  else
+                    OP_LOG_WARN(logger, "Large probe: %d\n", probe);
+                  if (probe + 1 == rhh->longest_probes &&
+                      rhh->stats[probe+1] == 0)
+                    {
+                      rhh->longest_probes--;
+                    }
+                  memcpy(&buckets[idx * bucket_size],
+                         &buckets[candidate_idx * bucket_size],
+                         bucket_size);
+                  idx = candidate_idx;
+                  record_probe--;
+                  goto next_iter;
+                }
+            }
+        }
+      goto end_iter;
+    }
+
+ end_iter:
+  recref = (oplenref_t*)&buckets[idx * bucket_size];
+  *recref = ~0ULL;
+  return &buckets[idx * bucket_size + sizeof(oplenref_t)];
+}
 
 /* pascal_robin_hood.c ends here */

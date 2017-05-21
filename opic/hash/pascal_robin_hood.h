@@ -36,15 +36,25 @@ OP_BEGIN_DECLS
 
 typedef struct PascalRobinHoodHash PascalRobinHoodHash;
 
-
 bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
              uint64_t num_objects, double load, size_t valsize);
+
+void PRHHDestroy(PascalRobinHoodHash* rhh);
 
 bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                    void* key, size_t keysize, void* val);
 
 void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                     void* key, size_t keysize);
+
+void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
+                       void* key, size_t keysize);
+
+uint64_t PRHHObjcnt(PascalRobinHoodHash* rhh);
+
+uint64_t PRHHCapacity(PascalRobinHoodHash* rhh);
+
+size_t RHHValsize(PascalRobinHoodHash* rhh);
 
 OP_END_DECLS
 
