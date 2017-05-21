@@ -704,8 +704,42 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
 
  end_iter:
   recref = (oplenref_t*)&buckets[idx * bucket_size];
-  *recref = ~0ULL;
+  recptr = OPLenRef2Ptr(rhh, *recref);
+  OPDealloc(recptr);
+  *recref = PRHH_TOMBSTONE_KEY;
   return &buckets[idx * bucket_size + sizeof(oplenref_t)];
+}
+
+void PRHHIterate(PascalRobinHoodHash* rhh,
+                 OPHashIterator iterator, void* context)
+{
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + valsize;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint64_t capacity = PRHHCapacity(rhh);
+  oplenref_t* recref;
+  void* recptr;
+  size_t recsize;
+
+  for (uint64_t idx = 0; idx < capacity; idx++)
+    {
+      recref = (oplenref_t*)&buckets[idx * bucket_size];
+      if (*recref != PRHH_EMPTY_KEY &&
+          *recref != PRHH_TOMBSTONE_KEY)
+        {
+          recptr = OPLenRef2Ptr(rhh, *recref);
+          recsize = OPLenRef2Size(*recref);
+          iterator(recptr, &buckets[idx * bucket_size + sizeof(oplenref_t)],
+                   recsize, valsize, context);
+        }
+    }
+}
+
+void PRHHPrintStat(PascalRobinHoodHash* rhh)
+{
+  for (int i = 0; i < PROBE_STATS_SIZE; i++)
+    if (rhh->stats[i])
+      printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
 /* pascal_robin_hood.c ends here */
