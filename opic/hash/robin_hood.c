@@ -394,6 +394,8 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
 
       if (probe > old_probe)
         {
+          rhh->longest_probes = probe > rhh->longest_probes ?
+            probe : rhh->longest_probes;
           if (old_probe < PROBE_STATS_SIZE)
             rhh->stats[old_probe]--;
           if (probe < PROBE_STATS_SIZE)
@@ -464,14 +466,15 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
    * It slows down the growth for both E[psl] and Var[psl], but only
    * slows down, not bounding it.
    */
-  size_t keysize;
-  size_t valsize;
-  size_t bucket_size;
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
   uint8_t* buckets;
   uintptr_t idx, premod_idx, candidate_idx;
   uintptr_t mask;
   int candidates;
   int record_probe;
+  uint8_t bucket_tmp[bucket_size];
 
   if (rhh->objcnt < rhh->objcnt_low &&
       rhh->objcnt > 16)
@@ -483,9 +486,6 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
   if (!RHHSearchIdx(rhh, hasher, key, &idx))
     return NULL;
 
-  keysize = rhh->keysize;
-  valsize = rhh->valsize;
-  bucket_size = keysize + valsize + 1;
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
@@ -551,9 +551,12 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
                     {
                       rhh->longest_probes--;
                     }
+                  memcpy(bucket_tmp, &buckets[idx * bucket_size], bucket_size);
                   memcpy(&buckets[idx*bucket_size],
                          &buckets[candidate_idx*bucket_size],
                          bucket_size);
+                  memcpy(&buckets[candidate_idx * bucket_size],
+                         bucket_tmp, bucket_size);
                   idx = candidate_idx;
                   record_probe--;
                   goto next_iter;

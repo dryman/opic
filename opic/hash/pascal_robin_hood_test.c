@@ -59,7 +59,8 @@
 
 OP_LOGGER_FACTORY(logger, "opic.hash.pascal_robin_hood_test");
 
-#define TEST_OBJECTS 8
+// bug when 12
+#define TEST_OBJECTS (1<<15)
 
 static char uuid [] = "!!!!!!--!!!!!!--!!!!!!--!!!!!!--";
 
@@ -71,22 +72,14 @@ size_t MutateUUID(int idx)
   for (int j = 0; j < 6; j++)
     {
       int k = idx >> j*6;
-      if (k == 0)
-        {
-          uuid[j] = 0x21;
-          uuid[j+8] = 0x21;
-          uuid[j+16] = 0x21;
-          uuid[j+24] = 0x21;
-          break;
-        }
       k %= 64;
       uuid[j] = 0x21 + k;
       uuid[j+8] = 0x21 + k;
       uuid[j+16] = 0x21 + k;
       uuid[j+24] = 0x21 + k;
     }
-  //keylen = 8 + idx % 24;
-  return 10;
+  keylen = 8 + idx % 24;
+  return keylen;
 }
 
 void ResetObjcnt(void)
@@ -145,31 +138,34 @@ test_BasicInsert(void** context)
   OPHeapDestroy(heap);
 }
 
-/*
 static void
 test_BasicDelete(void** context)
 {
   OPHeap* heap;
   PascalRobinHoodHash* rhh;
+  size_t keylen;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS,
-                     0.95, sizeof(int), 0));
+  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS, 0.95, 0));
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      PRHHPut(rhh, &i, NULL);
+      keylen = MutateUUID(i);
+      PRHHPut(rhh, uuid, keylen, NULL);
     }
   assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      assert_non_null(PRHHDelete(rhh, &i));
+      keylen = MutateUUID(i);
+      OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
+      assert_non_null(PRHHDelete(rhh, uuid, keylen));
     }
   assert_int_equal(0, PRHHObjcnt(rhh));
-  RHHDestroy(rhh);
+  PRHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
 
+/*
 static void
 test_DistributionForUpdate(void** context)
 {
@@ -208,7 +204,7 @@ main (void)
     {
       cmocka_unit_test(test_RHHNew),
       cmocka_unit_test(test_BasicInsert),
-      //cmocka_unit_test(test_BasicDelete),
+      cmocka_unit_test(test_BasicDelete),
       //cmocka_unit_test(test_DistributionForUpdate),
     };
 
