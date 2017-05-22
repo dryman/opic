@@ -146,7 +146,7 @@ bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh,
       return false;
     }
   (*rhh)->bucket_ref = OPPtr2Ref(bucket_ptr);
-
+  (*rhh)->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
   (*rhh)->capacity_clz = capacity_clz;
   (*rhh)->capacity_ms4b = capacity_ms4b;
   (*rhh)->objcnt_high = (uint64_t)(capacity * load);
@@ -349,7 +349,7 @@ PRHHSizeUp(PascalRobinHoodHash* rhh, OPHash hasher)
 {
   const size_t keysize = sizeof(oplenref_t);
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = keysize + valsize + 1;
+  const size_t bucket_size = keysize + valsize;
   const size_t large_data_threshold = rhh->large_data_threshold;
   uint8_t* old_buckets;
   uint8_t* new_buckets;
@@ -438,7 +438,7 @@ static bool
 PRHHSizeDown(PascalRobinHoodHash* rhh, OPHash hasher)
 {
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = sizeof(oplenref_t) + valsize + 1;
+  const size_t bucket_size = sizeof(oplenref_t) + valsize;
   uint8_t* old_buckets;
   uint8_t* new_buckets;
   uint8_t new_capacity_ms4b, new_capacity_clz;

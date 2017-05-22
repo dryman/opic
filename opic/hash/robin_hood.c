@@ -107,7 +107,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
       return false;
     }
   (*rhh)->bucket_ref = OPPtr2Ref(bucket_ptr);
-
+  (*rhh)->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
   (*rhh)->capacity_clz = capacity_clz;
   (*rhh)->capacity_ms4b = capacity_ms4b;
   (*rhh)->objcnt_high = (uint64_t)(capacity * load);

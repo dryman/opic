@@ -59,7 +59,7 @@
 
 OP_LOGGER_FACTORY(logger, "opic.hash.pascal_robin_hood_test");
 
-#define TEST_OBJECTS 100
+#define TEST_OBJECTS 8
 
 static char uuid [] = "!!!!!!--!!!!!!--!!!!!!--!!!!!!--";
 
@@ -70,7 +70,7 @@ size_t MutateUUID(int idx)
   size_t keylen;
   for (int j = 0; j < 6; j++)
     {
-      int k = idx >> j*64;
+      int k = idx >> j*6;
       if (k == 0)
         {
           uuid[j] = 0x21;
