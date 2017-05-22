@@ -173,37 +173,39 @@ test_BasicDelete(void** context)
   OPHeapDestroy(heap);
 }
 
-/*
 static void
 test_DistributionForUpdate(void** context)
 {
   OPHeap* heap;
   PascalRobinHoodHash* rhh;
-  int key;
+  size_t keylen;
 
   assert_true(OPHeapNew(&heap));
   assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS,
-                     0.70, sizeof(int), 0));
+                     0.70, 0));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      PRHHPut(rhh, &i, NULL);
+      keylen = MutateUUID(i);
+      PRHHPut(rhh, uuid, keylen, NULL);
     }
   assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
   // TODO Change API to test the highest probe
   PRHHPrintStat(rhh);
 
-  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*10; i++)
+  for (int i = 0; i < TEST_OBJECTS*8; i++)
     {
-      key = i - TEST_OBJECTS;
-      PRHHDelete(rhh, &key);
-      PRHHPut(rhh, &i, NULL);
+      keylen = MutateUUID(i);
+      OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
+      PRHHDelete(rhh, uuid, keylen);
+      keylen = MutateUUID(i+TEST_OBJECTS);
+      OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
+      PRHHPut(rhh, uuid, keylen, NULL);
     }
   PRHHPrintStat(rhh);
   PRHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
-*/
 
 int
 main (void)
@@ -213,7 +215,7 @@ main (void)
       cmocka_unit_test(test_RHHNew),
       cmocka_unit_test(test_BasicInsert),
       cmocka_unit_test(test_BasicDelete),
-      //cmocka_unit_test(test_DistributionForUpdate),
+      cmocka_unit_test(test_DistributionForUpdate),
     };
 
   return cmocka_run_group_tests(prhh_tests, NULL, NULL);
