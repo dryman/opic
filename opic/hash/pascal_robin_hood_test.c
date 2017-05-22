@@ -59,7 +59,12 @@
 
 OP_LOGGER_FACTORY(logger, "opic.hash.pascal_robin_hood_test");
 
-// bug when 12
+// On very small table size, we may have cycles
+// for example TEST_OBJECTS = 12 we get into infinite loop..
+// I had one work around that is having a small cache that
+// record past certain number of elements, and check if the
+// current element exists in the cache. But this seems to be
+// costy.
 #define TEST_OBJECTS (1<<15)
 
 static char uuid [] = "!!!!!!--!!!!!!--!!!!!!--!!!!!!--";
@@ -120,10 +125,10 @@ test_BasicInsert(void** context)
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
+      //OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
       PRHHPut(rhh, uuid, keylen, NULL);
     }
-  //PRHHPrintStat(rhh);
+  PRHHPrintStat(rhh);
   assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
   ResetObjcnt();
   PRHHIterate(rhh, CountObjects, NULL);
@@ -131,7 +136,7 @@ test_BasicInsert(void** context)
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      OP_LOG_DEBUG(logger, "Querying %s with len %zu", uuid, keylen);
+      //OP_LOG_DEBUG(logger, "Querying %s with len %zu", uuid, keylen);
       assert_non_null(PRHHGet(rhh, uuid, keylen));
     }
   PRHHDestroy(rhh);
@@ -157,10 +162,13 @@ test_BasicDelete(void** context)
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
+      //OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
       assert_non_null(PRHHDelete(rhh, uuid, keylen));
     }
   assert_int_equal(0, PRHHObjcnt(rhh));
+  ResetObjcnt();
+  PRHHIterate(rhh, CountObjects, NULL);
+  assert_int_equal(0, objcnt);
   PRHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -210,7 +218,5 @@ main (void)
 
   return cmocka_run_group_tests(prhh_tests, NULL, NULL);
 }
-
-/* robin_hood_test.c ends here */
 
 /* pascal_robin_hood_test.c ends here */

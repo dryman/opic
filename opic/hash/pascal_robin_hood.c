@@ -200,11 +200,6 @@ findprobe(PascalRobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   keyref = (oplenref_t*)&buckets[idx * bucket_size];
   keyptr = OPLenRef2Ptr(rhh, *keyref);
   keysize = OPLenRef2Size(*keyref);
-  /*
-  OP_LOG_DEBUG(logger, "ref %" PRIuPTR " ptr %p, size %zu",
-               *keyref, keyptr, keysize);
-               */
-
   hashed_key = hasher(keyptr, keysize);
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
@@ -237,9 +232,6 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   memcpy(bucket_cpy, bucket, bucket_size);
   probe = 0;
-
-  OP_LOG_DEBUG(logger, "objcnt: %" PRIu64, rhh->objcnt);
-
   keyref = (oplenref_t*)&bucket_cpy[0];
   keyptr = OPLenRef2Ptr(rhh, *keyref);
   keysize = OPLenRef2Size(*keyref);
@@ -252,7 +244,6 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
       recref = (oplenref_t*)&buckets[idx * bucket_size];
       if (*recref == PRHH_EMPTY_KEY)
         {
-          OP_LOG_DEBUG(logger, "empty key");
           IncreaseProbeStat(rhh, probe);
           *matched_bucket = &buckets[idx * bucket_size];
           return;
@@ -284,16 +275,12 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
       if (keysize == recsize &&
           !memcmp(keyptr, recptr, keysize))
         {
-          OP_LOG_DEBUG(logger, "duplicate key");
           *matched_bucket = &buckets[idx * bucket_size];
           return;
         }
-      OP_LOG_DEBUG(logger, "find probe in first round, recref %" PRIuPTR,
-                   *recref);
       old_probe = findprobe(rhh, hasher, idx);
       if (probe > old_probe)
         {
-          //OP_LOG_DEBUG(logger, "collision with existing key");
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
           if (old_probe < PROBE_STATS_SIZE)
@@ -331,8 +318,6 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
           memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
           return;
         }
-      OP_LOG_DEBUG(logger, "find probe in second round, recref %" PRIuPTR,
-                   *recref);
       old_probe = findprobe(rhh, hasher, idx);
       // If the one we're swaping out is the matched bucket,
       // we're in a cycle. Break the cycle by skipping the
@@ -438,14 +423,12 @@ PRHHSizeUp(PascalRobinHoodHash* rhh, OPHash hasher)
   memset(rhh->stats, 0x00, sizeof(uint32_t) * PROBE_STATS_SIZE);
   rhh->bucket_ref = OPPtr2Ref(new_buckets);
 
-  int count = 0;
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
       recref = *(oplenref_t*)&old_buckets[idx * bucket_size];
       if (recref != PRHH_EMPTY_KEY &&
           recref != PRHH_TOMBSTONE_KEY)
         {
-          OP_LOG_DEBUG(logger, "resize count: %d", count++);
           PRHHUpsertInternal(rhh, hasher,
                              &old_buckets[idx * bucket_size], &matched_bucket);
           memcpy(matched_bucket, &old_buckets[idx * bucket_size], bucket_size);
@@ -549,7 +532,6 @@ bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
 
   PRHHUpsertInternal(rhh, hasher, bucket_cpy, &matched_bucket);
   recordref = (oplenref_t*)matched_bucket;
-  OP_LOG_DEBUG(logger, "recordref: %" PRIuPTR, *recordref);
   if (*recordref == PRHH_EMPTY_KEY ||
       *recordref == PRHH_TOMBSTONE_KEY)
     {
@@ -566,7 +548,6 @@ bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
     {
       return PRHHSizeUp(rhh, hasher);
     }
-  //OP_LOG_DEBUG(logger, "objcnt: %" PRIu64, rhh->objcnt);
   return true;
 }
 
@@ -663,8 +644,6 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
       rhh->longest_probes--;
     }
 
-  OP_LOG_DEBUG(logger, "before probe balancing, idx: %" PRIuPTR,
-               idx);
   while (true)
     {
     next_iter:
@@ -734,8 +713,6 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   recref = (oplenref_t*)&buckets[idx * bucket_size];
   recsize = OPLenRef2Size(*recref);
   recptr = OPLenRef2Ptr(rhh, *recref);
-  OP_LOG_DEBUG(logger, "deleting idx %" PRIuPTR " ref %" PRIuPTR
-               " ptr %p size %zu", idx, *recref, recptr, recsize);
   OPDealloc(recptr);
   *recref = PRHH_TOMBSTONE_KEY;
   return &buckets[idx * bucket_size + sizeof(oplenref_t)];

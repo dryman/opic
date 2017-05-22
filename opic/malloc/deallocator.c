@@ -76,7 +76,6 @@ OPDealloc(void* addr)
       HPageReleaseSSpan(hspan.hpage, sspan);
       return;
     }
-  OP_LOG_DEBUG(logger, "releasing addr %p", addr);
   USpanReleaseAddr(sspan.uspan, addr);
 }
 
@@ -114,11 +113,6 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
   mask = ~(1UL << _addr_bmbit);
   old_bmap = atomic_fetch_and_explicit(&bmap[_addr_bmidx],
                                        mask, memory_order_release);
-  OP_LOG_DEBUG(logger, "uspan %p addr %p in objsize %" PRIuPTR
-               " bmidx %" PRIuPTR " bmbit %"
-               PRIuPTR " bmap %" PRIx64,
-               uspan, addr, _addr_obj_size,
-               _addr_bmidx, _addr_bmbit, old_bmap);
   op_assert(old_bmap & (1UL << _addr_bmbit),
             "Double free address %p\n", addr);
   if (atomic_fetch_sub_explicit(&uspan->obj_cnt, 1,
