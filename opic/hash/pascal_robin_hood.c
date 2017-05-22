@@ -204,7 +204,6 @@ IncreaseProbeStat(PascalRobinHoodHash* rhh, int probe)
 {
   rhh->longest_probes = probe > rhh->longest_probes ?
     probe : rhh->longest_probes;
-  rhh->objcnt++;
   if (probe < PROBE_STATS_SIZE)
     rhh->stats[probe]++;
   else
@@ -234,6 +233,8 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
   memcpy(bucket_cpy, bucket, bucket_size);
   probe = 0;
 
+  OP_LOG_DEBUG(logger, "objcnt: %" PRIu64, rhh->objcnt);
+
   keyref = (oplenref_t*)&bucket_cpy[0];
   keyptr = OPLenRef2Ptr(rhh, *keyref);
   keysize = OPLenRef2Size(*keyref);
@@ -246,6 +247,8 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
       recref = (oplenref_t*)&buckets[idx * bucket_size];
       if (*recref == PRHH_EMPTY_KEY)
         {
+          OP_LOG_DEBUG(logger, "empty key");
+          rhh->objcnt++;
           IncreaseProbeStat(rhh, probe);
           *matched_bucket = &buckets[idx * bucket_size];
           return;
@@ -268,6 +271,7 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
                   return;
                 }
             }
+          rhh->objcnt++;
           IncreaseProbeStat(rhh, probe);
           *matched_bucket = &buckets[idx * bucket_size];
           return;
@@ -277,12 +281,15 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
       if (keysize == recsize &&
           !memcmp(keyptr, recptr, keysize))
         {
+          OP_LOG_DEBUG(logger, "duplicate key");
           *matched_bucket = &buckets[idx * bucket_size];
           return;
         }
       old_probe = findprobe(rhh, hasher, idx);
       if (probe > old_probe)
         {
+          OP_LOG_DEBUG(logger, "collision with existing key");
+          rhh->objcnt++;
           if (old_probe < PROBE_STATS_SIZE)
             rhh->stats[old_probe]--;
           if (probe < PROBE_STATS_SIZE)
@@ -543,6 +550,7 @@ bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
     {
       return PRHHSizeUp(rhh, hasher);
     }
+  OP_LOG_DEBUG(logger, "objcnt: %" PRIu64, rhh->objcnt);
   return true;
 }
 
