@@ -50,11 +50,34 @@ void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
 void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                        void* key, size_t keysize);
 
+static inline bool
+PRHHPut(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
+{
+  return PRHHPutCustom(rhh, OPDefaultHash, key, keysize, val);
+}
+
+static inline void*
+PRHHGet(PascalRobinHoodHash* rhh, void* key, size_t keysize)
+{
+  return PRHHGetCustom(rhh, OPDefaultHash, key, keysize);
+}
+
+static inline void*
+PRHHDelete(PascalRobinHoodHash* rhh, void* key, size_t keysize)
+{
+  return PRHHDeleteCustom(rhh, OPDefaultHash, key, keysize);
+}
+
 uint64_t PRHHObjcnt(PascalRobinHoodHash* rhh);
 
 uint64_t PRHHCapacity(PascalRobinHoodHash* rhh);
 
 size_t RHHValsize(PascalRobinHoodHash* rhh);
+
+void PRHHIterate(PascalRobinHoodHash* rhh,
+                 OPHashIterator iterator, void* context);
+
+void PRHHPrintStat(PascalRobinHoodHash* rhh);
 
 OP_END_DECLS
 

@@ -59,32 +59,45 @@
 
 OP_LOGGER_FACTORY(logger, "opic.hash.pascal_robin_hood_test");
 
-#define TEST_OBJECTS (1 << 15)
+#define TEST_OBJECTS 100
+
+static char uuid [] = "!!!!!!--!!!!!!--!!!!!!--!!!!!!--";
 
 static int objcnt = 0;
-static uint8_t objmap[TEST_OBJECTS];
+
+size_t MutateUUID(int idx)
+{
+  size_t keylen;
+  for (int j = 0; j < 6; j++)
+    {
+      int k = idx >> j*64;
+      if (k == 0)
+        {
+          uuid[j] = 0x21;
+          uuid[j+8] = 0x21;
+          uuid[j+16] = 0x21;
+          uuid[j+24] = 0x21;
+          break;
+        }
+      k %= 64;
+      uuid[j] = 0x21 + k;
+      uuid[j+8] = 0x21 + k;
+      uuid[j+16] = 0x21 + k;
+      uuid[j+24] = 0x21 + k;
+    }
+  //keylen = 8 + idx % 24;
+  return 10;
+}
 
 void ResetObjcnt(void)
 {
   objcnt = 0;
 }
 
-void ResetObjmap(void)
-{
-  memset(objmap, 0x00, sizeof(objmap));
-}
-
 void CountObjects(void* key, void* val,
                   size_t keysize, size_t valsize, void* ctx)
 {
   objcnt++;
-}
-
-void CheckObjects(void* key, void* val,
-                  size_t keysize, size_t valsize, void* ctx)
-{
-  int* intkey = key;
-  objmap[*intkey] = 1;
 }
 
 static void
@@ -99,38 +112,40 @@ test_RHHNew(void** context)
   OPHeapDestroy(heap);
 }
 
-/*
 static void
 test_BasicInsert(void** context)
 {
   OPHeap* heap;
   PascalRobinHoodHash* rhh;
+  size_t keylen;
 
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, 20,
-                      0.80, sizeof(int), 0));
-  OP_LOG_DEBUG(logger, "RHH addr %p", rhh);
+  assert_true(PRHHNew(heap, &rhh, 20, 0.80,  0));
+  OP_LOG_DEBUG(logger, "PRHH addr %p", rhh);
+
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      OP_LOG_DEBUG(logger, "Inserting %d", i);
-      PRHHPut(rhh, &i, NULL);
+      keylen = MutateUUID(i);
+      OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
+      PRHHPut(rhh, uuid, keylen, NULL);
     }
   //PRHHPrintStat(rhh);
   assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
   ResetObjcnt();
   PRHHIterate(rhh, CountObjects, NULL);
   assert_int_equal(TEST_OBJECTS, objcnt);
-  ResetObjmap();
-  PRHHIterate(rhh, CheckObjects, NULL);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      assert_int_equal(1, objmap[i]);
+      keylen = MutateUUID(i);
+      OP_LOG_DEBUG(logger, "Querying %s with len %zu", uuid, keylen);
+      assert_non_null(PRHHGet(rhh, uuid, keylen));
     }
   PRHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
 
+/*
 static void
 test_BasicDelete(void** context)
 {
@@ -192,9 +207,9 @@ main (void)
   const struct CMUnitTest prhh_tests[] =
     {
       cmocka_unit_test(test_RHHNew),
-      // cmocka_unit_test(test_BasicInsert),
-      // cmocka_unit_test(test_BasicDelete),
-      // cmocka_unit_test(test_DistributionForUpdate),
+      cmocka_unit_test(test_BasicInsert),
+      //cmocka_unit_test(test_BasicDelete),
+      //cmocka_unit_test(test_DistributionForUpdate),
     };
 
   return cmocka_run_group_tests(prhh_tests, NULL, NULL);
