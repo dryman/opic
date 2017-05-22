@@ -159,7 +159,7 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
   while (1)
     {
       if (atomic_load_explicit(&uspan->obj_cnt, memory_order_acquire)
-          > obj_capacity / 2 ||
+          > (obj_capacity/2) ||
           atomic_load_explicit(&uspan->state, memory_order_acquire)
           == SPAN_ENQUEUED)
         {
@@ -181,6 +181,7 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
           atomic_check_out(&uspan->pcard);
           return;
         }
+      OP_LOG_DEBUG(logger, "enqueue uspan %p", uspan);
       EnqueueUSpan(uqueue, uspan);
       atomic_exit_check_out(&uqueue->pcard);
       atomic_check_out(&uspan->pcard);

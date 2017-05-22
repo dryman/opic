@@ -525,7 +525,7 @@ bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
 
   heap = ObtainOPHeap(rhh);
   keyptr = OPCalloc(heap, 1, keysize);
-  OP_LOG_DEBUG(logger, "keyptr %p", keyptr);
+  // OP_LOG_DEBUG(logger, "keyptr %p", keyptr);
   key_lenref = OPPtr2LenRef(keyptr, keysize);
   memcpy(keyptr, key, keysize);
   memcpy(bucket_cpy, &key_lenref, refsize);

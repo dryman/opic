@@ -193,13 +193,13 @@ test_DistributionForUpdate(void** context)
   // TODO Change API to test the highest probe
   PRHHPrintStat(rhh);
 
-  for (int i = 0; i < TEST_OBJECTS*8; i++)
+  for (int i = 0; i < TEST_OBJECTS*9; i++)
     {
       keylen = MutateUUID(i);
-      OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
+      // OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
       PRHHDelete(rhh, uuid, keylen);
       keylen = MutateUUID(i+TEST_OBJECTS);
-      OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
+      // OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
       PRHHPut(rhh, uuid, keylen, NULL);
     }
   PRHHPrintStat(rhh);

@@ -55,7 +55,7 @@
 #include "init_helper.h"
 #include "lookup_helper.h"
 
-#define DISPATCH_ATTEMPT 1024
+#define DISPATCH_ATTEMPT 5
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
@@ -97,6 +97,7 @@ OPMallocAdviced(OPHeap* heap, size_t size, int advice)
   ctx.hqueue = &heap->raw_type.hpage_queue;
   if (size <= 256)
     {
+      // OP_LOG_DEBUG(logger, "<= 256 case");
       size_class = round_up_div(size, 16);
       magic.raw_uspan.pattern = RAW_USPAN_PATTERN;
       magic.raw_uspan.obj_size = size_class * 16;
@@ -109,6 +110,7 @@ OPMallocAdviced(OPHeap* heap, size_t size, int advice)
     }
   else if (size <= 2048)
     {
+      // OP_LOG_DEBUG(logger, "<= 2048 case");
       magic.large_uspan.pattern = LARGE_USPAN_PATTERN;
       if (size <= 512)
         {
@@ -132,6 +134,7 @@ OPMallocAdviced(OPHeap* heap, size_t size, int advice)
     }
   else if (size <= HPAGE_SIZE - SPAGE_SIZE)
     {
+      // OP_LOG_DEBUG(logger, "SPAGE case");
       page_cnt = round_up_div(size + sizeof(Magic), SPAGE_SIZE);
       magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
       if (!DispatchHPageForSSpan(&ctx, magic, page_cnt, true))
@@ -144,6 +147,7 @@ OPMallocAdviced(OPHeap* heap, size_t size, int advice)
     }
   else
     {
+      // OP_LOG_DEBUG(logger, "HPAGE case");
       page_cnt = round_up_div(size + sizeof(Magic), HPAGE_SIZE);
       if (!OPHeapObtainHBlob(heap, &ctx, page_cnt))
         return NULL;
@@ -185,6 +189,13 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
     ;
 
   UnarySpan** it = &ctx->uqueue->uspan;
+  UnarySpan* it_debug = *it;
+  OP_LOG_DEBUG(logger, "start to log uspan queue %p", ctx->uqueue);
+  while (it_debug)
+    {
+      OP_LOG_DEBUG(logger, "%p uspan queue, uspan: %p", ctx->uqueue, it_debug);
+      it_debug = it_debug->next;
+    }
   while (*it)
     {
       ctx->sspan.uspan = *it;
@@ -195,9 +206,12 @@ DispatchUSpanForAddr(OPHeapCtx* ctx, Magic uspan_magic, void** addr)
           return true;
         case QOP_RESTART:
           atomic_check_out(&ctx->uqueue->pcard);
+          OP_LOG_DEBUG(logger, "retry case");
           goto retry;
         case QOP_CONTINUE:
           *it = (*it)->next;
+          // ha... never got invoked..
+          OP_LOG_DEBUG(logger, "continue with uspan %p", *it);
         }
     }
   if (!atomic_book_critical(&ctx->uqueue->pcard))
@@ -345,16 +359,27 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
   if (atomic_load_explicit(&uspan->state,
                            memory_order_acquire) == SPAN_DEQUEUED)
     {
+      OP_LOG_DEBUG(logger, "restart uspan %p because it is dequeued", uspan);
       atomic_check_out(&uspan->pcard);
       return QOP_RESTART;
     }
   if (!atomic_book_critical(&ctx->uqueue->pcard))
     {
+      OP_LOG_DEBUG(logger, "restart uspan %p because book critical failed",
+                   uspan);
       atomic_check_out(&uspan->pcard);
       return QOP_RESTART;
     }
   atomic_enter_critical(&ctx->uqueue->pcard);
+  OP_LOG_DEBUG(logger, "dequeue uspan %p", uspan);
   DequeueUSpan(ctx->uqueue, uspan);
+  OP_LOG_DEBUG(logger, "uspan queue %p after dequeue %p", ctx->uqueue, uspan);
+  UnarySpan* debug_it = ctx->uqueue->uspan;
+  while (debug_it)
+    {
+      OP_LOG_DEBUG(logger, "uspan queue %p uspan %p after dequeue", ctx->uqueue, debug_it);
+      debug_it = debug_it->next;
+    }
   atomic_exit_critical(&ctx->uqueue->pcard);
   atomic_check_out(&uspan->pcard);
   return QOP_RESTART;
