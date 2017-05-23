@@ -91,7 +91,7 @@ $(function() {
 </li>
 </ul>
 <h2>INSTALL </h2>
-<div class="fragment"><div class="line"># For people who download the tarball release</div><div class="line">./configure; make; make install</div><div class="line"></div><div class="line"># For people who clone from github</div><div class="line">./bootstrap.sh</div><div class="line">./configure; make; make install</div></div><!-- fragment --><p>User who runs OPIC on linux need to disable overcommit accounting. This is because OPIC pre-allocates large memory in 64bit memory space.</p>
+<div class="fragment"><div class="line"># For people who download the tarball release</div><div class="line">./configure</div><div class="line">make</div><div class="line">sudo make install</div><div class="line"></div><div class="line"># For people who clone from github</div><div class="line">git submodule update --init --recursive</div><div class="line">./bootstrap.sh</div><div class="line">./configure</div><div class="line">make</div><div class="line">sudo make install</div></div><!-- fragment --><p>User who runs OPIC on linux need to disable overcommit accounting. This is because OPIC pre-allocates large memory in 64bit memory space.</p>
 <div class="fragment"><div class="line">sudo sysctl vm.overcommit_memory=1</div></div><!-- fragment --><h2>DATA STRUCTURES INCLUDED </h2>
 <ul>
 <li>RobinHoodHash, can be used as<ul>
@@ -128,13 +128,31 @@ more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with OPIC.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
-</pre><p>In future we may also form a commercial license and support.</p>
-<h2>CODE STYLE FOR CONTRIBUTORS </h2>
+</pre><p>Cityhash is included in this project. Here is the copyright statements for cityhash: </p><pre class="fragment">Copyright (c) 2011 Google, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</pre><h2>CODE STYLE FOR CONTRIBUTORS </h2>
 <p>Please follow the <a href="https://www.gnu.org/prep/standards/standards.html">GNU Coding Standards</a>. On the moment of this writing we still have some portion of the code hasn't yet convert to GNU formatting styles, but this should be fixed in near future. </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Apr 29 2017 19:51:46 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon May 22 2017 19:45:23 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>
