@@ -78,11 +78,16 @@ INSTALL
 
 ```bash
 # For people who download the tarball release
-./configure; make; make install
+./configure
+make
+sudo make install
 
 # For people who clone from github
+git submodule update --init --recursive
 ./bootstrap.sh
-./configure; make; make install
+./configure
+make
+sudo make install
 ```
 
 User who runs OPIC on linux need to disable overcommit accounting.  This is

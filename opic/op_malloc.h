@@ -29,6 +29,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
+#include "opic/common/op_assert.h"
 #include "opic/common/op_macros.h"
 
 OP_BEGIN_DECLS
@@ -104,6 +106,10 @@ typedef struct OPHeap OPHeap;
  *   - OPRef2Ptr.
  */
 typedef uintptr_t opref_t;
+
+typedef uintptr_t oplenref_t;
+
+#define OPLENREF_MAX_LEN (1ULL << (64 - OPHEAP_BITS))
 
 /**
  * @relates OPHeap
@@ -215,6 +221,37 @@ static inline void*
 OPRef2Ptr(void* ptr_in_heap, opref_t ref)
 {
   return (void*)((opref_t)ObtainOPHeap(ptr_in_heap) + ref);
+}
+
+static inline oplenref_t
+OPPtr2LenRef(void* addr, size_t size)
+{
+  oplenref_t ref;
+
+  op_assert(size < OPLENREF_MAX_LEN,
+            "Size for oplenref_t must smaller than %" PRIu64
+            ", but was %zu\n", OPLENREF_MAX_LEN, size);
+  ref = (oplenref_t)addr & (OPHEAP_SIZE - 1);
+  ref |= size << OPHEAP_BITS;
+  return ref;
+}
+
+static inline size_t
+OPLenRef2Size(oplenref_t ref)
+{
+  return (size_t)(ref >> OPHEAP_BITS);
+}
+
+static inline opref_t
+OPLenRef2Ref(oplenref_t ref)
+{
+  return ref & (OPHEAP_SIZE - 1);
+}
+
+static inline void*
+OPLenRef2Ptr(void* ptr_in_heap, oplenref_t ref)
+{
+  return OPRef2Ptr(ptr_in_heap, OPLenRef2Ref(ref));
 }
 
 /**

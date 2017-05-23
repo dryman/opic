@@ -55,7 +55,7 @@
 #include "init_helper.h"
 #include "lookup_helper.h"
 
-#define DISPATCH_ATTEMPT 1024
+#define DISPATCH_ATTEMPT 128
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 

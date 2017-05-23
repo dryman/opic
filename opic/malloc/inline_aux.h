@@ -85,7 +85,10 @@ DequeueUSpan(UnarySpanQueue* uspan_queue, UnarySpan* uspan)
     it = &(*it)->next;
 
   if (*it)
-    *it = (*it)->next;
+    {
+      *it = (*it)->next;
+      uspan->next = NULL;
+    }
 
   atomic_store_explicit(&uspan->state, SPAN_DEQUEUED, memory_order_release);
 }
@@ -118,7 +121,10 @@ DequeueHPage(HugePageQueue* hpage_queue, HugePage* hpage)
     it = &(*it)->next;
 
   if (*it)
-    *it = (*it)->next;
+    {
+      *it = (*it)->next;
+      hpage->next = NULL;
+    }
 
   atomic_store_explicit(&hpage->state, SPAN_DEQUEUED, memory_order_release);
 }
