@@ -181,7 +181,6 @@ USpanReleaseAddr(UnarySpan* uspan, void* addr)
           atomic_check_out(&uspan->pcard);
           return;
         }
-      OP_LOG_DEBUG(logger, "enqueue uspan %p", uspan);
       EnqueueUSpan(uqueue, uspan);
       atomic_exit_check_out(&uqueue->pcard);
       atomic_check_out(&uspan->pcard);
