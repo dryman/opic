@@ -55,7 +55,7 @@
 #include "init_helper.h"
 #include "lookup_helper.h"
 
-#define DISPATCH_ATTEMPT 5
+#define DISPATCH_ATTEMPT 128
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 
@@ -355,11 +355,6 @@ USpanObtainAddr(OPHeapCtx* ctx, void** addr)
     }
   atomic_enter_critical(&ctx->uqueue->pcard);
   DequeueUSpan(ctx->uqueue, uspan);
-  UnarySpan* debug_it = ctx->uqueue->uspan;
-  while (debug_it)
-    {
-      debug_it = debug_it->next;
-    }
   atomic_exit_critical(&ctx->uqueue->pcard);
   atomic_check_out(&uspan->pcard);
   return QOP_RESTART;
