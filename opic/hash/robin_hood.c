@@ -184,6 +184,129 @@ findprobe(RobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   return -1;
 }
 
+static inline void
+IncreaseProbeStat(RobinHoodHash* rhh, int probe)
+{
+  rhh->objcnt++;
+  rhh->longest_probes = probe > rhh->longest_probes ?
+    probe : rhh->longest_probes;
+  if (probe < PROBE_STATS_SIZE)
+    rhh->stats[probe]++;
+  else
+    OP_LOG_WARN(logger, "Large probe: %d\n", probe);
+}
+
+static inline void
+RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
+                  void* key, uint8_t** matched_bucket)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* buckets;
+  int probe, old_probe;
+  uint8_t bucket_cpy[bucket_size];
+  uint8_t bucket_tmp[bucket_size];
+  uintptr_t idx, _idx;
+  uint64_t hashed_key;
+
+  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  //memcpy(bucket_cpy, bucket, bucket_size);
+  probe = 0;
+  hashed_key = hasher(key, keysize);
+
+  // first round: find matched bucket
+  while (true)
+    {
+      idx = hash_with_probe(rhh, hashed_key, probe);
+      if (buckets[idx * bucket_size] == 0)
+        {
+          IncreaseProbeStat(rhh, probe);
+          *matched_bucket = &buckets[idx * bucket_size];
+          return;
+        }
+      else if (buckets[idx * bucket_size] == 2)
+        {
+          for (int p = probe+1; p <= rhh->longest_probes; p++)
+            {
+              _idx = hash_with_probe(rhh, hashed_key, p);
+              if (buckets[_idx * bucket_size] != 1)
+                continue;
+              if (!memcmp(key, &buckets[_idx * bucket_size], bucket_size))
+                {
+                  *matched_bucket = &buckets[_idx * bucket_size];
+                  return;
+                }
+            }
+          IncreaseProbeStat(rhh, probe);
+          *matched_bucket = &buckets[idx * bucket_size];
+          return;
+        }
+      if (!memcmp(key, &buckets[idx * bucket_size], keysize))
+        {
+          *matched_bucket = &buckets[idx * bucket_size];
+          return;
+        }
+      old_probe = findprobe(rhh, hasher, idx);
+      if (probe > old_probe)
+        {
+          rhh->longest_probes = probe > rhh->longest_probes ?
+            probe : rhh->longest_probes;
+          if (old_probe < PROBE_STATS_SIZE)
+            rhh->stats[old_probe]--;
+          if (probe < PROBE_STATS_SIZE)
+            rhh->stats[probe]++;
+          else
+            OP_LOG_WARN(logger, "Large probe: %d\n", probe);
+          *matched_bucket = &buckets[idx * bucket_size];
+          memcpy(bucket_cpy, &buckets[idx * bucket_size], bucket_size);
+          memcpy(&buckets[idx * bucket_size + 1], key, keysize);
+          probe = old_probe+1;
+          break;
+        }
+      probe++;
+    }
+
+  // second round: move existing records around
+  // Now we should not have any duplicate value, so no need to
+  // compare the keys.
+  hashed_key = hasher(&bucket_cpy[1], keysize);
+  while (true)
+    {
+      idx = hash_with_probe(rhh, hashed_key, probe);
+      // empty bucket and tombstone bucket
+      if (buckets[idx * bucket_size] != 1)
+        {
+          IncreaseProbeStat(rhh, probe);
+          memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
+          return;
+        }
+      old_probe = findprobe(rhh, hasher, idx);
+      // If the one we're swaping out is the matched bucket,
+      // we're in a cycle. Break the cycle by skipping the
+      // matched_bucket.
+      if (probe > old_probe &&
+          (void*)&buckets[idx * bucket_size] != matched_bucket)
+        {
+          rhh->longest_probes = probe > rhh->longest_probes ?
+            probe : rhh->longest_probes;
+          if (old_probe < PROBE_STATS_SIZE)
+            rhh->stats[old_probe]--;
+          if (probe < PROBE_STATS_SIZE)
+            rhh->stats[probe]++;
+          else
+            OP_LOG_WARN(logger, "Large probe: %d\n", probe);
+          memcpy(bucket_tmp, &buckets[idx * bucket_size], bucket_size);
+          memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
+          memcpy(bucket_cpy, bucket_tmp, bucket_size);
+          probe = old_probe + 1;
+          hashed_key = hasher(&bucket_cpy[1], keysize);
+          continue;
+        }
+      probe++;
+    }
+}
+
 static bool
 RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
 {
@@ -195,9 +318,7 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
   uint8_t* new_buckets;
   uint8_t new_capacity_ms4b, new_capacity_clz;
   uint64_t old_capacity, new_capacity;
-  uintptr_t bucket_base;
-  void* oldkey;
-  void* oldval;
+  uint8_t *matched_bucket;
 
   old_capacity = RHHCapacity(rhh);
   old_buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
@@ -265,11 +386,10 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
     {
       if (old_buckets[idx*bucket_size] == 1)
         {
-          bucket_base = (uintptr_t)&old_buckets[idx*bucket_size];
-          oldkey = (void*)(bucket_base + 1);
-          oldval = (void*)(bucket_base + 1 + keysize);
-          op_assert(RHHPutCustom(rhh, hasher, oldkey, oldval),
-                    "Resize and insert with idx: %" PRIu64 "\n", idx);
+          RHHUpsertInternal(rhh, hasher,
+                            &old_buckets[idx * bucket_size + 1],
+                            &matched_bucket);
+          memcpy(matched_bucket, &old_buckets[idx * bucket_size], bucket_size);
         }
     }
   OPDealloc(old_buckets);
@@ -286,9 +406,7 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
   uint8_t* new_buckets;
   uint8_t new_capacity_ms4b, new_capacity_clz;
   uint64_t old_capacity, new_capacity;
-  uintptr_t bucket_base;
-  void* oldkey;
-  void* oldval;
+  uint8_t* matched_bucket;
 
   old_capacity = RHHCapacity(rhh);
   old_buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
@@ -340,11 +458,10 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
     {
       if (old_buckets[idx*bucket_size] == 1)
         {
-          bucket_base = (uintptr_t)&old_buckets[idx*bucket_size];
-          oldkey = (void*)(bucket_base + 1);
-          oldval = (void*)(bucket_base + 1 + keysize);
-          op_assert(RHHPutCustom(rhh, hasher, oldkey, oldval),
-                    "Resize and insert with idx: %" PRIu64 "\n", idx);
+          RHHUpsertInternal(rhh, hasher,
+                            &old_buckets[idx * bucket_size + 1],
+                            &matched_bucket);
+          memcpy(matched_bucket, &old_buckets[idx * bucket_size], bucket_size);
         }
     }
   OPDealloc(old_buckets);
@@ -356,62 +473,16 @@ bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
-  uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  uintptr_t idx;
-  int probe, old_probe;
+  uint8_t* matched_bucket;
   uint8_t bucket_cpy[bucket_size];
-  uint8_t bucket_tmp[bucket_size];
-  uint64_t hashed_key;
 
   bucket_cpy[0] = 1;
   memcpy(&bucket_cpy[1], key, keysize);
   memcpy(&bucket_cpy[1 + keysize], val, valsize);
 
-  probe = 0;
-  while (true)
-    {
-      hashed_key = hasher(&bucket_cpy[1], keysize);
-      idx = hash_with_probe(rhh, hashed_key, probe);
-      if (buckets[idx*bucket_size] != 1)
-        {
-          memcpy(&buckets[idx*bucket_size], bucket_cpy, bucket_size);
-          rhh->longest_probes = probe > rhh->longest_probes ?
-            probe : rhh->longest_probes;
-          rhh->objcnt++;
-          if (probe < PROBE_STATS_SIZE)
-            rhh->stats[probe]++;
-          else
-            OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-          goto size_check;
-        }
-      else if (!memcmp(&buckets[idx*bucket_size + 1],
-                       &bucket_cpy[1], keysize))
-        {
-          memcpy(&buckets[idx*bucket_size], bucket_cpy, bucket_size);
-          goto size_check;
-        }
-      old_probe = findprobe(rhh, hasher, idx);
+  RHHUpsertInternal(rhh, hasher, key, &matched_bucket);
+  memcpy(matched_bucket, bucket_cpy, bucket_size);
 
-      if (probe > old_probe)
-        {
-          rhh->longest_probes = probe > rhh->longest_probes ?
-            probe : rhh->longest_probes;
-          if (old_probe < PROBE_STATS_SIZE)
-            rhh->stats[old_probe]--;
-          if (probe < PROBE_STATS_SIZE)
-            rhh->stats[probe]++;
-          else
-            OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-          memcpy(bucket_tmp, &buckets[idx*bucket_size], bucket_size);
-          memcpy(&buckets[idx*bucket_size], bucket_cpy, bucket_size);
-          memcpy(bucket_cpy, bucket_tmp, bucket_size);
-          rhh->longest_probes = probe > rhh->longest_probes ?
-            probe : rhh->longest_probes;
-          probe = old_probe;
-        }
-        probe++;
-    }
- size_check:
   if (rhh->objcnt > rhh->objcnt_high)
     {
       return RHHSizeUp(rhh, hasher);
