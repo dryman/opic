@@ -105,7 +105,7 @@ void RHHDestroy(RobinHoodHash* rhh);
  * the hash table will resized with a larger capacity. If the resize failed,
  * false is returned.
  */
-bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
+bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
 
 /**
  * @relates RobinHoodHash　
@@ -155,9 +155,9 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
  * false is returned.
  */
 static inline bool
-RHHPut(RobinHoodHash* rhh, void* key, void* val)
+RHHInsert(RobinHoodHash* rhh, void* key, void* val)
 {
-  return RHHPutCustom(rhh, OPDefaultHash, key, val);
+  return RHHInsertCustom(rhh, OPDefaultHash, key, val);
 }
 
 /**

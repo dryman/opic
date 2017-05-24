@@ -117,7 +117,7 @@ uint64_t farm(void* key, size_t size)
 uint64_t RHHPutWrap(void* key, void* context, OPHash hash_impl)
 {
   uint64_t val = 0;
-  RHHPutCustom(context, hash_impl, key, &val);
+  RHHInsertCustom(context, hash_impl, key, &val);
   return 0;
 }
 

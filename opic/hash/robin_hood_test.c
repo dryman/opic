@@ -113,7 +113,7 @@ test_BasicInsert(void** context)
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       OP_LOG_DEBUG(logger, "Inserting %d", i);
-      RHHPut(rhh, &i, NULL);
+      RHHInsert(rhh, &i, NULL);
     }
   RHHPrintStat(rhh);
   assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
@@ -141,7 +141,7 @@ test_BasicDelete(void** context)
                      0.95, sizeof(int), 0));
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHPut(rhh, &i, NULL);
+      RHHInsert(rhh, &i, NULL);
     }
   assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
 
@@ -167,7 +167,7 @@ test_DistributionForUpdate(void** context)
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHPut(rhh, &i, NULL);
+      RHHInsert(rhh, &i, NULL);
     }
   assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
   // TODO Change API to test the highest probe
@@ -177,7 +177,7 @@ test_DistributionForUpdate(void** context)
     {
       key = i - TEST_OBJECTS;
       RHHDelete(rhh, &key);
-      RHHPut(rhh, &i, NULL);
+      RHHInsert(rhh, &i, NULL);
     }
   RHHPrintStat(rhh);
   RHHDestroy(rhh);

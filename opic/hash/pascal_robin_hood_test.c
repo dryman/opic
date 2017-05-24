@@ -126,7 +126,7 @@ test_BasicInsert(void** context)
     {
       keylen = MutateUUID(i);
       //OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
-      PRHHPut(rhh, uuid, keylen, NULL);
+      PRHHInsert(rhh, uuid, keylen, NULL);
     }
   PRHHPrintStat(rhh);
   assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
@@ -155,7 +155,7 @@ test_BasicDelete(void** context)
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      PRHHPut(rhh, uuid, keylen, NULL);
+      PRHHInsert(rhh, uuid, keylen, NULL);
     }
   assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
 
@@ -187,7 +187,7 @@ test_DistributionForUpdate(void** context)
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      PRHHPut(rhh, uuid, keylen, NULL);
+      PRHHInsert(rhh, uuid, keylen, NULL);
     }
   assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
   // TODO Change API to test the highest probe
@@ -200,7 +200,7 @@ test_DistributionForUpdate(void** context)
       PRHHDelete(rhh, uuid, keylen);
       keylen = MutateUUID(i+TEST_OBJECTS);
       // OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
-      PRHHPut(rhh, uuid, keylen, NULL);
+      PRHHInsert(rhh, uuid, keylen, NULL);
     }
   PRHHPrintStat(rhh);
   PRHHDestroy(rhh);

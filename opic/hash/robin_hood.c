@@ -475,7 +475,7 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
   return true;
 }
 
-bool RHHPutCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
+bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;

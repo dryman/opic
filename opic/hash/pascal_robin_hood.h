@@ -96,8 +96,8 @@ void PRHHDestroy(PascalRobinHoodHash* rhh);
  * configured, the hash table will resized with a larger capacity. If
  * the resize failed, false is returned.
  */
-bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                   void* key, size_t keysize, void* val);
+bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
+                      void* key, size_t keysize, void* val);
 
 /**
  * @relates PascalRobinHoodHash
@@ -154,9 +154,9 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
  *
  */
 static inline bool
-PRHHPut(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
+PRHHInsert(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
 {
-  return PRHHPutCustom(rhh, OPDefaultHash, key, keysize, val);
+  return PRHHInsertCustom(rhh, OPDefaultHash, key, keysize, val);
 }
 
 /**

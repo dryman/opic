@@ -518,8 +518,8 @@ PRHHSizeDown(PascalRobinHoodHash* rhh, OPHash hasher)
   return true;
 }
 
-bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                   void* key, size_t keysize, void* val)
+bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
+                      void* key, size_t keysize, void* val)
 {
   const size_t refsize = sizeof(oplenref_t);
   const size_t valsize = rhh->valsize;
