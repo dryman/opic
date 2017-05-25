@@ -209,7 +209,6 @@ test_Upsert(void** context)
     {
       assert_true(RHHUpsert(rhh, &i, (void**)&val, &is_duplicate));
       assert_false(is_duplicate);
-      //val = val_ref;
       *val = i;
     }
 

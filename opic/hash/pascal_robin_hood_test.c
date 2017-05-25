@@ -207,6 +207,39 @@ test_DistributionForUpdate(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_Upsert(void** context)
+{
+  OPHeap* heap;
+  PascalRobinHoodHash* rhh;
+  size_t keylen;
+  int* val;
+  bool is_duplicate;
+
+  OP_LOG_INFO(logger, "Starting basic insert");
+  assert_true(OPHeapNew(&heap));
+  assert_true(PRHHNew(heap, &rhh, 20, 0.80,  sizeof(int)));
+  OP_LOG_DEBUG(logger, "PRHH addr %p", rhh);
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      keylen = MutateUUID(i);
+      assert_true(PRHHUpsert(rhh, uuid, keylen, (void**)&val, &is_duplicate));
+      assert_false(is_duplicate);
+      *val = i;
+    }
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      keylen = MutateUUID(i);
+      assert_true(PRHHUpsert(rhh, uuid, keylen, (void**)&val, &is_duplicate));
+      assert_true(is_duplicate);
+      assert_int_equal(i, *val);
+    }
+  PRHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -216,6 +249,7 @@ main (void)
       cmocka_unit_test(test_BasicInsert),
       cmocka_unit_test(test_BasicDelete),
       cmocka_unit_test(test_DistributionForUpdate),
+      cmocka_unit_test(test_Upsert),
     };
 
   return cmocka_run_group_tests(prhh_tests, NULL, NULL);

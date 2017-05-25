@@ -228,7 +228,6 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
   uint64_t hashed_key;
 
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  //memcpy(bucket_cpy, bucket, bucket_size);
   probe = 0;
   hashed_key = hasher(key, keysize);
 
@@ -566,7 +565,7 @@ bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
         return false;
     }
   PRHHUpsertInternal(rhh, hasher, key, keysize, &matched_bucket);
-  recref = (oplenref_t*)&matched_bucket;
+  recref = (oplenref_t*)matched_bucket;
   *val_ref = &matched_bucket[sizeof(oplenref_t)];
   *is_duplicate = *recref != PRHH_EMPTY_KEY && *recref != PRHH_TOMBSTONE_KEY;
 

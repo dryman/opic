@@ -155,8 +155,6 @@ hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
 {
   uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
-  // Maybe I should use linear probing when table is smaller
-  // than certain size..
   // linear probing
   // uint64_t probed_hash = key + probe * 2;
 
