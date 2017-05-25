@@ -99,6 +99,10 @@ void PRHHDestroy(PascalRobinHoodHash* rhh);
 bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                       void* key, size_t keysize, void* val);
 
+bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
+                      void* key, size_t keysize, void** val_ref,
+                      bool* is_duplicate);
+
 /**
  * @relates PascalRobinHoodHash
  * @brief Obtain the value associated with the key and hash function.
@@ -157,6 +161,14 @@ static inline bool
 PRHHInsert(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
 {
   return PRHHInsertCustom(rhh, OPDefaultHash, key, keysize, val);
+}
+
+static inline bool
+PRHHUpsert(PascalRobinHoodHash* rhh, void* key, size_t keysize,
+           void** val_ref, bool* is_duplicate)
+{
+  return PRHHUpsertCustom(rhh, OPDefaultHash, key, keysize,
+                          val_ref, is_duplicate);
 }
 
 /**

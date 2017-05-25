@@ -155,6 +155,8 @@ hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
 {
   uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
+  // Maybe I should use linear probing when table is smaller
+  // than certain size..
   // linear probing
   // uint64_t probed_hash = key + probe * 2;
 
@@ -211,7 +213,6 @@ RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
   uint64_t hashed_key;
 
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  //memcpy(bucket_cpy, bucket, bucket_size);
   probe = 0;
   hashed_key = hasher(key, keysize);
 
@@ -232,7 +233,7 @@ RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
               _idx = hash_with_probe(rhh, hashed_key, p);
               if (buckets[_idx * bucket_size] != 1)
                 continue;
-              if (!memcmp(key, &buckets[_idx * bucket_size], bucket_size))
+              if (!memcmp(key, &buckets[_idx * bucket_size + 1], bucket_size))
                 {
                   *matched_bucket = &buckets[_idx * bucket_size];
                   return;
@@ -242,7 +243,7 @@ RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
           *matched_bucket = &buckets[idx * bucket_size];
           return;
         }
-      if (!memcmp(key, &buckets[idx * bucket_size], keysize))
+      if (!memcmp(key, &buckets[idx * bucket_size + 1], keysize))
         {
           *matched_bucket = &buckets[idx * bucket_size];
           return;
@@ -278,13 +279,13 @@ RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
       // If the one we're swaping out is the matched bucket,
       // we're in a cycle. Break the cycle by skipping the
       // matched_bucket.
-      if ((void*)&buckets[idx * bucket_size] == matched_bucket)
+      if (&buckets[idx * bucket_size] == *matched_bucket)
         {
           probe++;
           continue;
         }
 
-      // empty bucket and tombstone bucket
+      // empty bucket or tombstone bucket
       if (buckets[idx * bucket_size] != 1)
         {
           IncreaseProbeStat(rhh, probe);
@@ -481,31 +482,41 @@ bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
   const size_t valsize = rhh->valsize;
   uint8_t* matched_bucket;
 
+  if (rhh->objcnt > rhh->objcnt_high)
+    {
+      if(!RHHSizeUp(rhh, hasher))
+        return false;
+    }
+
   RHHUpsertInternal(rhh, hasher, key, &matched_bucket);
   *matched_bucket = 1;
   memcpy(&matched_bucket[1], key, keysize);
   memcpy(&matched_bucket[1 + keysize], val, valsize);
 
-  if (rhh->objcnt > rhh->objcnt_high)
-    {
-      return RHHSizeUp(rhh, hasher);
-    }
   return true;
 }
 
 bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
-                     void* key, void** val_ref)
+                     void* key, void** val_ref, bool* is_duplicate)
 {
   const size_t keysize = rhh->keysize;
   uint8_t* matched_bucket;
+
+  if (rhh->objcnt > rhh->objcnt_high)
+    {
+      if (!RHHSizeUp(rhh, hasher))
+        return false;
+    }
   RHHUpsertInternal(rhh, hasher, key, &matched_bucket);
   *val_ref = &matched_bucket[keysize + 1];
+  *is_duplicate = *matched_bucket == 1;
+  if (!*is_duplicate)
+    {
+      *matched_bucket = 1;
+      memcpy(&matched_bucket[1], key, keysize);
+    }
 
-  // duplicate key case
-  if (*matched_bucket == 1)
-    return true;
-  memcpy(&matched_bucket[1], key, keysize);
-  return false;
+  return true;
 }
 
 static inline bool
@@ -671,10 +682,13 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
 
   for (uint64_t idx = 0; idx < capacity; idx++)
     {
+      OP_LOG_DEBUG(logger, "idx %" PRIu64, idx);
       if (buckets[idx*bucket_size] == 1)
+        {
         iterator(&buckets[idx*bucket_size + 1],
                  &buckets[idx*bucket_size + 1 + keysize],
                  keysize, valsize, context);
+        }
     }
 }
 

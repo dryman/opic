@@ -307,7 +307,7 @@ PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
       // If the one we're swaping out is the matched bucket,
       // we're in a cycle. Break the cycle by skipping the
       // matched_bucket.
-      if ((void*)&buckets[idx * bucket_size] == matched_bucket)
+      if (&buckets[idx * bucket_size] == *matched_bucket)
         {
           probe++;
           continue;
@@ -528,6 +528,11 @@ bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   OPHeap* heap;
   uint8_t* matched_bucket;
 
+  if (rhh->objcnt > rhh->objcnt_high)
+    {
+      if(!PRHHSizeUp(rhh, hasher))
+        return false;
+    }
   PRHHUpsertInternal(rhh, hasher, key, keysize, &matched_bucket);
   memcpy(&matched_bucket[refsize], val, valsize);
 
@@ -543,26 +548,29 @@ bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
       memcpy(matched_bucket, &keylenref, sizeof(oplenref_t));
     }
 
-  if (rhh->objcnt > rhh->objcnt_high)
-    {
-      return PRHHSizeUp(rhh, hasher);
-    }
   return true;
 }
 
 bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                      void* key, size_t keysize, void** val_ref)
+                      void* key, size_t keysize, void** val_ref,
+                      bool* is_duplicate)
 {
   uint8_t* matched_bucket;
   OPHeap* heap;
   void* keyptr;
   oplenref_t keylenref, *recref;
-  PRHHUpsertInternal(rhh, hasher, key, keysize, &matched_bucket);
-  *val_ref = &matched_bucket[sizeof(oplenref_t)];
 
+  if (rhh->objcnt > rhh->objcnt_high)
+    {
+      if(!PRHHSizeUp(rhh, hasher))
+        return false;
+    }
+  PRHHUpsertInternal(rhh, hasher, key, keysize, &matched_bucket);
   recref = (oplenref_t*)&matched_bucket;
-  if (*recref == PRHH_EMPTY_KEY ||
-      *recref == PRHH_TOMBSTONE_KEY)
+  *val_ref = &matched_bucket[sizeof(oplenref_t)];
+  *is_duplicate = *recref != PRHH_EMPTY_KEY && *recref != PRHH_TOMBSTONE_KEY;
+
+  if (!*is_duplicate)
     {
       heap = ObtainOPHeap(rhh);
       keyptr = OPCalloc(heap, 1, keysize);
@@ -570,12 +578,8 @@ bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
       memcpy(keyptr, key, keysize);
       keylenref = OPPtr2LenRef(keyptr, keysize);
       memcpy(matched_bucket, &keylenref, sizeof(oplenref_t));
-      return false;
     }
-  else
-    {
-      return true;
-    }
+  return true;
 }
 
 static inline bool

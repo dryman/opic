@@ -58,7 +58,7 @@
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood_test");
 
-#define TEST_OBJECTS (1 << 15)
+#define TEST_OBJECTS (1<<15)
 
 static int objcnt = 0;
 static uint8_t objmap[TEST_OBJECTS];
@@ -83,6 +83,7 @@ void CheckObjects(void* key, void* val,
                   size_t keysize, size_t valsize, void* ctx)
 {
   int* intkey = key;
+  OP_LOG_DEBUG(logger, "viewing obj %i", *intkey);
   objmap[*intkey] = 1;
 }
 
@@ -112,7 +113,6 @@ test_BasicInsert(void** context)
   OP_LOG_DEBUG(logger, "RHH addr %p", rhh);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      OP_LOG_DEBUG(logger, "Inserting %d", i);
       RHHInsert(rhh, &i, NULL);
     }
   RHHPrintStat(rhh);
@@ -135,21 +135,30 @@ test_BasicDelete(void** context)
 {
   OPHeap* heap;
   RobinHoodHash* rhh;
+  int i;
 
   assert_true(OPHeapNew(&heap));
   assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
                      0.95, sizeof(int), 0));
-  for (int i = 0; i < TEST_OBJECTS; i++)
+  for (i = 0; i < TEST_OBJECTS; i++)
     {
       RHHInsert(rhh, &i, NULL);
     }
   assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
 
-  for (int i = 0; i < TEST_OBJECTS; i++)
+  for (i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_non_null(RHHGet(rhh, &i));
+    }
+
+  for (i = 0; i < TEST_OBJECTS; i++)
     {
       assert_non_null(RHHDelete(rhh, &i));
     }
   assert_int_equal(0, RHHObjcnt(rhh));
+  ResetObjcnt();
+  RHHIterate(rhh, CountObjects, NULL);
+  assert_int_equal(0, objcnt);
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -184,6 +193,34 @@ test_DistributionForUpdate(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_Upsert(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  int* val;
+  bool is_duplicate;
+
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, 20,
+                     0.7, sizeof(int), sizeof(int)));
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_true(RHHUpsert(rhh, &i, (void**)&val, &is_duplicate));
+      assert_false(is_duplicate);
+      //val = val_ref;
+      *val = i;
+    }
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_true(RHHUpsert(rhh, &i, (void**)&val, &is_duplicate));
+      assert_true(is_duplicate);
+      assert_int_equal(i, *val);
+    }
+}
+
 int
 main (void)
 {
@@ -193,6 +230,7 @@ main (void)
       cmocka_unit_test(test_BasicInsert),
       cmocka_unit_test(test_BasicDelete),
       cmocka_unit_test(test_DistributionForUpdate),
+      cmocka_unit_test(test_Upsert),
     };
 
   return cmocka_run_group_tests(rhh_tests, NULL, NULL);

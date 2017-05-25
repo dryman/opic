@@ -107,6 +107,9 @@ void RHHDestroy(RobinHoodHash* rhh);
  */
 bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
 
+bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
+                     void* key, void** val_ref, bool* is_duplicate);
+
 /**
  * @relates RobinHoodHash　
  * @brief Obtain the value associated with the specified key and hash
@@ -158,6 +161,12 @@ static inline bool
 RHHInsert(RobinHoodHash* rhh, void* key, void* val)
 {
   return RHHInsertCustom(rhh, OPDefaultHash, key, val);
+}
+
+static inline bool
+RHHUpsert(RobinHoodHash* rhh, void* key, void** val_ref, bool* is_duplicate)
+{
+  return RHHUpsertCustom(rhh, OPDefaultHash, key, val_ref, is_duplicate);
 }
 
 /**
