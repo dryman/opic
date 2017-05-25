@@ -163,6 +163,25 @@ RHHInsert(RobinHoodHash* rhh, void* key, void* val)
   return RHHInsertCustom(rhh, OPDefaultHash, key, val);
 }
 
+/**
+ * @relates RobinHoodHash　
+ * @brief An "update or insert" interface; the key is inserted if it
+ * was absent.
+ *
+ * @param rhh RobinHoodHash instance.
+ * @param key pointer to the key.
+ * @param val_ref reference of value pointer.
+ * @param is_duplicate reference of duplication boolean variable.
+ * @return true if the operation succeeded, false otherwise.
+ *
+ * The content pointed by key and val will be copied into the hash table.
+ * If the value size were 0, only the key get copied. When there's a
+ * key collision, the coresponding value get replaced.
+ *
+ * If the inserted key-value pairs exceeded the original size user configured,
+ * the hash table will resized with a larger capacity. If the resize failed,
+ * false is returned.
+ */
 static inline bool
 RHHUpsert(RobinHoodHash* rhh, void* key, void** val_ref, bool* is_duplicate)
 {
