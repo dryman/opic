@@ -99,6 +99,26 @@ void PRHHDestroy(PascalRobinHoodHash* rhh);
 bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                       void* key, size_t keysize, void* val);
 
+/**
+ * @relates PascalRobinHoodHash
+ * @brief Update or insert depends on whether the key already exists in
+ * the hash table using custom hash function.
+ *
+ * @param rhh RobinHoodHash instance.
+ * @param hasher hash function.
+ * @param key pointer to the key.
+ * @param keysize length of the key data, measured in bytes.
+ * @param val_ref reference of value pointer.
+ * @param is_duplicate reference of duplication boolean variable.
+ * @return true if the operation succeeded, false otherwise.
+ *
+ * This method does not insert the value automatically, instead it provides
+ * the pointer to the address where value can be inserted or overriden.
+ *
+ * If the inserted key-value pairs exceeded the original size user configured,
+ * the hash table will resized with a larger capacity. If the resize failed,
+ * false is returned.
+ */
 bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                       void* key, size_t keysize, void** val_ref,
                       bool* is_duplicate);
@@ -163,6 +183,25 @@ PRHHInsert(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
   return PRHHInsertCustom(rhh, OPDefaultHash, key, keysize, val);
 }
 
+/**
+ * @relates PascalRobinHoodHash
+ * @brief Update or insert depends on whether the key already exists in
+ * the hash table.
+ *
+ * @param rhh RobinHoodHash instance.
+ * @param key pointer to the key.
+ * @param keysize length of the key data, measured in bytes.
+ * @param val_ref reference of value pointer.
+ * @param is_duplicate reference of duplication boolean variable.
+ * @return true if the operation succeeded, false otherwise.
+ *
+ * This method does not insert the value automatically, instead it provides
+ * the pointer to the address where value can be inserted or overriden.
+ *
+ * If the inserted key-value pairs exceeded the original size user configured,
+ * the hash table will resized with a larger capacity. If the resize failed,
+ * false is returned.
+ */
 static inline bool
 PRHHUpsert(PascalRobinHoodHash* rhh, void* key, size_t keysize,
            void** val_ref, bool* is_duplicate)

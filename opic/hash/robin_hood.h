@@ -107,6 +107,42 @@ void RHHDestroy(RobinHoodHash* rhh);
  */
 bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
 
+/**
+ * @relates RobinHoodHash　
+ * @brief Update or insert depends on whether the key already exists in
+ * the hash table using custom hash function.
+ *
+ * @param rhh RobinHoodHash instance.
+ * @param hasher hash function.
+ * @param key pointer to the key.
+ * @param val_ref reference of value pointer.
+ * @param is_duplicate reference of duplication boolean variable.
+ * @return true if the operation succeeded, false otherwise.
+ *
+ * This method does not insert the value automatically, instead it provides
+ * the pointer to the address where value can be inserted or overriden.
+ *
+ * @code
+ * int key;
+ * int* value;
+ * bool is_duplicate;
+ * RobinHoodHash *rhh;
+ * // create a robin hood hash where key and value are both integers.
+ * RHHNew(heap, &rhh, 30, 0.8, sizeof(int), sizeof(int));
+ * key = 5;
+ * RHHUpsert(rhh, OPDefaultHash, &key, (void**)&val, &is_duplicate);
+ * // different logic depends on is_duplicate.
+ * // User can use this interface to create a hash multimap.
+ * if (is_duplicate)
+ *   *value = 7;
+ * else
+ *   *value = 8;
+ * @endcode
+ *
+ * If the inserted key-value pairs exceeded the original size user configured,
+ * the hash table will resized with a larger capacity. If the resize failed,
+ * false is returned.
+ */
 bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
                      void* key, void** val_ref, bool* is_duplicate);
 
@@ -165,8 +201,8 @@ RHHInsert(RobinHoodHash* rhh, void* key, void* val)
 
 /**
  * @relates RobinHoodHash　
- * @brief An "update or insert" interface; the key is inserted if it
- * was absent.
+ * @brief Update or insert depends on whether the key already exists in
+ * the hash table.
  *
  * @param rhh RobinHoodHash instance.
  * @param key pointer to the key.
@@ -174,9 +210,25 @@ RHHInsert(RobinHoodHash* rhh, void* key, void* val)
  * @param is_duplicate reference of duplication boolean variable.
  * @return true if the operation succeeded, false otherwise.
  *
- * The content pointed by key and val will be copied into the hash table.
- * If the value size were 0, only the key get copied. When there's a
- * key collision, the coresponding value get replaced.
+ * This method does not insert the value automatically, instead it provides
+ * the pointer to the address where value can be inserted or overriden.
+ *
+ * @code
+ * int key;
+ * int* value;
+ * bool is_duplicate;
+ * RobinHoodHash *rhh;
+ * // create a robin hood hash where key and value are both integers.
+ * RHHNew(heap, &rhh, 30, 0.8, sizeof(int), sizeof(int));
+ * key = 5;
+ * RHHUpsert(rhh, &key, (void**)&val, &is_duplicate);
+ * // different logic depends on is_duplicate.
+ * // User can use this interface to create a hash multimap.
+ * if (is_duplicate)
+ *   *value = 7;
+ * else
+ *   *value = 8;
+ * @endcode
  *
  * If the inserted key-value pairs exceeded the original size user configured,
  * the hash table will resized with a larger capacity. If the resize failed,
