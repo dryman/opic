@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>OPIC: Globals</title>
+<title>OPIC: PascalRobinhoodHash Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -43,7 +43,6 @@ $(function() {
 });
 </script>
 <div id="main-nav"></div>
-</div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -58,58 +57,26 @@ $(function() {
 </iframe>
 </div>
 
+</div><!-- top -->
+<div class="header">
+  <div class="headertitle">
+<div class="title">PascalRobinhoodHash Struct Reference<div class="ingroups"><a class="el" href="group__hash.html">Hash</a></div></div>  </div>
+</div><!--header-->
 <div class="contents">
-&#160;<ul>
-<li>op_assert
-: <a class="el" href="group__assert.html#ga8dd3fbbfa1f4d8ec74332696290605d4">op_assert.h</a>
-</li>
-<li>op_assert_diagnose
-: <a class="el" href="group__assert.html#gaae3d5bfe7f3b289b39c91194e087e4fb">op_assert.h</a>
-</li>
-<li>OP_LOG_ALERT
-: <a class="el" href="group__log.html#gaa5326e4ab2fb68f0b2bbcfe4fbdcea62">op_log.h</a>
-</li>
-<li>OP_LOG_CRIT
-: <a class="el" href="group__log.html#ga3e1960393b57dc681713165a8802a1d3">op_log.h</a>
-</li>
-<li>OP_LOG_DEBUG
-: <a class="el" href="group__log.html#gaefa0ebc6ce5eb2afa3c4dc39e600265d">op_log.h</a>
-</li>
-<li>OP_LOG_ERROR
-: <a class="el" href="group__log.html#ga7f401d78072ca95914b07f923522d8bd">op_log.h</a>
-</li>
-<li>OP_LOG_FATAL
-: <a class="el" href="group__log.html#gab54b3a6913eb731ca7531af024501afb">op_log.h</a>
-</li>
-<li>OP_LOG_INFO
-: <a class="el" href="group__log.html#gac224151a2a26255438bf95847b973479">op_log.h</a>
-</li>
-<li>OP_LOG_NOTEST
-: <a class="el" href="group__log.html#ga016966df1264ddbc574b3ef463e3292c">op_log.h</a>
-</li>
-<li>OP_LOG_NOTICE
-: <a class="el" href="group__log.html#ga7703e4cc0b70b598fffbf9bbcc5a2e24">op_log.h</a>
-</li>
-<li>OP_LOG_TRACE
-: <a class="el" href="group__log.html#gad38f05058098e185ad561983a145eceb">op_log.h</a>
-</li>
-<li>OP_LOG_WARN
-: <a class="el" href="group__log.html#gae9af69fb01aae61878bc09a4fad79270">op_log.h</a>
-</li>
-<li>OP_LOGGER_FACTORY
-: <a class="el" href="group__log.html#ga2968866a8173524693bd87bc322bbc19">op_log.h</a>
-</li>
-<li>OPHEAP_BITS
-: <a class="el" href="group__malloc.html#ga5632d985bb170a09cd1d4e1360d4c91a">op_malloc.h</a>
-</li>
-<li>OPHEAP_SIZE
-: <a class="el" href="group__malloc.html#ga3e5e2ac9ff293eeee30b97cdfc8121b3">op_malloc.h</a>
-</li>
+
+<p>An opaque object that manages associations of key-value pairs.  
+ <a href="struct_pascal_robinhood_hash.html#details">More...</a></p>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>An opaque object that manages associations of key-value pairs. </p>
+<p>PascalRobinHoodHash uses pointers to manage keys that has different sizes. This doesn't make PascalRobinHoodHash harder to serialize, but does create some overhead: allocations and deallocations are invoked during insert and delete. Pointers may also make cache efficiancy worse compare to <a class="el" href="struct_robin_hood_hash　.html" title="RobinHoodHash is an opaque object that manage associations of fixed length key-value pairs...">RobinHoodHash　</a>.</p>
+<p>This object is not thread safe. </p>
+</div><hr/>The documentation for this struct was generated from the following file:<ul>
+<li>opic/hash/<a class="el" href="pascal__robin__hood_8h_source.html">pascal_robin_hood.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu May 25 2017 23:55:36 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu May 25 2017 23:49:09 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

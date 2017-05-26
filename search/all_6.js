@@ -15,7 +15,7 @@ var searchData=
   ['rhhprintstat',['RHHPrintStat',['../struct_robin_hood_hash　.html#a84f60f4e670821553ab0c0d4f2f68f63',1,'RobinHoodHash　']]],
   ['rhhupsert',['RHHUpsert',['../struct_robin_hood_hash　.html#a78d7af94c713e35b7751c87fb236f10d',1,'RobinHoodHash　']]],
   ['rhhupsertcustom',['RHHUpsertCustom',['../struct_robin_hood_hash　.html#ade8aaf58fbfd94f2d0c2fd29188d720d',1,'RobinHoodHash　']]],
-  ['rhhvalsize',['RHHValsize',['../struct_robin_hood_hash　.html#ae5765e5d01fd2fd3ef03ad20edb5e3d0',1,'RobinHoodHash　']]],
+  ['rhhvalsize',['RHHValsize',['../struct_pascal_robin_hood_hash　.html#a3f50ac85ba74bfba9d7bab6703487912',1,'PascalRobinHoodHash　::RHHValsize()'],['../struct_robin_hood_hash　.html#ae5765e5d01fd2fd3ef03ad20edb5e3d0',1,'RobinHoodHash　::RHHValsize()']]],
   ['robin_5fhood_2eh',['robin_hood.h',['../robin__hood_8h.html',1,'']]],
   ['robinhoodhash　',['RobinHoodHash　',['../struct_robin_hood_hash　.html',1,'']]]
 ];
