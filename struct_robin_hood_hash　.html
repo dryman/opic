@@ -79,18 +79,24 @@ Related Functions</h2></td></tr>
 <tr class="memitem:a42db886058e901550e623e69faca3b54"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a42db886058e901550e623e69faca3b54">RHHDestroy</a> (RobinHoodHash *rhh)</td></tr>
 <tr class="memdesc:a42db886058e901550e623e69faca3b54"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor for RobinHoodHash.  <a href="#a42db886058e901550e623e69faca3b54">More...</a><br /></td></tr>
 <tr class="separator:a42db886058e901550e623e69faca3b54"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4b80afbf1f043f58fd966f03279f1b1c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a4b80afbf1f043f58fd966f03279f1b1c">RHHPutCustom</a> (RobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, void *val)</td></tr>
-<tr class="memdesc:a4b80afbf1f043f58fd966f03279f1b1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates the specified key with the specified value in RobinHoodHash with specified hash function.  <a href="#a4b80afbf1f043f58fd966f03279f1b1c">More...</a><br /></td></tr>
-<tr class="separator:a4b80afbf1f043f58fd966f03279f1b1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4b1169d7bb009bffcb7b849002a09e68"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a4b1169d7bb009bffcb7b849002a09e68">RHHInsertCustom</a> (RobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, void *val)</td></tr>
+<tr class="memdesc:a4b1169d7bb009bffcb7b849002a09e68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates the specified key with the specified value in RobinHoodHash with specified hash function.  <a href="#a4b1169d7bb009bffcb7b849002a09e68">More...</a><br /></td></tr>
+<tr class="separator:a4b1169d7bb009bffcb7b849002a09e68"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ade8aaf58fbfd94f2d0c2fd29188d720d"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#ade8aaf58fbfd94f2d0c2fd29188d720d">RHHUpsertCustom</a> (RobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, void **val_ref, bool *is_duplicate)</td></tr>
+<tr class="memdesc:ade8aaf58fbfd94f2d0c2fd29188d720d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update or insert depends on whether the key already exists in the hash table using custom hash function.  <a href="#ade8aaf58fbfd94f2d0c2fd29188d720d">More...</a><br /></td></tr>
+<tr class="separator:ade8aaf58fbfd94f2d0c2fd29188d720d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a35619cb0724e2cc4e71dab87c1564965"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a35619cb0724e2cc4e71dab87c1564965">RHHGetCustom</a> (RobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key)</td></tr>
 <tr class="memdesc:a35619cb0724e2cc4e71dab87c1564965"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the value associated with the specified key and hash function. Returns NULL if the key was not found.  <a href="#a35619cb0724e2cc4e71dab87c1564965">More...</a><br /></td></tr>
 <tr class="separator:a35619cb0724e2cc4e71dab87c1564965"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a477a849b580bdbf75cdc5935303acfb3"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a477a849b580bdbf75cdc5935303acfb3">RHHDeleteCustom</a> (RobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key)</td></tr>
 <tr class="memdesc:a477a849b580bdbf75cdc5935303acfb3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deletes the key-value entry in hash table with specified hasher.  <a href="#a477a849b580bdbf75cdc5935303acfb3">More...</a><br /></td></tr>
 <tr class="separator:a477a849b580bdbf75cdc5935303acfb3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afdabff62d4f466acbefa1dbe3386d5a3"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#afdabff62d4f466acbefa1dbe3386d5a3">RHHPut</a> (RobinHoodHash *rhh, void *key, void *val)</td></tr>
-<tr class="memdesc:afdabff62d4f466acbefa1dbe3386d5a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates the specified key with the specified value in RobinHoodHash using the default hash function.  <a href="#afdabff62d4f466acbefa1dbe3386d5a3">More...</a><br /></td></tr>
-<tr class="separator:afdabff62d4f466acbefa1dbe3386d5a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7cef1b0b101732b6a248245c17aade19"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a7cef1b0b101732b6a248245c17aade19">RHHInsert</a> (RobinHoodHash *rhh, void *key, void *val)</td></tr>
+<tr class="memdesc:a7cef1b0b101732b6a248245c17aade19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates the specified key with the specified value in RobinHoodHash using the default hash function.  <a href="#a7cef1b0b101732b6a248245c17aade19">More...</a><br /></td></tr>
+<tr class="separator:a7cef1b0b101732b6a248245c17aade19"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a78d7af94c713e35b7751c87fb236f10d"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a78d7af94c713e35b7751c87fb236f10d">RHHUpsert</a> (RobinHoodHash *rhh, void *key, void **val_ref, bool *is_duplicate)</td></tr>
+<tr class="memdesc:a78d7af94c713e35b7751c87fb236f10d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update or insert depends on whether the key already exists in the hash table.  <a href="#a78d7af94c713e35b7751c87fb236f10d">More...</a><br /></td></tr>
+<tr class="separator:a78d7af94c713e35b7751c87fb236f10d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a092505baf168b2d721183b457239f272"><td class="memItemLeft" align="right" valign="top">static void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html#a092505baf168b2d721183b457239f272">RHHGet</a> (RobinHoodHash *rhh, void *key)</td></tr>
 <tr class="memdesc:a092505baf168b2d721183b457239f272"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the value associated with the specified key using the default hash function. Returns NULL if the key was not found.  <a href="#a092505baf168b2d721183b457239f272">More...</a><br /></td></tr>
 <tr class="separator:a092505baf168b2d721183b457239f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -238,8 +244,8 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 </div>
 </div>
-<a id="a4b80afbf1f043f58fd966f03279f1b1c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4b80afbf1f043f58fd966f03279f1b1c">&#9670;&nbsp;</a></span>RHHPutCustom()</h2>
+<a id="a4b1169d7bb009bffcb7b849002a09e68"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4b1169d7bb009bffcb7b849002a09e68">&#9670;&nbsp;</a></span>RHHInsertCustom()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -248,7 +254,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool RHHPutCustom </td>
+          <td class="memname">bool RHHInsertCustom </td>
           <td>(</td>
           <td class="paramtype">RobinHoodHash *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
@@ -298,7 +304,78 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <p>The content pointed by key and val will be copied into the hash table. If the value size were 0, only the key get copied. When there's a key collision, the coresponding value get replaced.</p>
 <p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00354">354</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00477">477</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
+
+</div>
+</div>
+<a id="ade8aaf58fbfd94f2d0c2fd29188d720d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ade8aaf58fbfd94f2d0c2fd29188d720d">&#9670;&nbsp;</a></span>RHHUpsertCustom()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool RHHUpsertCustom </td>
+          <td>(</td>
+          <td class="paramtype">RobinHoodHash *&#160;</td>
+          <td class="paramname"><em>rhh</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a>&#160;</td>
+          <td class="paramname"><em>hasher</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>key</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void **&#160;</td>
+          <td class="paramname"><em>val_ref</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool *&#160;</td>
+          <td class="paramname"><em>is_duplicate</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Update or insert depends on whether the key already exists in the hash table using custom hash function. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rhh</td><td>RobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">hasher</td><td>hash function. </td></tr>
+    <tr><td class="paramname">key</td><td>pointer to the key. </td></tr>
+    <tr><td class="paramname">val_ref</td><td>reference of value pointer. </td></tr>
+    <tr><td class="paramname">is_duplicate</td><td>reference of duplication boolean variable. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if the operation succeeded, false otherwise.</dd></dl>
+<p>This method does not insert the value automatically, instead it provides the pointer to the address where value can be inserted or overriden.</p>
+<div class="fragment"><div class="line"><span class="keywordtype">int</span> key;</div><div class="line"><span class="keywordtype">int</span>* value;</div><div class="line"><span class="keywordtype">bool</span> is_duplicate;</div><div class="line">RobinHoodHash *rhh;</div><div class="line"><span class="comment">// create a robin hood hash where key and value are both integers.</span></div><div class="line"><a class="code" href="struct_robin_hood_hash　.html#aa202a084b610e318164e6ab33b0eccd7">RHHNew</a>(heap, &amp;rhh, 30, 0.8, <span class="keyword">sizeof</span>(<span class="keywordtype">int</span>), <span class="keyword">sizeof</span>(<span class="keywordtype">int</span>));</div><div class="line">key = 5;</div><div class="line"><a class="code" href="struct_robin_hood_hash　.html#a78d7af94c713e35b7751c87fb236f10d">RHHUpsert</a>(rhh, <a class="code" href="group__hash.html#ga99b4f7c7c66c52879672596f3240e9c1">OPDefaultHash</a>, &amp;key, (<span class="keywordtype">void</span>**)&amp;val, &amp;is_duplicate);</div><div class="line"><span class="comment">// different logic depends on is_duplicate.</span></div><div class="line"><span class="comment">// User can use this interface to create a hash multimap.</span></div><div class="line"><span class="keywordflow">if</span> (is_duplicate)</div><div class="line">  *value = 7;</div><div class="line"><span class="keywordflow">else</span></div><div class="line">  *value = 8;</div></div><!-- fragment --><p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
+
+<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00497">497</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -354,7 +431,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, else NULL.</dd></dl>
 <p>If the value size were set to 0, RHHGetCustom would still return a pointer to where it would store the value. User can still use the returned value to exam if the key were present in the hash table. </p>
 
-<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00448">448</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00546">546</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -410,12 +487,12 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if it found, else NULL.</dd></dl>
 <p>The hash table may shrink if too many entries were deleted. </p>
 
-<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00462">462</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00560">560</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
 
 </div>
 </div>
-<a id="afdabff62d4f466acbefa1dbe3386d5a3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afdabff62d4f466acbefa1dbe3386d5a3">&#9670;&nbsp;</a></span>RHHPut()</h2>
+<a id="a7cef1b0b101732b6a248245c17aade19"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7cef1b0b101732b6a248245c17aade19">&#9670;&nbsp;</a></span>RHHInsert()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -424,7 +501,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">static bool RHHPut </td>
+          <td class="memname">static bool RHHInsert </td>
           <td>(</td>
           <td class="paramtype">RobinHoodHash *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
@@ -467,7 +544,71 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <p>The content pointed by key and val will be copied into the hash table. If the value size were 0, only the key get copied. When there's a key collision, the coresponding value get replaced.</p>
 <p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00158">158</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00197">197</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
+
+</div>
+</div>
+<a id="a78d7af94c713e35b7751c87fb236f10d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a78d7af94c713e35b7751c87fb236f10d">&#9670;&nbsp;</a></span>RHHUpsert()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static bool RHHUpsert </td>
+          <td>(</td>
+          <td class="paramtype">RobinHoodHash *&#160;</td>
+          <td class="paramname"><em>rhh</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>key</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void **&#160;</td>
+          <td class="paramname"><em>val_ref</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool *&#160;</td>
+          <td class="paramname"><em>is_duplicate</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Update or insert depends on whether the key already exists in the hash table. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rhh</td><td>RobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">key</td><td>pointer to the key. </td></tr>
+    <tr><td class="paramname">val_ref</td><td>reference of value pointer. </td></tr>
+    <tr><td class="paramname">is_duplicate</td><td>reference of duplication boolean variable. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if the operation succeeded, false otherwise.</dd></dl>
+<p>This method does not insert the value automatically, instead it provides the pointer to the address where value can be inserted or overriden.</p>
+<div class="fragment"><div class="line"><span class="keywordtype">int</span> key;</div><div class="line"><span class="keywordtype">int</span>* value;</div><div class="line"><span class="keywordtype">bool</span> is_duplicate;</div><div class="line">RobinHoodHash *rhh;</div><div class="line"><span class="comment">// create a robin hood hash where key and value are both integers.</span></div><div class="line"><a class="code" href="struct_robin_hood_hash　.html#aa202a084b610e318164e6ab33b0eccd7">RHHNew</a>(heap, &amp;rhh, 30, 0.8, <span class="keyword">sizeof</span>(<span class="keywordtype">int</span>), <span class="keyword">sizeof</span>(<span class="keywordtype">int</span>));</div><div class="line">key = 5;</div><div class="line"><a class="code" href="struct_robin_hood_hash　.html#a78d7af94c713e35b7751c87fb236f10d">RHHUpsert</a>(rhh, &amp;key, (<span class="keywordtype">void</span>**)&amp;val, &amp;is_duplicate);</div><div class="line"><span class="comment">// different logic depends on is_duplicate.</span></div><div class="line"><span class="comment">// User can use this interface to create a hash multimap.</span></div><div class="line"><span class="keywordflow">if</span> (is_duplicate)</div><div class="line">  *value = 7;</div><div class="line"><span class="keywordflow">else</span></div><div class="line">  *value = 8;</div></div><!-- fragment --><p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
+
+<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00238">238</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
 
 </div>
 </div>
@@ -516,7 +657,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, else NULL.</dd></dl>
 <p>If the value size were set to 0, RHHGetCustom would still return a pointer to where it would store the value. User can still use the returned value to exam if the key were present in the hash table. </p>
 
-<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00177">177</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00257">257</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
 
 </div>
 </div>
@@ -565,7 +706,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if it found, else NULL.</dd></dl>
 <p>The hash table may shrink if too many entries were deleted. </p>
 
-<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00194">194</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="robin__hood_8h_source.html#l00274">274</a> of file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
 
 </div>
 </div>
@@ -619,7 +760,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
   </dd>
 </dl>
 <div class="fragment"><div class="line"><span class="comment">// Function interface matches OPHashIterator</span></div><div class="line"><span class="keywordtype">void</span> my_iterator(<span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value,</div><div class="line">                 <span class="keywordtype">size_t</span> keysize, <span class="keywordtype">size_t</span> valsize,</div><div class="line">                 <span class="keywordtype">void</span>* context)</div><div class="line">{</div><div class="line">  <span class="comment">// Obtain the object we passed in.</span></div><div class="line">  <span class="keyword">struct </span>MyStruct* my_s = (<span class="keyword">struct </span>MyStruct*) context;</div><div class="line"></div><div class="line">  <span class="comment">// assumes both key and value were null terminated string</span></div><div class="line">  printf(<span class="stringliteral">&quot;key: %s, value: %s\n&quot;</span>, key, value);</div><div class="line">}</div><div class="line"></div><div class="line"><span class="comment">// User defined context</span></div><div class="line"><span class="keyword">struct </span>MyStruct my_s;</div><div class="line"></div><div class="line"><span class="comment">// RHHIterate takes in a RobinHoodHash object, a fuction pointer</span></div><div class="line"><span class="comment">// OPHashIterator and a user defined context for iteration.</span></div><div class="line"><a class="code" href="struct_robin_hood_hash　.html#a68d4c3cdaeae86c87356aaf94e53e54c">RHHIterate</a>(rhh, &amp;my_iterator, &amp;my_s);</div></div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00575">575</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00673">673</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -649,7 +790,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 
 <p>Prints the accumulated count for each probing number. </p>
 
-<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00592">592</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="robin__hood_8c_source.html#l00693">693</a> of file <a class="el" href="robin__hood_8c_source.html">robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -659,7 +800,7 @@ size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="st
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon May 22 2017 19:45:23 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu May 25 2017 23:46:08 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>
