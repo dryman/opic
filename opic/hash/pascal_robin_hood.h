@@ -36,7 +36,7 @@ OP_BEGIN_DECLS
 
 /**
  * @ingroup hash
- * @struct PascalRobinHoodHash
+ * @struct PascalRobinHoodHash　
  * @brief An opaque object that manages associations of key-value pairs.
  *
  * PascalRobinHoodHash uses pointers to manage keys that has different
@@ -50,7 +50,7 @@ OP_BEGIN_DECLS
 typedef struct PascalRobinHoodHash PascalRobinHoodHash;
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Constructor for PascalRobinHoodHash.
  *
  * @param heap OPHeap instance.
@@ -66,7 +66,7 @@ bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
              uint64_t num_objects, double load, size_t valsize);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Destructor for PascalRobinHoodHash
  *
  * @param rhh PascalRobinHoodHash instance to destroy.
@@ -77,7 +77,7 @@ bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
 void PRHHDestroy(PascalRobinHoodHash* rhh);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Associates the specified key and value with custom
  * hash function.
  *
@@ -96,11 +96,35 @@ void PRHHDestroy(PascalRobinHoodHash* rhh);
  * configured, the hash table will resized with a larger capacity. If
  * the resize failed, false is returned.
  */
-bool PRHHPutCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                   void* key, size_t keysize, void* val);
+bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
+                      void* key, size_t keysize, void* val);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
+ * @brief Update or insert depends on whether the key already exists in
+ * the hash table using custom hash function.
+ *
+ * @param rhh RobinHoodHash instance.
+ * @param hasher hash function.
+ * @param key pointer to the key.
+ * @param keysize length of the key data, measured in bytes.
+ * @param val_ref reference of value pointer.
+ * @param is_duplicate reference of duplication boolean variable.
+ * @return true if the operation succeeded, false otherwise.
+ *
+ * This method does not insert the value automatically, instead it provides
+ * the pointer to the address where value can be inserted or overriden.
+ *
+ * If the inserted key-value pairs exceeded the original size user configured,
+ * the hash table will resized with a larger capacity. If the resize failed,
+ * false is returned.
+ */
+bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
+                      void* key, size_t keysize, void** val_ref,
+                      bool* is_duplicate);
+
+/**
+ * @relates PascalRobinHoodHash　
  * @brief Obtain the value associated with the key and hash function.
  * Returns NULL if the key was not found.
  *
@@ -118,7 +142,7 @@ void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                     void* key, size_t keysize);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Deletes the key-value entry with specified hash function.
  *
  * @param rhh PascalRobinHoodHash instance.
@@ -134,7 +158,7 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                        void* key, size_t keysize);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Associates the specified key and value using default hash
  * function.
  *
@@ -154,13 +178,40 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
  *
  */
 static inline bool
-PRHHPut(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
+PRHHInsert(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
 {
-  return PRHHPutCustom(rhh, OPDefaultHash, key, keysize, val);
+  return PRHHInsertCustom(rhh, OPDefaultHash, key, keysize, val);
 }
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
+ * @brief Update or insert depends on whether the key already exists in
+ * the hash table.
+ *
+ * @param rhh RobinHoodHash instance.
+ * @param key pointer to the key.
+ * @param keysize length of the key data, measured in bytes.
+ * @param val_ref reference of value pointer.
+ * @param is_duplicate reference of duplication boolean variable.
+ * @return true if the operation succeeded, false otherwise.
+ *
+ * This method does not insert the value automatically, instead it provides
+ * the pointer to the address where value can be inserted or overriden.
+ *
+ * If the inserted key-value pairs exceeded the original size user configured,
+ * the hash table will resized with a larger capacity. If the resize failed,
+ * false is returned.
+ */
+static inline bool
+PRHHUpsert(PascalRobinHoodHash* rhh, void* key, size_t keysize,
+           void** val_ref, bool* is_duplicate)
+{
+  return PRHHUpsertCustom(rhh, OPDefaultHash, key, keysize,
+                          val_ref, is_duplicate);
+}
+
+/**
+ * @relates PascalRobinHoodHash　
  * @brief Obtain the value associated with the key using default hash
  * function. Returns NULL if the key was not found.
  *
@@ -180,7 +231,7 @@ PRHHGet(PascalRobinHoodHash* rhh, void* key, size_t keysize)
 }
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Deletes the key-value entry using default hash function.
  *
  * @param rhh PascalRobinHoodHash instance.
@@ -198,25 +249,25 @@ PRHHDelete(PascalRobinHoodHash* rhh, void* key, size_t keysize)
 }
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Obtain the number of objects stored in this hash table.
  */
 uint64_t PRHHObjcnt(PascalRobinHoodHash* rhh);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Obtain the number of objects can be stored in this hash table.
  */
 uint64_t PRHHCapacity(PascalRobinHoodHash* rhh);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Obtain the size of the value configured for this hash table.
  */
 size_t RHHValsize(PascalRobinHoodHash* rhh);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Iterates over all key-value pairs in this hash table with
  * user specified context.
  *
@@ -249,7 +300,7 @@ void PRHHIterate(PascalRobinHoodHash* rhh,
                  OPHashIterator iterator, void* context);
 
 /**
- * @relates PascalRobinHoodHash
+ * @relates PascalRobinHoodHash　
  * @brief Prints the accumulated count for each probing number.
  */
 void PRHHPrintStat(PascalRobinHoodHash* rhh);
