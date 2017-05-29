@@ -58,8 +58,25 @@
 
 #define PROBE_STATS_SIZE 64
 #define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
+#define VISIT_IDX_CACHE 8
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
+
+enum upsert_result_t
+  {
+    UPSERT_EMPTY,
+    UPSERT_DUP,
+    UPSERT_PUSHDOWN,
+  };
+
+static inline enum upsert_result_t
+RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
+                uint64_t hashed_key, uint8_t** matched_bucket,
+                int* probe_state);
+
+static inline void
+RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
+                  uint8_t* bucket_cpy, int probe, uint8_t* avoid_bucket);
 
 struct RobinHoodHash
 {
@@ -196,23 +213,19 @@ IncreaseProbeStat(RobinHoodHash* rhh, int probe)
     OP_LOG_WARN(logger, "Large probe: %d\n", probe);
 }
 
-static inline void
-RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
-                  void* key, uint8_t** matched_bucket)
+static inline enum upsert_result_t
+RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
+                uint64_t hashed_key, uint8_t** matched_bucket, int* probe_state)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* buckets;
   int probe, old_probe;
-  uint8_t bucket_cpy[bucket_size];
-  uint8_t bucket_tmp[bucket_size];
   uintptr_t idx, _idx;
-  uint64_t hashed_key;
 
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   probe = 0;
-  hashed_key = hasher(key, keysize);
 
   // first round: find matched bucket
   while (true)
@@ -222,7 +235,7 @@ RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
         {
           IncreaseProbeStat(rhh, probe);
           *matched_bucket = &buckets[idx * bucket_size];
-          return;
+          return UPSERT_EMPTY;
         }
       else if (buckets[idx * bucket_size] == 2)
         {
@@ -234,17 +247,17 @@ RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
               if (!memcmp(key, &buckets[_idx * bucket_size + 1], bucket_size))
                 {
                   *matched_bucket = &buckets[_idx * bucket_size];
-                  return;
+                  return UPSERT_DUP;
                 }
             }
           IncreaseProbeStat(rhh, probe);
           *matched_bucket = &buckets[idx * bucket_size];
-          return;
+          return UPSERT_EMPTY;
         }
       if (!memcmp(key, &buckets[idx * bucket_size + 1], keysize))
         {
           *matched_bucket = &buckets[idx * bucket_size];
-          return;
+          return UPSERT_DUP;
         }
       old_probe = findprobe(rhh, hasher, idx);
       if (probe > old_probe)
@@ -258,30 +271,68 @@ RHHUpsertInternal(RobinHoodHash* rhh, OPHash hasher,
           else
             OP_LOG_WARN(logger, "Large probe: %d\n", probe);
           *matched_bucket = &buckets[idx * bucket_size];
-          memcpy(bucket_cpy, &buckets[idx * bucket_size], bucket_size);
-          buckets[idx * bucket_size] = 0;
-          probe = old_probe+1;
-          break;
+          *probe_state = old_probe+1;
+          return UPSERT_PUSHDOWN;
         }
       probe++;
     }
+}
+static inline void
+RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
+                  uint8_t* bucket_cpy, int probe, uint8_t* avoid_bucket)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* buckets;
+  int old_probe;
+  uint8_t bucket_tmp[bucket_size];
+  uintptr_t idx;
+  uint64_t hashed_key;
+  int visit;
+  uintptr_t visited_idx[VISIT_IDX_CACHE];
 
-  // second round: move existing records around
-  // Now we should not have any duplicate value, so no need to
-  // compare the keys.
+  visit = 0;
   hashed_key = hasher(&bucket_cpy[1], keysize);
+  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   while (true)
     {
+    next_iter:
       idx = hash_with_probe(rhh, hashed_key, probe);
 
-      // If the one we're swaping out is the matched bucket,
-      // we're in a cycle. Break the cycle by skipping the
-      // matched_bucket.
-      if (&buckets[idx * bucket_size] == *matched_bucket)
+      // These two checks are necessary to avoid probe cycles
+      if (&buckets[idx * bucket_size] == avoid_bucket)
         {
           probe++;
           continue;
         }
+      if (visit > 2)  // cycle can happen only after two visit
+        {
+          if (visit < VISIT_IDX_CACHE)
+            {
+              for (int i = 0; i < visit; i++)
+                {
+                  if (idx == visited_idx[i])
+                    {
+                      probe++;
+                      goto next_iter;
+                    }
+                }
+            }
+          else
+            {
+              for (int i = visit + 1; i < visit + VISIT_IDX_CACHE; i++)
+                {
+                  if (idx == visited_idx[i % VISIT_IDX_CACHE])
+                    {
+                      probe++;
+                      goto next_iter;
+                    }
+                }
+            }
+        }
+      visited_idx[visit % VISIT_IDX_CACHE] = idx;
+      visit++;
 
       // empty bucket or tombstone bucket
       if (buckets[idx * bucket_size] != 1)
@@ -324,7 +375,6 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
   uint8_t* new_buckets;
   uint8_t new_capacity_ms4b, new_capacity_clz;
   uint64_t old_capacity, new_capacity;
-  uint8_t *matched_bucket;
 
   old_capacity = RHHCapacity(rhh);
   old_buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
@@ -392,10 +442,8 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
     {
       if (old_buckets[idx*bucket_size] == 1)
         {
-          RHHUpsertInternal(rhh, hasher,
-                            &old_buckets[idx * bucket_size + 1],
-                            &matched_bucket);
-          memcpy(matched_bucket, &old_buckets[idx * bucket_size], bucket_size);
+          RHHUpsertPushDown(rhh, hasher, &old_buckets[idx * bucket_size],
+                            0, NULL);
         }
     }
   OPDealloc(old_buckets);
@@ -412,7 +460,6 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
   uint8_t* new_buckets;
   uint8_t new_capacity_ms4b, new_capacity_clz;
   uint64_t old_capacity, new_capacity;
-  uint8_t* matched_bucket;
 
   old_capacity = RHHCapacity(rhh);
   old_buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
@@ -464,10 +511,8 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
     {
       if (old_buckets[idx*bucket_size] == 1)
         {
-          RHHUpsertInternal(rhh, hasher,
-                            &old_buckets[idx * bucket_size + 1],
-                            &matched_bucket);
-          memcpy(matched_bucket, &old_buckets[idx * bucket_size], bucket_size);
+          RHHUpsertPushDown(rhh, hasher, &old_buckets[idx * bucket_size],
+                            0, NULL);
         }
     }
   OPDealloc(old_buckets);
@@ -478,7 +523,12 @@ bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  enum upsert_result_t upsert_result;
+  uint64_t hashed_key;
   uint8_t* matched_bucket;
+  int probe;
+  uint8_t bucket_cpy[bucket_size];
 
   if (rhh->objcnt > rhh->objcnt_high)
     {
@@ -486,11 +536,24 @@ bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
         return false;
     }
 
-  RHHUpsertInternal(rhh, hasher, key, &matched_bucket);
-  *matched_bucket = 1;
-  memcpy(&matched_bucket[1], key, keysize);
-  memcpy(&matched_bucket[1 + keysize], val, valsize);
+  hashed_key = hasher(key, keysize);
+  upsert_result = RHHUpsertNewKey(rhh, hasher, key, hashed_key,
+                                  &matched_bucket, &probe);
 
+  switch (upsert_result)
+    {
+    case UPSERT_EMPTY:
+      *matched_bucket = 1;
+      memcpy(&matched_bucket[1], key, keysize);
+    case UPSERT_DUP:
+      memcpy(&matched_bucket[1 + keysize], val, valsize);
+      break;
+    case UPSERT_PUSHDOWN:
+      memcpy(bucket_cpy, matched_bucket, bucket_size);
+      memcpy(&matched_bucket[1], key, keysize);
+      memcpy(&matched_bucket[1 + keysize], val, valsize);
+      RHHUpsertPushDown(rhh, hasher, bucket_cpy, probe, matched_bucket);
+    }
   return true;
 }
 
@@ -498,22 +561,40 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
                      void* key, void** val_ref, bool* is_duplicate)
 {
   const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  enum upsert_result_t upsert_result;
+  uint64_t hashed_key;
   uint8_t* matched_bucket;
+  int probe;
+  uint8_t bucket_cpy[bucket_size];
 
   if (rhh->objcnt > rhh->objcnt_high)
     {
       if (!RHHSizeUp(rhh, hasher))
         return false;
     }
-  RHHUpsertInternal(rhh, hasher, key, &matched_bucket);
+
+  hashed_key = hasher(key, keysize);
+  upsert_result = RHHUpsertNewKey(rhh, hasher, key, hashed_key,
+                                  &matched_bucket, &probe);
   *val_ref = &matched_bucket[keysize + 1];
-  *is_duplicate = *matched_bucket == 1;
-  if (!*is_duplicate)
+  switch (upsert_result)
     {
+    case UPSERT_EMPTY:
+      *is_duplicate = false;
       *matched_bucket = 1;
       memcpy(&matched_bucket[1], key, keysize);
+      break;
+    case UPSERT_DUP:
+      *is_duplicate = true;
+      break;
+    case UPSERT_PUSHDOWN:
+      *is_duplicate = false;
+      memcpy(bucket_cpy, matched_bucket, bucket_size);
+      memcpy(&matched_bucket[1], key, keysize);
+      RHHUpsertPushDown(rhh, hasher, bucket_cpy, probe, matched_bucket);
     }
-
   return true;
 }
 
