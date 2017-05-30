@@ -78,6 +78,8 @@ static inline void
 RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
                   uint8_t* bucket_cpy, int probe, uint8_t* avoid_bucket);
 
+static bool RHHSizeUp(RobinHoodHash* rhh, OPHash hasher);
+
 struct RobinHoodHash
 {
   uint64_t objcnt;
@@ -207,10 +209,7 @@ IncreaseProbeStat(RobinHoodHash* rhh, int probe)
   rhh->objcnt++;
   rhh->longest_probes = probe > rhh->longest_probes ?
     probe : rhh->longest_probes;
-  if (probe < PROBE_STATS_SIZE)
-    rhh->stats[probe]++;
-  else
-    OP_LOG_WARN(logger, "Large probe: %d\n", probe);
+  rhh->stats[probe]++;
 }
 
 static inline enum upsert_result_t
@@ -231,6 +230,13 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
   while (true)
     {
       idx = hash_with_probe(rhh, hashed_key, probe);
+      if (probe > PROBE_STATS_SIZE)
+        {
+          RHHSizeUp(rhh, hasher);
+          probe = 0;
+          buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+          continue;
+        }
       if (buckets[idx * bucket_size] == 0)
         {
           IncreaseProbeStat(rhh, probe);
@@ -264,12 +270,8 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
         {
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
-          if (old_probe < PROBE_STATS_SIZE)
-            rhh->stats[old_probe]--;
-          if (probe < PROBE_STATS_SIZE)
-            rhh->stats[probe]++;
-          else
-            OP_LOG_WARN(logger, "Large probe: %d\n", probe);
+          rhh->stats[old_probe]--;
+          rhh->stats[probe]++;
           *matched_bucket = &buckets[idx * bucket_size];
           *probe_state = old_probe+1;
           return UPSERT_PUSHDOWN;
@@ -277,6 +279,7 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
       probe++;
     }
 }
+
 static inline void
 RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
                   uint8_t* bucket_cpy, int probe, uint8_t* avoid_bucket)
@@ -300,7 +303,23 @@ RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
     next_iter:
       idx = hash_with_probe(rhh, hashed_key, probe);
 
-      // These two checks are necessary to avoid probe cycles
+      // These three checks are necessary to avoid probe cycles
+      // case 1: Certain key with multiple probes goes to the same
+      // indexes.
+      // case 2: The bucket address is same as the matched bucket.
+      // The matched bucket need to be passed in explcitly as avoid_bucket.
+      // In resize case, there's no avoid_bucket, simply assign NULL.
+      // case 3: we need a small cache to record visited idx. When the
+      // hash table is very small, probing might circle back to previous
+      // accessed index and produce a cycle. This case only happen when
+      // visit > 2.
+      if (probe > PROBE_STATS_SIZE)
+        {
+          RHHSizeUp(rhh, hasher);
+          probe = 0;
+          buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+          continue;
+        }
       if (&buckets[idx * bucket_size] == avoid_bucket)
         {
           probe++;
@@ -347,12 +366,8 @@ RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
         {
           rhh->longest_probes = probe > rhh->longest_probes ?
             probe : rhh->longest_probes;
-          if (old_probe < PROBE_STATS_SIZE)
-            rhh->stats[old_probe]--;
-          if (probe < PROBE_STATS_SIZE)
-            rhh->stats[probe]++;
-          else
-            OP_LOG_WARN(logger, "Large probe: %d\n", probe);
+          rhh->stats[old_probe]--;
+          rhh->stats[probe]++;
           memcpy(bucket_tmp, &buckets[idx * bucket_size], bucket_size);
           memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
           memcpy(bucket_cpy, bucket_tmp, bucket_size);
@@ -761,7 +776,6 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
 
   for (uint64_t idx = 0; idx < capacity; idx++)
     {
-      OP_LOG_DEBUG(logger, "idx %" PRIu64, idx);
       if (buckets[idx*bucket_size] == 1)
         {
         iterator(&buckets[idx*bucket_size + 1],
