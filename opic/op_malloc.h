@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_macros.h"
 
@@ -185,6 +186,63 @@ void* OPHeapRestorePtr(OPHeap* heap, int pos);
 
 /**
  * @relates OPHeap
+ * @brief Allocate an object from OPHeap with given size
+ *
+ * @param heap OPHeap instance.
+ * @param size the size of object.
+ * @return pointer to the object allocated.
+ */
+void* OPMalloc(OPHeap* heap, size_t size)
+  __attribute__ ((malloc));
+
+/**
+ * @relates OPHeap
+ * @brief Allocate a chunk of memory filled with 0s.
+ *
+ * @param heap OPHeap instance.
+ * @param num number of contiguous objects.
+ * @param size the size of an object.
+ * @return pointer to the memory allocated.
+ */
+void* OPCalloc(OPHeap* heap, size_t num, size_t size)
+  __attribute__ ((malloc));
+
+/**
+ * @relates OPHeap
+ * @brief Allocate an object of given size with an arena hint.
+ *
+ * @param heap OPHeap instance.
+ * @param size the size of object.
+ * @param advice hint to which arena slot to use.
+ * @return pointer to the object allocated.
+ */
+void* OPMallocAdviced(OPHeap* heap, size_t size, int advice)
+  __attribute__ ((malloc));
+
+/**
+ * @relates OPHeap
+ * @brief Allocate a chunk of memory filled with 0s with an arena hint.
+ *
+ * @param heap OPHeap instance.
+ * @param num number of contiguous objects.
+ * @param size the size of an object.
+ * @param advice hint to which arena slot to use.
+ * @return pointer to the memory allocated.
+ */
+void* OPCallocAdviced(OPHeap* heap, size_t num, size_t size, int advice)
+  __attribute__ ((malloc));
+
+/**
+ * @relates OPHeap
+ * @brief Dealloc an object created by OPHeap.
+ *
+ * @param addr the address of the object to be dealloc.
+ */
+void
+OPDealloc(void* addr);
+
+/**
+ * @relates OPHeap
  * @brief Given any pointer in the OPHeap, returns the pointer to OPHeap.
  *
  * @param addr A pointer allocated by OPHeap.
@@ -254,62 +312,16 @@ OPLenRef2Ptr(void* ptr_in_heap, oplenref_t ref)
   return OPRef2Ptr(ptr_in_heap, OPLenRef2Ref(ref));
 }
 
-/**
- * @relates OPHeap
- * @brief Allocate an object from OPHeap with given size
- *
- * @param heap OPHeap instance.
- * @param size the size of object.
- * @return pointer to the object allocated.
- */
-void* OPMalloc(OPHeap* heap, size_t size)
-  __attribute__ ((malloc));
-
-/**
- * @relates OPHeap
- * @brief Allocate a chunk of memory filled with 0s.
- *
- * @param heap OPHeap instance.
- * @param num number of contiguous objects.
- * @param size the size of an object.
- * @return pointer to the memory allocated.
- */
-void* OPCalloc(OPHeap* heap, size_t num, size_t size)
-  __attribute__ ((malloc));
-
-/**
- * @relates OPHeap
- * @brief Allocate an object of given size with an arena hint.
- *
- * @param heap OPHeap instance.
- * @param size the size of object.
- * @param advice hint to which arena slot to use.
- * @return pointer to the object allocated.
- */
-void* OPMallocAdviced(OPHeap* heap, size_t size, int advice)
-  __attribute__ ((malloc));
-
-/**
- * @relates OPHeap
- * @brief Allocate a chunk of memory filled with 0s with an arena hint.
- *
- * @param heap OPHeap instance.
- * @param num number of contiguous objects.
- * @param size the size of an object.
- * @param advice hint to which arena slot to use.
- * @return pointer to the memory allocated.
- */
-void* OPCallocAdviced(OPHeap* heap, size_t num, size_t size, int advice)
-  __attribute__ ((malloc));
-
-/**
- * @relates OPHeap
- * @brief Dealloc an object created by OPHeap.
- *
- * @param addr the address of the object to be dealloc.
- */
-void
-OPDealloc(void* addr);
+static inline oplenref_t
+OPLenRefCreate(OPHeap* heap, void* data, size_t size)
+{
+  void* ptr;
+  ptr = OPCalloc(heap, 1, size);
+  if (!ptr)
+    return 0;
+  memcpy(ptr, data, size);
+  return OPPtr2LenRef(ptr, size);
+}
 
 OP_END_DECLS
 

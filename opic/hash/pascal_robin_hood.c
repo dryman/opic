@@ -584,12 +584,10 @@ bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   const size_t bucket_size = refsize + valsize;
   enum upsert_result_t upsert_result;
   uint64_t hashed_key;
-  void* keyptr;
-  oplenref_t keylenref;
+  oplenref_t keylref;
   uint8_t* matched_bucket;
   uint8_t bucket_cpy[bucket_size];
   int probe;
-  OPHeap* heap;
   bool resized;
 
   if (rhh->objcnt > rhh->objcnt_high)
@@ -606,27 +604,19 @@ bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   switch (upsert_result)
     {
     case UPSERT_EMPTY:
-      OP_LOG_DEBUG(logger, "empty case");
-      heap = ObtainOPHeap(rhh);
-      keyptr = OPCalloc(heap, 1, keysize);
-      op_assert(keyptr, "allocated pointer should not be NULL");
-      memcpy(keyptr, key, keysize);
-      keylenref = OPPtr2LenRef(keyptr, keysize);
-      memcpy(matched_bucket, &keylenref, sizeof(oplenref_t));
+      keylref = OPLenRefCreate(ObtainOPHeap(rhh), key, keysize);
+      op_assert(keylref, "allocated pointer should not be NULL");
+      memcpy(matched_bucket, &keylref, sizeof(oplenref_t));
       memcpy(&matched_bucket[refsize], val, valsize);
       break;
     case UPSERT_DUP:
       memcpy(&matched_bucket[refsize], val, valsize);
       break;
     case UPSERT_PUSHDOWN:
-      OP_LOG_DEBUG(logger, "pushdown case");
       memcpy(bucket_cpy, matched_bucket, bucket_size);
-      heap = ObtainOPHeap(rhh);
-      keyptr = OPCalloc(heap, 1, keysize);
-      op_assert(keyptr, "allocated pointer should not be NULL");
-      memcpy(keyptr, key, keysize);
-      keylenref = OPPtr2LenRef(keyptr, keysize);
-      memcpy(matched_bucket, &keylenref, sizeof(oplenref_t));
+      keylref = OPLenRefCreate(ObtainOPHeap(rhh), key, keysize);
+      op_assert(keylref, "allocated pointer should not be NULL");
+      memcpy(matched_bucket, &keylref, sizeof(oplenref_t));
       memcpy(&matched_bucket[refsize], val, valsize);
       PRHHUpsertPushDown(rhh, hasher, bucket_cpy, probe,
                          matched_bucket, &resized);
@@ -643,10 +633,8 @@ bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   const size_t bucket_size = refsize + valsize;
   enum upsert_result_t upsert_result;
   uint8_t* matched_bucket;
-  OPHeap* heap;
-  void* keyptr;
   uint64_t hashed_key;
-  oplenref_t keylenref;
+  oplenref_t keylref;
   int probe;
   uint8_t bucket_cpy[bucket_size];
   bool resized;
@@ -670,22 +658,16 @@ bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
       break;
     case UPSERT_EMPTY:
       *is_duplicate = false;
-      heap = ObtainOPHeap(rhh);
-      keyptr = OPCalloc(heap, 1, keysize);
-      op_assert(keyptr, "allocated pointer should not be NULL");
-      memcpy(keyptr, key, keysize);
-      keylenref = OPPtr2LenRef(keyptr, keysize);
-      memcpy(matched_bucket, &keylenref, sizeof(oplenref_t));
+      keylref = OPLenRefCreate(ObtainOPHeap(rhh), key, keysize);
+      op_assert(keylref, "allocated pointer should not be NULL");
+      memcpy(matched_bucket, &keylref, sizeof(oplenref_t));
       break;
     case UPSERT_PUSHDOWN:
       *is_duplicate = false;
       memcpy(bucket_cpy, matched_bucket, bucket_size);
-      heap = ObtainOPHeap(rhh);
-      keyptr = OPCalloc(heap, 1, keysize);
-      op_assert(keyptr, "allocated pointer should not be NULL");
-      memcpy(keyptr, key, keysize);
-      keylenref = OPPtr2LenRef(keyptr, keysize);
-      memcpy(matched_bucket, &keylenref, sizeof(oplenref_t));
+      keylref = OPLenRefCreate(ObtainOPHeap(rhh), key, keysize);
+      op_assert(keylref, "allocated pointer should not be NULL");
+      memcpy(matched_bucket, &keylref, sizeof(oplenref_t));
       PRHHUpsertPushDown(rhh, hasher, bucket_cpy, probe,
                          matched_bucket, &resized);
       if (resized)
