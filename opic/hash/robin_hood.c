@@ -57,7 +57,7 @@
 #include "robin_hood.h"
 
 #define PROBE_STATS_SIZE 64
-#define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
+#define DEFAULT_LARGE_DATA_THRESHOLD (1ULL << 30)
 #define VISIT_IDX_CACHE 8
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
@@ -112,7 +112,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   capacity_clz = __builtin_clz(capacity);
   capacity_msb = 32 - capacity_clz;
   capacity_ms4b = round_up_div(capacity, 1UL << (capacity_msb - 4));
-  capacity = (uint32_t)capacity_ms4b << (capacity_msb - 4);
+  capacity = capacity_ms4b << (capacity_msb - 4);
 
   bucket_size = keysize + valsize + 1;
 
@@ -175,10 +175,10 @@ hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
   uint32_t key32, mask, probed_hash;
 
   key32 = (uint32_t)key;
-  mask = (1ULL << (32 - rhh->capacity_clz)) - 1;
+  mask = (1 << (32 - rhh->capacity_clz)) - 1;
 
   // linear probing
-  // probed_hash = key + probe * 2;
+  // probed_hash = key32 + probe * 2;
 
   // quadratic probing
   probed_hash = key32 + probe * probe * 2;
@@ -188,7 +188,7 @@ hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
 }
 
 static inline int
-findprobe(RobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
+findprobe(RobinHoodHash* rhh, OPHash hasher, uint32_t idx)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
