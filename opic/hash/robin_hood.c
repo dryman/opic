@@ -308,7 +308,6 @@ RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
       if (probe > PROBE_STATS_SIZE)
         {
           RHHSizeUp(rhh, hasher);
-          // but then we lost the original bucket...
           probe = 0;
           buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
           *resized = true;
