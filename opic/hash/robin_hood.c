@@ -227,7 +227,6 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   probe = 0;
 
-  // first round: find matched bucket
   while (true)
     {
       idx = hash_with_probe(rhh, hashed_key, probe);

@@ -62,6 +62,23 @@
 
 OP_LOGGER_FACTORY(logger, "opic.hash.pascal_robin_hood");
 
+enum upsert_result_t
+  {
+    UPSERT_EMPTY,
+    UPSERT_DUP,
+    UPSERT_PUSHDOWN,
+  };
+
+static inline enum upsert_result_t
+PRHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
+                uint64_t hashed_key, uint8_t** matched_bucket,
+                int* probe_state);
+
+static inline void
+PRHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
+                  uint8_t* bucket_cpy, int probe,
+                  uint8_t* avoid_bucket, bool* resize);
+
 struct PascalRobinHoodHash
 {
   uint64_t objcnt;
