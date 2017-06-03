@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_macros.h"
 
@@ -64,10 +65,10 @@ typedef struct OPHeap OPHeap;
  * @brief The "pointer type" used within objects created by OPHeap.
  *
  * For all the objects relationship in OPHeap, user must use opref_t
- * instead of regular pointer. Regular pointers would be invalid when
- * OPHeap is written to disk. To access the object referenced by
- * opref_t, first dereference opref_t to regular pointer, then
- * dereference the pointer.
+ * or oplenref_t instead of regular pointer. Regular pointers would be
+ * invalid when OPHeap is written to disk. To access the object
+ * referenced by opref_t, first dereference opref_t to regular
+ * pointer, then dereference the pointer.
  *
  * Unfortunately, C type system is quite weak. It would be better
  * if we have the following features:
@@ -107,6 +108,22 @@ typedef struct OPHeap OPHeap;
  */
 typedef uintptr_t opref_t;
 
+/**
+ * @ingroup malloc
+ * @typedef oplenref_t
+ * @brief Another "pointer type" used within objects created by OPHeap,
+ *
+ * oplenref_t not only served as opref_t, but also encodes length of
+ * the object it pointed to. The length oplenref_t encodes must be
+ * smaller than OPLENREF_MAX_LEN.
+ *
+ * @see
+ *   - OPPtr2LenRef
+ *   - OPLenRef2Ptr
+ *   - OPLenRef2Size
+ *   - OPLenRef2Ref
+ *   - OPLenRefCreate
+ */
 typedef uintptr_t oplenref_t;
 
 #define OPLENREF_MAX_LEN (1ULL << (64 - OPHEAP_BITS))
@@ -185,77 +202,6 @@ void* OPHeapRestorePtr(OPHeap* heap, int pos);
 
 /**
  * @relates OPHeap
- * @brief Given any pointer in the OPHeap, returns the pointer to OPHeap.
- *
- * @param addr A pointer allocated by OPHeap.
- * @return pointer to OPHeap.
- */
-static inline OPHeap*
-ObtainOPHeap(void* addr)
-{
-  return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE - 1));
-}
-
-/**
- * @ingroup malloc
- * @brief Converts a pointer allocated in OPHeap to an opref_t.
- *
- * @param addr Any pointer that is allocated with OPHeap.
- * @return An opref_t value.
- */
-static inline opref_t
-OPPtr2Ref(void* addr)
-{
-  return (opref_t)addr & (OPHEAP_SIZE - 1);
-}
-
-/**
- * @ingroup malloc
- * @brief Converts an opref_t reference to a regular pointer.
- *
- * @param ptr_in_heap Any pointer in the heap, including OPHeap*.
- * @param ref A opref_t value.
- * @return A regular pointer.
- */
-static inline void*
-OPRef2Ptr(void* ptr_in_heap, opref_t ref)
-{
-  return (void*)((opref_t)ObtainOPHeap(ptr_in_heap) + ref);
-}
-
-static inline oplenref_t
-OPPtr2LenRef(void* addr, size_t size)
-{
-  oplenref_t ref;
-
-  op_assert(size < OPLENREF_MAX_LEN,
-            "Size for oplenref_t must smaller than %" PRIu64
-            ", but was %zu\n", OPLENREF_MAX_LEN, size);
-  ref = (oplenref_t)addr & (OPHEAP_SIZE - 1);
-  ref |= size << OPHEAP_BITS;
-  return ref;
-}
-
-static inline size_t
-OPLenRef2Size(oplenref_t ref)
-{
-  return (size_t)(ref >> OPHEAP_BITS);
-}
-
-static inline opref_t
-OPLenRef2Ref(oplenref_t ref)
-{
-  return ref & (OPHEAP_SIZE - 1);
-}
-
-static inline void*
-OPLenRef2Ptr(void* ptr_in_heap, oplenref_t ref)
-{
-  return OPRef2Ptr(ptr_in_heap, OPLenRef2Ref(ref));
-}
-
-/**
- * @relates OPHeap
  * @brief Allocate an object from OPHeap with given size
  *
  * @param heap OPHeap instance.
@@ -310,6 +256,130 @@ void* OPCallocAdviced(OPHeap* heap, size_t num, size_t size, int advice)
  */
 void
 OPDealloc(void* addr);
+
+/**
+ * @relates OPHeap
+ * @brief Given any pointer in the OPHeap, returns the pointer to OPHeap.
+ *
+ * @param addr A pointer allocated by OPHeap.
+ * @return pointer to OPHeap.
+ */
+static inline OPHeap*
+ObtainOPHeap(void* addr)
+{
+  return (OPHeap*)((uintptr_t)addr & ~(OPHEAP_SIZE - 1));
+}
+
+/**
+ * @ingroup malloc
+ * @brief Converts a pointer allocated in OPHeap to an opref_t.
+ *
+ * @param addr Any pointer that is allocated with OPHeap.
+ * @return An opref_t value.
+ */
+static inline opref_t
+OPPtr2Ref(void* addr)
+{
+  return (opref_t)addr & (OPHEAP_SIZE - 1);
+}
+
+/**
+ * @ingroup malloc
+ * @brief Converts an opref_t reference to a regular pointer.
+ *
+ * @param ptr_in_heap Any pointer in the heap, including OPHeap*.
+ * @param ref A opref_t value.
+ * @return A regular pointer.
+ */
+static inline void*
+OPRef2Ptr(void* ptr_in_heap, opref_t ref)
+{
+  return (void*)((opref_t)ObtainOPHeap(ptr_in_heap) + ref);
+}
+
+/**
+ * @ingroup malloc
+ * @brief Converts a pointer allocated in OPHeap and the size
+ * of the object it pointed to to an oplenref_t.
+ *
+ * @param addr Any pointer that is allocated with OPHeap.
+ * @param size The size of the object allocated with OPHeap.
+ * @return An oplenref_t value.
+ */
+static inline oplenref_t
+OPPtr2LenRef(void* addr, size_t size)
+{
+  oplenref_t ref;
+
+  op_assert(size < OPLENREF_MAX_LEN,
+            "Size for oplenref_t must smaller than %" PRIu64
+            ", but was %zu\n", OPLENREF_MAX_LEN, size);
+  ref = (oplenref_t)addr & (OPHEAP_SIZE - 1);
+  ref |= size << OPHEAP_BITS;
+  return ref;
+}
+
+/**
+ * @ingroup malloc
+ * @brief Obtain the size encoded in oplenref_t
+ *
+ * @param ref A oplenref_t value.
+ * @return The size of the object it pointed to.
+ */
+static inline size_t
+OPLenRef2Size(oplenref_t ref)
+{
+  return (size_t)(ref >> OPHEAP_BITS);
+}
+
+/**
+ * @ingroup malloc
+ * @brief Convert oplenref_t to opref_t.
+ *
+ * @param ref A oplenref_t value.
+ * @return An opref_t value.
+ */
+static inline opref_t
+OPLenRef2Ref(oplenref_t ref)
+{
+  return ref & (OPHEAP_SIZE - 1);
+}
+
+/**
+ * @ingroup malloc
+ * @brief Converts an oplenref_t reference to a regular pointer.
+ *
+ * @param ptr_in_heap Any pointer in the heap, including OPHeap*.
+ * @param ref A oplenref_t value.
+ * @return A regular pointer.
+ */
+static inline void*
+OPLenRef2Ptr(void* ptr_in_heap, oplenref_t ref)
+{
+  return OPRef2Ptr(ptr_in_heap, OPLenRef2Ref(ref));
+}
+
+/**
+ * @ingroup malloc
+ * @brief A constructor that copies the data to OPHeap,
+ * and returns the oplenref_t referencing the data in OPHeap.
+ *
+ * @param heap OPHeap reference.
+ * @param data The data to copy over to OPHeap.
+ * @param size Size of the data.
+ * @return An oplenref_t value. If the allocation failed, the
+ * value would be 0.
+ */
+static inline oplenref_t
+OPLenRefCreate(OPHeap* heap, void* data, size_t size)
+{
+  void* ptr;
+  ptr = OPCalloc(heap, 1, size);
+  if (!ptr)
+    return 0;
+  memcpy(ptr, data, size);
+  return OPPtr2LenRef(ptr, size);
+}
 
 OP_END_DECLS
 
