@@ -227,145 +227,8 @@ findprobe(PascalRobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
       if (hash_with_probe(rhh, hashed_key, i) == idx)
         return i;
     }
-  OP_LOG_ERROR(logger, "Didn't find any match probe!\n");
+  op_assert(false, "Didn't find any match probe!\n");
   return -1;
-}
-
-static inline void
-PRHHUpsertInternal(PascalRobinHoodHash* rhh, OPHash hasher,
-                   void* key, size_t keysize, uint8_t** matched_bucket)
-{
-  const size_t refsize = sizeof(oplenref_t);
-  const size_t valsize = rhh->valsize;
-  const size_t bucket_size = refsize + valsize;
-  uint8_t* buckets;
-  int probe, old_probe;
-  uint8_t bucket_cpy[bucket_size];
-  uint8_t bucket_tmp[bucket_size];
-  uintptr_t idx, _idx;
-  oplenref_t *recref, *_recref;
-  void *recptr, *_recptr;
-  size_t recsize, _recsize;
-  uint64_t hashed_key;
-
-  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  probe = 0;
-  hashed_key = hasher(key, keysize);
-
-  // first round: find matched bucket
-  while (true)
-    {
-      idx = hash_with_probe(rhh, hashed_key, probe);
-      recref = (oplenref_t*)&buckets[idx * bucket_size];
-      if (*recref == PRHH_EMPTY_KEY)
-        {
-          IncreaseProbeStat(rhh, probe);
-          *matched_bucket = &buckets[idx * bucket_size];
-          return;
-        }
-      else if (*recref == PRHH_TOMBSTONE_KEY)
-        {
-          for (int p = probe+1; p <= rhh->longest_probes; p++)
-            {
-              _idx = hash_with_probe(rhh, hashed_key, p);
-              _recref = (oplenref_t*)&buckets[_idx * bucket_size];
-              if (*_recref == PRHH_EMPTY_KEY ||
-                  *_recref == PRHH_TOMBSTONE_KEY)
-                continue;
-              _recptr = OPLenRef2Ptr(rhh, *_recref);
-              _recsize = OPLenRef2Size(*_recref);
-              if (_recsize == keysize &&
-                  !memcmp(key, _recptr, keysize))
-                {
-                  *matched_bucket = &buckets[_idx * bucket_size];
-                  return;
-                }
-            }
-          IncreaseProbeStat(rhh, probe);
-          *matched_bucket = &buckets[idx * bucket_size];
-          return;
-        }
-      recptr = OPLenRef2Ptr(rhh, *recref);
-      recsize = OPLenRef2Size(*recref);
-      if (keysize == recsize &&
-          !memcmp(key, recptr, keysize))
-        {
-          *matched_bucket = &buckets[idx * bucket_size];
-          return;
-        }
-      old_probe = findprobe(rhh, hasher, idx);
-      if (probe > old_probe)
-        {
-          rhh->longest_probes = probe > rhh->longest_probes ?
-            probe : rhh->longest_probes;
-          if (old_probe < PROBE_STATS_SIZE)
-            rhh->stats[old_probe]--;
-          if (probe < PROBE_STATS_SIZE)
-            rhh->stats[probe]++;
-          else
-            OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-          *matched_bucket = &buckets[idx * bucket_size];
-          memcpy(bucket_cpy, &buckets[idx * bucket_size], bucket_size);
-          *recref = PRHH_EMPTY_KEY;
-          probe = old_probe+1;
-          break;
-        }
-      probe++;
-    }
-
-  // second round: move existing records around
-  // Now we should not have any duplicate value, so no need to
-  // compare the keys.
-  recref = (oplenref_t*)&bucket_cpy[0];
-  recptr = OPLenRef2Ptr(rhh, *recref);
-  recsize = OPLenRef2Size(*recref);
-  hashed_key = hasher(recptr, recsize);
-  while (true)
-    {
-      idx = hash_with_probe(rhh, hashed_key, probe);
-
-      // If the one we're swaping out is the matched bucket,
-      // we're in a cycle. Break the cycle by skipping the
-      // matched_bucket.
-      if (&buckets[idx * bucket_size] == *matched_bucket)
-        {
-          probe++;
-          continue;
-        }
-
-      _recref = (oplenref_t*)&buckets[idx * bucket_size];
-      // empty bucket and tombstone bucket
-      if (*_recref == PRHH_EMPTY_KEY ||
-          *_recref == PRHH_TOMBSTONE_KEY)
-        {
-          IncreaseProbeStat(rhh, probe);
-          memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
-          return;
-        }
-
-      old_probe = findprobe(rhh, hasher, idx);
-      if (probe > old_probe)
-        {
-          rhh->longest_probes = probe > rhh->longest_probes ?
-            probe : rhh->longest_probes;
-          if (old_probe < PROBE_STATS_SIZE)
-            rhh->stats[old_probe]--;
-          if (probe < PROBE_STATS_SIZE)
-            rhh->stats[probe]++;
-          else
-            OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-          memcpy(bucket_tmp, &buckets[idx * bucket_size], bucket_size);
-          memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
-          memcpy(bucket_cpy, bucket_tmp, bucket_size);
-          probe = old_probe + 1;
-          recref = (oplenref_t*)&bucket_cpy[0];
-          recptr = OPLenRef2Ptr(rhh, *recref);
-          recsize = OPLenRef2Size(*recref);
-          hashed_key = hasher(recptr, recsize);
-          continue;
-        }
-      probe++;
-    }
 }
 
 static inline enum upsert_result_t
@@ -456,7 +319,7 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
   const size_t refsize = sizeof(oplenref_t);
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = refsize + valsize;
-  oplenref_t *recref;
+  oplenref_t *recref, *_recref;
   void *recptr;
   size_t recsize;
   uint8_t* buckets;
@@ -470,7 +333,7 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
   visit = 0;
   *resized = false;
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  recref = (oplenref_t*)&bucket_cpy;
+  recref = (oplenref_t*)&bucket_cpy[0];
   recptr = OPLenRef2Ptr(rhh, *recref);
   recsize = OPLenRef2Size(*recref);
   hashed_key = hasher(recptr, recsize);
@@ -520,8 +383,10 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
       visited_idx[visit % VISIT_IDX_CACHE] = idx;
       visit++;
 
-      // empty bucket or tombstone bucket
-      if (buckets[idx * bucket_size] != 1)
+      _recref = (oplenref_t*)&buckets[idx * bucket_size];
+      // empty bucket and tombstone bucket
+      if (*_recref == PRHH_EMPTY_KEY ||
+          *_recref == PRHH_TOMBSTONE_KEY)
         {
           IncreaseProbeStat(rhh, probe);
           memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
@@ -539,7 +404,7 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
           memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
           memcpy(bucket_cpy, bucket_tmp, bucket_size);
           probe = old_probe + 1;
-          recref = (oplenref_t*)&bucket_cpy;
+          recref = (oplenref_t*)&bucket_cpy[0];
           recptr = OPLenRef2Ptr(rhh, *recref);
           recsize = OPLenRef2Size(*recref);
           hashed_key = hasher(recptr, recsize);
@@ -741,6 +606,7 @@ bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   switch (upsert_result)
     {
     case UPSERT_EMPTY:
+      OP_LOG_DEBUG(logger, "empty case");
       heap = ObtainOPHeap(rhh);
       keyptr = OPCalloc(heap, 1, keysize);
       op_assert(keyptr, "allocated pointer should not be NULL");
@@ -753,6 +619,7 @@ bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
       memcpy(&matched_bucket[refsize], val, valsize);
       break;
     case UPSERT_PUSHDOWN:
+      OP_LOG_DEBUG(logger, "pushdown case");
       memcpy(bucket_cpy, matched_bucket, bucket_size);
       heap = ObtainOPHeap(rhh);
       keyptr = OPCalloc(heap, 1, keysize);

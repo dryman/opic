@@ -125,7 +125,7 @@ test_BasicInsert(void** context)
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      //OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
+      // OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
       PRHHInsert(rhh, uuid, keylen, NULL);
     }
   PRHHPrintStat(rhh);
