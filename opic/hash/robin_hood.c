@@ -50,6 +50,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
+#include <x86intrin.h>
+
 #include "opic/common/op_assert.h"
 #include "opic/common/op_utils.h"
 #include "opic/common/op_log.h"
@@ -197,10 +199,134 @@ findprobe(RobinHoodHash* rhh, OPHash hasher, uint32_t idx)
   uint64_t hashed_key;
 
   hashed_key = hasher(&buckets[idx*bucket_size + 1], keysize);
+
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
       if (hash_with_probe(rhh, hashed_key, i) == idx)
         return i;
+    }
+  op_assert(0, "Didn't find any match probe!\n");
+  return -1;
+}
+
+static inline int
+findprobe_reusevar(RobinHoodHash* rhh, OPHash hasher, uint32_t idx)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint64_t hashed_key;
+  uint32_t key32, mask, ms4b, probed_hash, result;
+
+  mask = (1 << (32 - rhh->capacity_clz)) - 1;
+  hashed_key = hasher(&buckets[idx*bucket_size + 1], keysize);
+  key32 = (uint32_t)hashed_key;
+  ms4b = rhh->capacity_ms4b;
+
+  for (int i = 0; i <= rhh->longest_probes; i++)
+    {
+      probed_hash = key32 + i * i * 2;
+      // Fast mod and scale
+      result = (probed_hash & mask) * ms4b >> 4;
+      if (result == idx)
+        return i;
+    }
+  op_assert(0, "Didn't find any match probe!\n");
+  return -1;
+}
+
+typedef uint64_t v4qu __attribute__ ((vector_size (32)));
+
+static inline int
+findprobe_v4qu(RobinHoodHash* rhh, OPHash hasher, uint32_t idx)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint64_t hashed_key;
+  uint32_t key32, mask, ms4b;
+  v4qu vkey, vprobe, vmask, vprobed_hash, vms4b, vresult;
+
+  mask = (1 << (32 - rhh->capacity_clz)) - 1;
+  hashed_key = hasher(&buckets[idx*bucket_size + 1], keysize);
+  key32 = (uint32_t)hashed_key;
+  ms4b = rhh->capacity_ms4b;
+
+  vkey = (v4qu){key32, key32, key32, key32};
+  vmask = (v4qu){mask, mask, mask, mask};
+  vms4b = (v4qu){ms4b, ms4b, ms4b, ms4b};
+
+  for (int i = 0; i <= rhh->longest_probes; i+=4)
+    {
+      vprobe = (v4qu){i, i+1, i+2, i+3};
+      vprobed_hash = vkey + ((vprobe * vprobe) << (v4qu){1, 1, 1, 1});
+      vresult = ((vprobed_hash & vmask) * vms4b) >> (v4qu){4, 4, 4, 4};
+      if (vresult[0] == idx)
+        return i;
+      if (vresult[1] == idx)
+        return i+1;
+      if (vresult[2] == idx)
+        return i+2;
+      if (vresult[3] == idx)
+        return i+3;
+    }
+  op_assert(0, "Didn't find any match probe!\n");
+  return -1;
+}
+
+static inline int
+findprobe_handtune(RobinHoodHash* rhh, OPHash hasher, uint32_t idx)
+{
+  const size_t keysize = rhh->keysize;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint64_t hashed_key;
+  uint32_t mask, result;
+  __m128i key_v4, probe_base_v4, probe_v4, probed_v4, mask_v4,
+    masked_v4, ms4b_v4, result_0_2, result_1_3;
+
+  hashed_key = hasher(&buckets[idx*bucket_size + 1], keysize);
+  mask = (1 << (32 - rhh->capacity_clz)) - 1;
+  key_v4 = _mm_set1_epi32((uint32_t)hashed_key);
+  mask_v4 = _mm_set1_epi32(mask);
+  ms4b_v4 = _mm_set1_epi32(rhh->capacity_ms4b);
+  probe_base_v4 = _mm_set_epi32(3, 2, 1, 0);  // any better way?
+
+  for (int i = 0; i <= rhh->longest_probes; i+=4)
+    {
+      probe_v4 = _mm_set1_epi32(i);
+      probe_v4 = _mm_add_epi32(probe_base_v4, probe_v4);
+      // cast probe to 16bit packed integer for us to do multiply
+      // by four elements at same time.
+      probe_v4 = _mm_madd_epi16(probe_v4, probe_v4);
+      probe_v4 = _mm_slli_epi32(probe_v4, 1);
+      probed_v4 = _mm_add_epi32(key_v4, probe_v4);
+      masked_v4 = _mm_and_si128(probed_v4, mask_v4);
+      result_0_2 = _mm_mul_epi32(masked_v4, ms4b_v4);
+      result_1_3 = _mm_mul_epi32(_mm_srli_si128(masked_v4, 4),
+                                 ms4b_v4);
+      result_0_2 = _mm_srli_epi32(result_0_2, 4);
+      result_1_3 = _mm_srli_epi32(result_1_3, 4);
+
+      result = _mm_cvtsi128_si32(result_0_2);
+      if (result == idx)
+        return i;
+      result = _mm_cvtsi128_si32(result_1_3);
+      if (result == idx)
+        return i+1;
+
+      result_0_2 = _mm_srli_si128(result_0_2, 8);
+      result_1_3 = _mm_srli_si128(result_1_3, 8);
+
+      result = _mm_cvtsi128_si32(result_0_2);
+      if (result == idx)
+        return i+2;
+      result = _mm_cvtsi128_si32(result_1_3);
+      if (result == idx)
+        return i+3;
     }
   op_assert(0, "Didn't find any match probe!\n");
   return -1;
