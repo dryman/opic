@@ -129,7 +129,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   (*rhh)->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
   (*rhh)->capacity_clz = capacity_clz;
   (*rhh)->capacity_ms4b = capacity_ms4b;
-  (*rhh)->objcnt_high = (uint64_t)(capacity * load);
+  (*rhh)->objcnt_high = (uint32_t)(capacity * load);
   (*rhh)->objcnt_low = capacity * 2 / 10;
   (*rhh)->keysize = keysize;
   (*rhh)->valsize = valsize;
