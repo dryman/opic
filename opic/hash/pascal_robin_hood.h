@@ -63,7 +63,7 @@ typedef struct PascalRobinHoodHash PascalRobinHoodHash;
  * @return true when the allocation succeeded, false otherwise.
  */
 bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
-             uint64_t num_objects, double load, size_t valsize);
+             uint32_t num_objects, double load, size_t valsize);
 
 /**
  * @relates PascalRobinHoodHash　
@@ -252,13 +252,13 @@ PRHHDelete(PascalRobinHoodHash* rhh, void* key, size_t keysize)
  * @relates PascalRobinHoodHash　
  * @brief Obtain the number of objects stored in this hash table.
  */
-uint64_t PRHHObjcnt(PascalRobinHoodHash* rhh);
+uint32_t PRHHObjcnt(PascalRobinHoodHash* rhh);
 
 /**
  * @relates PascalRobinHoodHash　
  * @brief Obtain the number of objects can be stored in this hash table.
  */
-uint64_t PRHHCapacity(PascalRobinHoodHash* rhh);
+uint32_t PRHHCapacity(PascalRobinHoodHash* rhh);
 
 /**
  * @relates PascalRobinHoodHash　

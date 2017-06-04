@@ -75,7 +75,7 @@ typedef struct RobinHoodHash RobinHoodHash;
  * can be zero and the hash table would work like a hash set.
  * @return true when the allocation succeeded, false otherwise.
  */
-bool RHHNew(OPHeap* heap, RobinHoodHash** rhh_ref, uint64_t num_objects,
+bool RHHNew(OPHeap* heap, RobinHoodHash** rhh_ref, uint32_t num_objects,
             double load, size_t keysize, size_t valsize);
 
 /**
@@ -280,13 +280,13 @@ RHHDelete(RobinHoodHash* rhh, void* key)
  * @relates RobinHoodHash　
  * @brief Obtain the number of objects stored in this hash table.
  */
-uint64_t RHHObjcnt(RobinHoodHash* rhh);
+uint32_t RHHObjcnt(RobinHoodHash* rhh);
 
 /**
  * @relates RobinHoodHash　
  * @brief Obtain the number of objects can be stored in this hash table.
  */
-uint64_t RHHCapacity(RobinHoodHash* rhh);
+uint32_t RHHCapacity(RobinHoodHash* rhh);
 
 /**
  * @relates RobinHoodHash　
