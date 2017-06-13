@@ -116,8 +116,9 @@ uint64_t farm(void* key, size_t size)
 
 uint64_t RHHPutWrap(void* key, void* context, OPHash hash_impl)
 {
-  uint64_t val = 0;
+  static uint64_t val = 0;
   RHHInsertCustom(context, hash_impl, key, &val);
+  val++;
   return 0;
 }
 
@@ -133,6 +134,20 @@ void CountObjects(void* key, void* val,
   objcnt++;
   uint64_t *val_ptr = val;
   val_sum += *val_ptr;
+}
+
+struct SequentialCtx
+{
+  void* rhh;
+  HashFunc rhh_func;
+  OPHash hasher;
+};
+
+void SequentialOp(void* key, void* val,
+                      size_t keysize, size_t valsize, void* ctx)
+{
+  struct SequentialCtx *sictx = (struct SequentialCtx*) ctx;
+  sictx->rhh_func(key, sictx->rhh, sictx->hasher);
 }
 
 void help(char* program)
@@ -160,8 +175,13 @@ void help(char* program)
 int main(int argc, char* argv[])
 {
   OPHeap* heap;
-  void* rhh;
-  struct timeval i_start, i_end, q_start, q_end, s_start, s_end;
+  void *rhh, *rhh2;
+  struct timeval
+    i_start, i_end,
+    q_start, q_end,
+    s_start, s_end,
+    si_start, si_end,
+    sg_start, sg_end;
 
   int num_power, opt;
   int repeat = 1;
@@ -313,7 +333,9 @@ int main(int argc, char* argv[])
     {
       printf("attempt %d\n", i + 1);
       op_assert(rhh_new(heap, &rhh, num,
-                       load, k_len, 8), "Create RobinHoodHash\n");
+                        load, k_len, 8), "Create RobinHoodHash\n");
+      op_assert(rhh_new(heap, &rhh2, num,
+                        load, k_len, 8), "Create RobinHoodHash\n");
       gettimeofday(&i_start, NULL);
       key_func(num_power, rhh_put, rhh, hasher);
       gettimeofday(&i_end, NULL);
@@ -326,13 +348,34 @@ int main(int argc, char* argv[])
       RHHIterate(rhh, CountObjects, NULL);
       gettimeofday(&s_end, NULL);
 
+      struct SequentialCtx sictx =
+        {
+          .rhh = rhh2,
+          .rhh_func = rhh_put,
+          .hasher = hasher,
+        };
+      gettimeofday(&si_start, NULL);
+      RHHIterate(rhh, SequentialOp, &sictx);
+      gettimeofday(&si_end, NULL);
+
+      sictx.rhh_func = rhh_get;
+      gettimeofday(&sg_start, NULL);
+      RHHIterate(rhh, SequentialOp, &sictx);
+      gettimeofday(&sg_end, NULL);
+
       print_timediff("Insert time: ", i_start, i_end);
       print_timediff("Query time: ", q_start, q_end);
       print_timediff("Sequential read time: ", s_start, s_end);
+      print_timediff("Sequential insert time: ", si_start, si_end);
+      print_timediff("Sequential get time: ", sg_start, sg_end);
 
       if (print_stat)
-        rhh_printstat(rhh);
+        {
+          rhh_printstat(rhh);
+          rhh_printstat(rhh2);
+        }
       rhh_destroy(rhh);
+      rhh_destroy(rhh2);
     }
   printf("objcnt: %d val_sum: %" PRIu64 "\n", objcnt, val_sum);
 
