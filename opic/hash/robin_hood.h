@@ -341,35 +341,26 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context);
  */
 void RHHPrintStat(RobinHoodHash* rhh);
 
-RHHFunnel* RHHFunnelInit(RobinHoodHash* rhh, size_t slot_size,
-                         size_t hashwindow_size);
+RHHFunnel* RHHFunnelInitCustom(RobinHoodHash* rhh,
+                               OPHash hasher,
+                               size_t slotsize,
+                               size_t hashwindow_size);
+
+static inline
+RHHFunnel* RHHFunnelInit(RobinHoodHash* rhh, size_t slotsize,
+                         size_t hashwindow_size)
+{
+  return RHHFunnelInitCustom(rhh, OPDefaultHash,
+                             slotsize, hashwindow_size);
+}
 
 void RHHfunnelDestory(RHHFunnel* funnel);
 
-void RHHFunnelInsertHashedKeyCustom(RHHFunnel* funnel,
-                                    OPHash hasher,
-                                    uint64_t hashed_key,
-                                    void* key, void* value);
-
-static inline
 void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
                               uint64_t hashed_key,
-                              void* key, void* value)
-{
-  RHHFunnelInsertHashedKeyCustom(funnel, OPDefaultHash,
-                                 hashed_key, key, value);
-}
+                              void* key, void* value);
 
-void RHHFunnelInsertCustom(RHHFunnel* funnel,
-                           OPHash hasher,
-                           void* key, void* value);
-
-static inline
-void RHHFunnelInsert(RHHFunnel* funnel,
-                     void* key, void* value)
-{
-  RHHFunnelInsertCustom(funnel, OPDefaultHash, key, value);
-}
+void RHHFunnelInsert(RHHFunnel* funnel, void* key, void* value);
 
 void RHHFunnelInsertFlush(RHHFunnel* funnel);
 
