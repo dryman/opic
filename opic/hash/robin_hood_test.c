@@ -335,6 +335,38 @@ test_UpsertSmall(void** context)
     }
 }
 
+static void
+test_FunnelInsert(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  RHHFunnel* funnel;
+
+  OP_LOG_INFO(logger, "Starting basic insert");
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, 20,
+                     0.80, sizeof(int), 0));
+  funnel = RHHFunnelNew(rhh, 2048, 2048);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelInsert(funnel, &i, NULL);
+    }
+  RHHFunnelInsertFlush(funnel);
+  RHHPrintStat(rhh);
+  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  ResetObjcnt();
+  RHHIterate(rhh, CountObjects, NULL);
+  assert_int_equal(TEST_OBJECTS, objcnt);
+  ResetObjmap();
+  RHHIterate(rhh, CheckObjects, NULL);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(1, objmap[i]);
+    }
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -349,6 +381,7 @@ main (void)
       cmocka_unit_test(test_BasicDeleteSmall),
       cmocka_unit_test(test_DistributionForUpdateSmall),
       cmocka_unit_test(test_UpsertSmall),
+      cmocka_unit_test(test_FunnelInsert),
     };
 
   return cmocka_run_group_tests(rhh_tests, NULL, NULL);

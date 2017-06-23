@@ -807,8 +807,8 @@ void RHHPrintStat(RobinHoodHash* rhh)
       printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
-RHHFunnel* RHHFunnelInitCostom(RobinHoodHash* rhh, OPHash hasher,
-                               size_t slotsize, size_t partition_size)
+RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh, OPHash hasher,
+                              size_t slotsize, size_t partition_size)
 {
   RHHFunnel* funnel;
   size_t bucketsize;

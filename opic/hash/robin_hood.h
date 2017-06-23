@@ -341,17 +341,17 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context);
  */
 void RHHPrintStat(RobinHoodHash* rhh);
 
-RHHFunnel* RHHFunnelInitCustom(RobinHoodHash* rhh,
-                               OPHash hasher,
-                               size_t slotsize,
-                               size_t hashwindow_size);
+RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh,
+                              OPHash hasher,
+                              size_t slotsize,
+                              size_t hashwindow_size);
 
 static inline
-RHHFunnel* RHHFunnelInit(RobinHoodHash* rhh, size_t slotsize,
-                         size_t hashwindow_size)
+RHHFunnel* RHHFunnelNew(RobinHoodHash* rhh, size_t slotsize,
+                        size_t hashwindow_size)
 {
-  return RHHFunnelInitCustom(rhh, OPDefaultHash,
-                             slotsize, hashwindow_size);
+  return RHHFunnelNewCustom(rhh, OPDefaultHash,
+                            slotsize, hashwindow_size);
 }
 
 void RHHfunnelDestory(RHHFunnel* funnel);
