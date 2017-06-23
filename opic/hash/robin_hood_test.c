@@ -372,15 +372,15 @@ main (void)
 {
   const struct CMUnitTest rhh_tests[] =
     {
-      cmocka_unit_test(test_RHHNew),
-      cmocka_unit_test(test_BasicInsert),
-      cmocka_unit_test(test_BasicDelete),
-      cmocka_unit_test(test_DistributionForUpdate),
-      cmocka_unit_test(test_Upsert),
-      cmocka_unit_test(test_BasicInsertSmall),
-      cmocka_unit_test(test_BasicDeleteSmall),
-      cmocka_unit_test(test_DistributionForUpdateSmall),
-      cmocka_unit_test(test_UpsertSmall),
+      /* cmocka_unit_test(test_RHHNew), */
+      /* cmocka_unit_test(test_BasicInsert), */
+      /* cmocka_unit_test(test_BasicDelete), */
+      /* cmocka_unit_test(test_DistributionForUpdate), */
+      /* cmocka_unit_test(test_Upsert), */
+      /* cmocka_unit_test(test_BasicInsertSmall), */
+      /* cmocka_unit_test(test_BasicDeleteSmall), */
+      /* cmocka_unit_test(test_DistributionForUpdateSmall), */
+      /* cmocka_unit_test(test_UpsertSmall), */
       cmocka_unit_test(test_FunnelInsert),
     };
 

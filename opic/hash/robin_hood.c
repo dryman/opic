@@ -304,22 +304,30 @@ RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
   int old_probe;
   uint8_t bucket_tmp[bucket_size];
   uintptr_t idx;
-  uint64_t hashed_key;
+  uint64_t hashed_key, iter, capacity;
   int visit;
   uintptr_t visited_idx[VISIT_IDX_CACHE];
 
   visit = 0;
   *resized = false;
   hashed_key = hasher(&bucket_cpy[1], keysize);
+  int* intkey = (int*)&bucket_cpy[1];
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  capacity = RHHCapacity(rhh);
+  iter = 0;
+
   while (true)
     {
     next_iter:
+      iter++;
       idx = hash_with_probe(rhh, hashed_key, probe);
+      OP_LOG_DEBUG(logger, "intkey %d, probe %d", *intkey, probe);
 
-      if (probe > PROBE_STATS_SIZE)
+      if (iter > capacity)
         {
           RHHSizeUp(rhh, hasher);
+          capacity = RHHCapacity(rhh);
+          iter = 0;
           probe = 0;
           buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
           *resized = true;
@@ -868,10 +876,17 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
   enum upsert_result_t upsert_result;
   uint8_t bucket_cpy[bucket_size];
 
+  static int stacknum = 0;
+
+  stacknum++;
   rhh = funnel->rhh;
+  int* intkey = (int*)key;
+
+  OP_LOG_DEBUG(logger, "processing intkey %d", *intkey);
 
   if (funnel->capacity_clz != rhh->capacity_clz)
     {
+      OP_LOG_DEBUG(logger, "update capacity");
       if (funnel->capacity_clz == 0)
         {
           // If the capacity of the hash table is smaller than
@@ -889,6 +904,7 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
           else
             {
               RHHInsertCustom(rhh, funnel->hasher, key, value);
+              stacknum--;
               return;
             }
         }
@@ -911,11 +927,11 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
               flowhead = old_flowheads[row_idx];
               while (tubeidx < flowhead)
                 {
-                  tube_hashed_key = (uint64_t*)&funnel->tubes[tubeidx];
+                  tube_hashed_key = (uint64_t*)&old_tubes[tubeidx];
                   tubeidx += sizeof(uint64_t);
-                  tube_key = &funnel->tubes[tubeidx];
+                  tube_key = &old_tubes[tubeidx];
                   tubeidx += keysize;
-                  tube_val = &funnel->tubes[tubeidx];
+                  tube_val = &old_tubes[tubeidx];
                   tubeidx += valsize;
                   RHHFunnelInsertHashedKey(funnel,
                                            *tube_hashed_key,
@@ -933,31 +949,42 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
   flowbase = row_idx * funnel->slotsize;
 
   // flush funnel into hash table
+  int* tubeintkey;
   if (trip_bundle_size + flowhead - flowbase > funnel->slotsize)
     {
+      OP_LOG_DEBUG(logger, "flush funnel, stack %d", stacknum);
       tubeidx = flowbase;
       while (tubeidx < flowhead)
         {
+          OP_LOG_DEBUG(logger, "tubeidx %td flowhead %td", tubeidx, flowhead);
           tube_hashed_key = (uint64_t*)&funnel->tubes[tubeidx];
           tubeidx += sizeof(uint64_t);
           tube_key = &funnel->tubes[tubeidx];
+          tubeintkey = (int*)tube_key;
           tubeidx += keysize;
           tube_val = &funnel->tubes[tubeidx];
           tubeidx += valsize;
+
+          OP_LOG_DEBUG(logger, "flushing intkey %d, hashval %" PRIx64,
+                       *tubeintkey, *tube_hashed_key);
 
           upsert_result = RHHUpsertNewKey(rhh, funnel->hasher, tube_key,
                                           *tube_hashed_key,
                                           &matched_bucket,
                                           &probe);
+          OP_LOG_DEBUG(logger, "reached upsert new key callback");
           switch (upsert_result)
             {
             case UPSERT_EMPTY:
+              OP_LOG_DEBUG(logger, "empty case");
               *matched_bucket = 1;
               memcpy(&matched_bucket[1], tube_key, keysize);
             case UPSERT_DUP:
+              OP_LOG_DEBUG(logger, "dup case");
               memcpy(&matched_bucket[1 + keysize], tube_val, valsize);
               break;
             case UPSERT_PUSHDOWN:
+              OP_LOG_DEBUG(logger, "pushdown case");
               memcpy(bucket_cpy, matched_bucket, bucket_size);
               memcpy(&matched_bucket[1], tube_key, keysize);
               memcpy(&matched_bucket[1 + keysize], tube_val, valsize);
@@ -969,6 +996,7 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
       flowhead = flowbase;
     }
 
+  OP_LOG_DEBUG(logger, "Piping key %d", *intkey);
   tubeidx = flowhead;
   memcpy(&funnel->tubes[tubeidx], &hashed_key, sizeof(uint64_t));
   tubeidx += sizeof(hashed_key);
@@ -977,6 +1005,7 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
   memcpy(&funnel->tubes[tubeidx], value, valsize);
   tubeidx += valsize;
   funnel->flowheads[row_idx] = tubeidx;
+  stacknum--;
 }
 
 void RHHFunnelInsert(RHHFunnel* funnel,
