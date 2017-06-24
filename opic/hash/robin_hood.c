@@ -185,15 +185,35 @@ size_t RHHValsize(RobinHoodHash* rhh)
 static inline uintptr_t
 hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
 {
-  uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  uint64_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
-  // linear probing
+  // These probing methods are just for experiments.
+  // They work on insertion and querying, but not deletion.
+  // Only the quadratic probing is supported for all operation.
+  // It is also the fastest probing strategry I find so far.
+
+  // Linear probing
+  // Under high load, linear probe can increase up to 50.
+  // The high probe number makes both insert and query slow.
   // uint64_t probed_hash = key + probe * 2;
 
-  // quadratic probing
+  // Quadratic probing
   uint64_t probed_hash = key + probe * probe * 2;
 
+  // Double hashing
+  // double hashing gives good probe distribution, but lacking
+  // the cache locality makes it slower than both quadratic probing
+  // and linear probing.
+  // uint64_t up32key = key >> 32;
+  // uint64_t probed_hash = key + up32key * probe;
+
   // Fast mod and scale
+  // This is mod next power of two, times a number between 8 and 15
+  // then devide by 16. This gives us fast division on non power of
+  // two table size.
+  // Both linear probing and quadratic probing needs to double the
+  // probe sequence because the scaling part of this algorithm has
+  // some probability to trim off the last bit in the probed hash.
   return (probed_hash & mask) * rhh->capacity_ms4b >> 4;
 }
 
