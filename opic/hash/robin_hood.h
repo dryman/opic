@@ -343,18 +343,21 @@ void RHHPrintStat(RobinHoodHash* rhh);
 
 RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh,
                               OPHash hasher,
+                              FunnelCB callback,
                               size_t slotsize,
-                              size_t hashwindow_size);
+                              size_t partition_size);
 
 static inline
-RHHFunnel* RHHFunnelNew(RobinHoodHash* rhh, size_t slotsize,
-                        size_t hashwindow_size)
+RHHFunnel* RHHFunnelNew(RobinHoodHash* rhh,
+                        FunnelCB callback,
+                        size_t slotsize,
+                        size_t partition_size)
 {
-  return RHHFunnelNewCustom(rhh, OPDefaultHash,
-                            slotsize, hashwindow_size);
+  return RHHFunnelNewCustom(rhh, OPDefaultHash, callback,
+                            slotsize, partition_size);
 }
 
-void RHHfunnelDestory(RHHFunnel* funnel);
+void RHHFunnelDestory(RHHFunnel* funnel);
 
 void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
                               uint64_t hashed_key,
@@ -364,6 +367,16 @@ void RHHFunnelInsert(RHHFunnel* funnel, void* key, void* value);
 
 void RHHFunnelInsertFlush(RHHFunnel* funnel);
 
+void RHHFunnelUpsertHashedKey(RHHFunnel* funnel,
+                              uint64_t hashed_key,
+                              void* key, void* value,
+                              void* context, uint32_t ctxsize);
+
+void RHHFunnelUpsert(RHHFunnel* funnel,
+                     void* key, void* value,
+                     void* context, uint32_t ctxsize);
+
+void RHHFunnelUpsertFlush(RHHFunnel* funnel);
 
 OP_END_DECLS
 

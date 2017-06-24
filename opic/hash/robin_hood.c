@@ -101,6 +101,7 @@ struct RHHFunnel
 {
   RobinHoodHash* rhh;
   OPHash hasher;
+  FunnelCB callback;
   size_t slotsize;
   uint8_t capacity_clz;
   uint8_t partition_clz;
@@ -567,13 +568,14 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
   return true;
 }
 
-bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
+static inline
+bool RHHInsertHashedKeyCustom(RobinHoodHash* rhh, OPHash hasher,
+                              uint64_t hashed_key, void* key, void* val)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   enum upsert_result_t upsert_result;
-  uint64_t hashed_key;
   uint8_t* matched_bucket;
   int probe;
   uint8_t bucket_cpy[bucket_size];
@@ -585,7 +587,6 @@ bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
         return false;
     }
 
-  hashed_key = hasher(key, keysize);
   upsert_result = RHHUpsertNewKey(rhh, hasher, key, hashed_key,
                                   &matched_bucket, &probe);
 
@@ -605,6 +606,13 @@ bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
                         matched_bucket, &resized);
     }
   return true;
+}
+
+bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
+{
+  uint64_t hashed_key;
+  hashed_key = hasher(key, rhh->keysize);
+  return RHHInsertHashedKeyCustom(rhh, hasher, hashed_key, key, val);
 }
 
 bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
@@ -834,6 +842,7 @@ void RHHPrintStat(RobinHoodHash* rhh)
 }
 
 RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh, OPHash hasher,
+                              FunnelCB callback,
                               size_t slotsize, size_t partition_size)
 {
   RHHFunnel* funnel;
@@ -844,6 +853,7 @@ RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh, OPHash hasher,
   bucketsize = rhh->keysize + rhh->valsize + 1;
   funnel->rhh = rhh;
   funnel->hasher = hasher;
+  funnel->callback = callback;
   funnel->slotsize = slotsize;
   funnel->partition_clz = __builtin_clzll(partition_size / bucketsize);
   funnel->capacity_clz = 0;
@@ -861,7 +871,7 @@ RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh, OPHash hasher,
   return funnel;
 }
 
-void RHHfunnelDestory(RHHFunnel* funnel)
+void RHHFunnelDestory(RHHFunnel* funnel)
 {
   if (!funnel)
     return;
@@ -894,9 +904,6 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
   enum upsert_result_t upsert_result;
   uint8_t bucket_cpy[bucket_size];
 
-  static int stacknum = 0;
-
-  stacknum++;
   rhh = funnel->rhh;
 
   if (funnel->capacity_clz != rhh->capacity_clz)
@@ -917,8 +924,8 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
             }
           else
             {
-              RHHInsertCustom(rhh, funnel->hasher, key, value);
-              stacknum--;
+              RHHInsertHashedKeyCustom(rhh, funnel->hasher,
+                                       hashed_key, key, value);
               return;
             }
         }
@@ -1007,7 +1014,6 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
   memcpy(&funnel->tubes[tubeidx], value, valsize);
   tubeidx += valsize;
   funnel->flowheads[row_idx] = tubeidx;
-  stacknum--;
 }
 
 void RHHFunnelInsert(RHHFunnel* funnel,
@@ -1067,6 +1073,366 @@ void RHHFunnelInsertFlush(RHHFunnel* funnel)
               memcpy(&matched_bucket[1 + keysize], tube_val, valsize);
               RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
                                 matched_bucket, &resized);
+            }
+        }
+      funnel->flowheads[row_idx] = row_idx * funnel->slotsize;
+    }
+}
+
+void RHHFunnelUpsertHashedKey(RHHFunnel* funnel,
+                              uint64_t hashed_key,
+                              void* key, void* value,
+                              void* context, uint32_t ctxsize)
+{
+  const size_t keysize = funnel->rhh->keysize;
+  const size_t valsize = funnel->rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+
+  size_t trip_bundle_size;
+  RobinHoodHash* rhh;
+  OPFunnelUpsertCB upsertcb;
+  int tube_num, old_tube_num, row_idx, probe;
+  uint64_t mask;
+  ptrdiff_t flowhead, flowbase, tubeidx;
+  ptrdiff_t* old_flowheads;
+  uint8_t *old_tubes, *tube_key, *tube_val, *tube_ctx, *matched_bucket;
+  uint32_t* tube_ctxsize;
+  uint64_t* tube_hashed_key;
+  bool resized;
+  enum upsert_result_t upsert_result;
+  uint8_t bucket_cpy[bucket_size];
+
+  rhh = funnel->rhh;
+  upsertcb = funnel->callback.upsertcb;
+
+  if (funnel->capacity_clz != rhh->capacity_clz)
+    {
+      if (funnel->capacity_clz == 0)
+        {
+          // If the capacity of the hash table is smaller than
+          // partitions, simply insert the items into the hash table.
+          // Otherwise, initialize the funnels.
+          if (funnel->partition_clz > rhh->capacity_clz)
+            {
+              funnel->capacity_clz = rhh->capacity_clz;
+              tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
+              funnel->tubes = malloc(tube_num * funnel->slotsize);
+              funnel->flowheads = malloc(tube_num * sizeof(ptrdiff_t*));
+              for (row_idx = 0; row_idx < tube_num; row_idx++)
+                funnel->flowheads[row_idx] = row_idx * funnel->slotsize;
+            }
+          else
+            {
+              RHHInsertCustom(rhh, funnel->hasher, key, value);
+              upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
+                                              key,
+                                              hashed_key,
+                                              &matched_bucket,
+                                              &probe);
+              switch (upsert_result)
+                {
+                case UPSERT_EMPTY:
+                  *matched_bucket = 1;
+                  memcpy(&matched_bucket[1], key, keysize);
+                  upsertcb(&matched_bucket[1],           // key
+                           &matched_bucket[1 + keysize], // table_value
+                           value,                        // upsert_value
+                           context,                      // context
+                           keysize, valsize, ctxsize,
+                           false);  // is_duplicate = false
+                  break;
+                case UPSERT_DUP:
+                  upsertcb(&matched_bucket[1],           // key
+                           &matched_bucket[1 + keysize], // table_value
+                           value,                        // upsert_value
+                           context,                      // context
+                           keysize, valsize, ctxsize,
+                           true);  // is_duplicate = true
+                  break;
+                case UPSERT_PUSHDOWN:
+                  memcpy(bucket_cpy, matched_bucket, bucket_size);
+                  memcpy(&matched_bucket[1], key, keysize);
+                  RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
+                                    matched_bucket, &resized);
+                  // if resized, the matched bucket no longer point to correct
+                  // address of the inserted bucket, we need to search for it
+                  // again.
+                  if (resized)
+                    {
+                      // reference to value
+                      matched_bucket = RHHGetCustom(rhh, funnel->hasher, key);
+                      // change it to regular matched bucket
+                      matched_bucket -= 1 + keysize;
+                    }
+                  upsertcb(&matched_bucket[1],           // key
+                           &matched_bucket[1 + keysize], // table_value
+                           value,                        // upsert_value
+                           context,                      // context
+                           keysize, valsize, ctxsize,
+                           false);  // is_duplicate = false
+                }
+              return;
+            }
+        }
+      else
+        {
+          old_tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
+          old_tubes = funnel->tubes;
+          old_flowheads = funnel->flowheads;
+
+          funnel->capacity_clz = rhh->capacity_clz;
+          tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
+          funnel->tubes = malloc(tube_num * funnel->slotsize);
+          funnel->flowheads = malloc(tube_num * sizeof(ptrdiff_t*));
+          for (row_idx = 0; row_idx < tube_num; row_idx++)
+            funnel->flowheads[row_idx] = row_idx * funnel->slotsize;
+
+          for (row_idx = 0; row_idx < old_tube_num; row_idx++)
+            {
+              tubeidx = row_idx * funnel->slotsize;
+              flowhead = old_flowheads[row_idx];
+              while (tubeidx < flowhead)
+                {
+                  tube_hashed_key = (uint64_t*)&old_tubes[tubeidx];
+                  tubeidx += sizeof(uint64_t);
+                  tube_ctxsize = (uint32_t*)&funnel->tubes[tubeidx];
+                  tubeidx += sizeof(uint32_t);
+                  tube_key = &old_tubes[tubeidx];
+                  tubeidx += keysize;
+                  tube_val = &old_tubes[tubeidx];
+                  tubeidx += valsize;
+                  tube_ctx = &funnel->tubes[tubeidx];
+                  tubeidx += *tube_ctxsize;
+                  upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
+                                                  tube_key,
+                                                  *tube_hashed_key,
+                                                  &matched_bucket,
+                                                  &probe);
+                  switch (upsert_result)
+                    {
+                    case UPSERT_EMPTY:
+                      *matched_bucket = 1;
+                      memcpy(&matched_bucket[1], tube_key, keysize);
+                      upsertcb(&matched_bucket[1],           // key
+                               &matched_bucket[1 + keysize], // table_value
+                               tube_val,                     // funnel_value
+                               tube_ctx,                     // context
+                               keysize, valsize, *tube_ctxsize,
+                               false);  // is_duplicate = false
+                      break;
+                    case UPSERT_DUP:
+                      upsertcb(&matched_bucket[1],           // key
+                               &matched_bucket[1 + keysize], // table_value
+                               tube_val,                     // funnel_value
+                               tube_ctx,                     // context
+                               keysize, valsize, *tube_ctxsize,
+                               true);  // is_duplicate = true
+                      break;
+                    case UPSERT_PUSHDOWN:
+                      memcpy(bucket_cpy, matched_bucket, bucket_size);
+                      memcpy(&matched_bucket[1], tube_key, keysize);
+                      RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
+                                        matched_bucket, &resized);
+                      if (resized)
+                        {
+                          // reference to value
+                          matched_bucket = RHHGetCustom(rhh, funnel->hasher,
+                                                        tube_key);
+                          // change it to regular matched bucket
+                          matched_bucket -= 1 + keysize;
+                        }
+                      upsertcb(&matched_bucket[1],           // key
+                               &matched_bucket[1 + keysize], // table_value
+                               tube_val,                     // funnel_value
+                               tube_ctx,                     // context
+                               keysize, valsize, *tube_ctxsize,
+                               false);  // is_duplicate = false
+                    }
+                }
+            }
+          free(old_flowheads);
+          free(old_tubes);
+        }
+    }
+
+  mask = (1ULL << (64 - funnel->capacity_clz)) - 1;
+  row_idx = (hashed_key & mask) >> funnel->partition_clz;
+  flowhead = funnel->flowheads[row_idx];
+  flowbase = row_idx * funnel->slotsize;
+  trip_bundle_size = sizeof(hashed_key) + sizeof(uint32_t)
+    + keysize + valsize + ctxsize;
+  op_assert(trip_bundle_size < funnel->slotsize);
+
+  // flush funnel into hash table
+  if (trip_bundle_size + flowhead - flowbase > funnel->slotsize)
+    {
+      tubeidx = flowbase;
+      while (tubeidx < flowhead)
+        {
+          tube_hashed_key = (uint64_t*)&funnel->tubes[tubeidx];
+          tubeidx += sizeof(uint64_t);
+          tube_ctxsize = (uint32_t*)&funnel->tubes[tubeidx];
+          tubeidx += sizeof(uint32_t);
+          tube_key = &funnel->tubes[tubeidx];
+          tubeidx += keysize;
+          tube_val = &funnel->tubes[tubeidx];
+          tubeidx += valsize;
+          tube_ctx = &funnel->tubes[tubeidx];
+          tubeidx += *tube_ctxsize;
+          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher, tube_key,
+                                          *tube_hashed_key,
+                                          &matched_bucket,
+                                          &probe);
+          switch (upsert_result)
+            {
+            case UPSERT_EMPTY:
+              *matched_bucket = 1;
+              memcpy(&matched_bucket[1], tube_key, keysize);
+              upsertcb(&matched_bucket[1],           // key
+                       &matched_bucket[1 + keysize], // table_value
+                       tube_val,                     // funnel_value
+                       tube_ctx,                     // context
+                       keysize, valsize, *tube_ctxsize,
+                       false);  // is_duplicate = false
+              break;
+            case UPSERT_DUP:
+              upsertcb(&matched_bucket[1],           // key
+                       &matched_bucket[1 + keysize], // table_value
+                       tube_val,                     // funnel_value
+                       tube_ctx,                     // context
+                       keysize, valsize, *tube_ctxsize,
+                       true);  // is_duplicate = true
+              break;
+            case UPSERT_PUSHDOWN:
+              memcpy(bucket_cpy, matched_bucket, bucket_size);
+              memcpy(&matched_bucket[1], tube_key, keysize);
+              RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
+                                matched_bucket, &resized);
+              // if resized, the matched bucket no longer point to correct
+              // address of the inserted bucket, we need to search for it again.
+              if (resized)
+                {
+                  // reference to value
+                  matched_bucket = RHHGetCustom(rhh, funnel->hasher, tube_key);
+                  // change it to regular matched bucket
+                  matched_bucket -= 1 + keysize;
+                }
+              upsertcb(&matched_bucket[1],           // key
+                       &matched_bucket[1 + keysize], // table_value
+                       tube_val,                     // funnel_value
+                       tube_ctx,                     // context
+                       keysize, valsize, *tube_ctxsize,
+                       false);  // is_duplicate = false
+            }
+        }
+      funnel->flowheads[row_idx] = flowbase;
+      flowhead = flowbase;
+    }
+
+  tubeidx = flowhead;
+  memcpy(&funnel->tubes[tubeidx], &hashed_key, sizeof(uint64_t));
+  tubeidx += sizeof(hashed_key);
+  memcpy(&funnel->tubes[tubeidx], &ctxsize, sizeof(uint32_t));
+  tubeidx += sizeof(uint32_t);
+  memcpy(&funnel->tubes[tubeidx], key, keysize);
+  tubeidx += keysize;
+  memcpy(&funnel->tubes[tubeidx], value, valsize);
+  tubeidx += valsize;
+  memcpy(&funnel->tubes[tubeidx], context, ctxsize);
+  tubeidx += ctxsize;
+  funnel->flowheads[row_idx] = tubeidx;
+}
+
+void RHHFunnelUpsert(RHHFunnel* funnel,
+                     void* key, void* value, void* context, uint32_t ctxsize)
+{
+  uint64_t hashed_key;
+  hashed_key = funnel->hasher(key, funnel->rhh->keysize);
+  RHHFunnelUpsertHashedKey(funnel, hashed_key, key, value, context, ctxsize);
+}
+
+void RHHFunnelUpsertFlush(RHHFunnel* funnel)
+{
+  const size_t keysize = funnel->rhh->keysize;
+  const size_t valsize = funnel->rhh->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+
+  RobinHoodHash* rhh;
+  OPFunnelUpsertCB upsertcb;
+  int tube_num, row_idx, probe;
+  ptrdiff_t flowhead, tubeidx;
+  uint8_t *tube_key, *tube_val, *tube_ctx, *matched_bucket;
+  uint32_t* tube_ctxsize;
+  uint64_t* tube_hashed_key;
+  bool resized;
+  enum upsert_result_t upsert_result;
+  uint8_t bucket_cpy[bucket_size];
+
+  rhh = funnel->rhh;
+  upsertcb = funnel->callback.upsertcb;
+  tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
+
+  for (row_idx = 0; row_idx < tube_num; row_idx++)
+    {
+      tubeidx = row_idx * funnel->slotsize;
+      flowhead = funnel->flowheads[row_idx];
+      while (tubeidx < flowhead)
+        {
+          tube_hashed_key = (uint64_t*)&funnel->tubes[tubeidx];
+          tubeidx += sizeof(uint64_t);
+          tube_ctxsize = (uint32_t*)&funnel->tubes[tubeidx];
+          tubeidx += sizeof(uint32_t);
+          tube_key = &funnel->tubes[tubeidx];
+          tubeidx += keysize;
+          tube_val = &funnel->tubes[tubeidx];
+          tubeidx += valsize;
+          tube_ctx = &funnel->tubes[tubeidx];
+          tubeidx += *tube_ctxsize;
+
+          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher, tube_key,
+                                          *tube_hashed_key,
+                                          &matched_bucket,
+                                          &probe);
+          switch (upsert_result)
+            {
+            case UPSERT_EMPTY:
+              *matched_bucket = 1;
+              memcpy(&matched_bucket[1], tube_key, keysize);
+              upsertcb(&matched_bucket[1],           // key
+                       &matched_bucket[1 + keysize], // table_value
+                       tube_val,                     // funnel_value
+                       tube_ctx,                     // context
+                       keysize, valsize, *tube_ctxsize,
+                       false);  // is_duplicate = false
+              break;
+            case UPSERT_DUP:
+              upsertcb(&matched_bucket[1],           // key
+                       &matched_bucket[1 + keysize], // table_value
+                       tube_val,                     // funnel_value
+                       tube_ctx,                     // context
+                       keysize, valsize, *tube_ctxsize,
+                       true);  // is_duplicate = true
+              break;
+            case UPSERT_PUSHDOWN:
+              memcpy(bucket_cpy, matched_bucket, bucket_size);
+              memcpy(&matched_bucket[1], tube_key, keysize);
+              RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
+                                matched_bucket, &resized);
+              // if resized, the matched bucket no longer point to correct
+              // address of the inserted bucket, we need to search for it again.
+              if (resized)
+                {
+                  // reference to value
+                  matched_bucket = RHHGetCustom(rhh, funnel->hasher, tube_key);
+                  // change it to regular matched bucket
+                  matched_bucket -= 1 + keysize;
+                }
+              upsertcb(&matched_bucket[1],           // key
+                       &matched_bucket[1 + keysize], // table_value
+                       tube_val,                     // funnel_value
+                       tube_ctx,                     // context
+                       keysize, valsize, *tube_ctxsize,
+                       false);  // is_duplicate = false
             }
         }
       funnel->flowheads[row_idx] = row_idx * funnel->slotsize;

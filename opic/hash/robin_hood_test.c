@@ -346,12 +346,13 @@ test_FunnelInsert(void** context)
   assert_true(OPHeapNew(&heap));
   assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
                      0.80, sizeof(int), 0));
-  funnel = RHHFunnelNew(rhh, 2048, 2048);
+  funnel = RHHFunnelNew(rhh, NULL, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       RHHFunnelInsert(funnel, &i, NULL);
     }
   RHHFunnelInsertFlush(funnel);
+  RHHFunnelDestroy(funnel);
   RHHPrintStat(rhh);
   assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
   ResetObjcnt();
