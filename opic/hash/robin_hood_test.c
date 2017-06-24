@@ -342,9 +342,9 @@ test_FunnelInsert(void** context)
   RobinHoodHash* rhh;
   RHHFunnel* funnel;
 
-  OP_LOG_INFO(logger, "Starting basic insert");
+  OP_LOG_INFO(logger, "Starting funnel insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, 20,
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
                      0.80, sizeof(int), 0));
   funnel = RHHFunnelNew(rhh, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -372,15 +372,15 @@ main (void)
 {
   const struct CMUnitTest rhh_tests[] =
     {
-      /* cmocka_unit_test(test_RHHNew), */
-      /* cmocka_unit_test(test_BasicInsert), */
-      /* cmocka_unit_test(test_BasicDelete), */
-      /* cmocka_unit_test(test_DistributionForUpdate), */
-      /* cmocka_unit_test(test_Upsert), */
-      /* cmocka_unit_test(test_BasicInsertSmall), */
-      /* cmocka_unit_test(test_BasicDeleteSmall), */
-      /* cmocka_unit_test(test_DistributionForUpdateSmall), */
-      /* cmocka_unit_test(test_UpsertSmall), */
+      cmocka_unit_test(test_RHHNew),
+      cmocka_unit_test(test_BasicInsert),
+      cmocka_unit_test(test_BasicDelete),
+      cmocka_unit_test(test_DistributionForUpdate),
+      cmocka_unit_test(test_Upsert),
+      cmocka_unit_test(test_BasicInsertSmall),
+      cmocka_unit_test(test_BasicDeleteSmall),
+      cmocka_unit_test(test_DistributionForUpdateSmall),
+      cmocka_unit_test(test_UpsertSmall),
       cmocka_unit_test(test_FunnelInsert),
     };
 
