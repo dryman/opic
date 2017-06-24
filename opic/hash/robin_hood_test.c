@@ -368,6 +368,77 @@ test_FunnelInsert(void** context)
   OPHeapDestroy(heap);
 }
 
+void upsert_empty_bucket(void* key,
+                         void* table_value,
+                         void* funnel_value,
+                         void* ctx,
+                         size_t keysize, size_t valsize,
+                         size_t ctxsize, bool is_duplicate)
+{
+  int* f_val, *ctx_val;
+  f_val = (int*)funnel_value;
+  ctx_val = (int*)ctx;
+  memcpy(table_value, funnel_value, valsize);
+  assert_false(is_duplicate);
+  assert_int_equal(*f_val, *ctx_val);
+}
+
+void upsert_dup_bucket(void* key,
+                       void* table_value,
+                       void* funnel_value,
+                       void* ctx,
+                       size_t keysize, size_t valsize,
+                       size_t ctxsize, bool is_duplicate)
+{
+  int* t_val, *f_val;
+  assert_true(is_duplicate);
+  t_val = (int*)table_value;
+  f_val = (int*)funnel_value;
+  assert_int_equal(*t_val, *f_val);
+}
+
+static void
+test_FunnelUpsert(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  RHHFunnel* funnel;
+
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.8, sizeof(int), sizeof(int)));
+  funnel = RHHFunnelNew(rhh, upsert_empty_bucket, 2048, 2048);
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelUpsert(funnel, &i, &i, &i, sizeof(int));
+    }
+  RHHFunnelUpsertFlush(funnel);
+  RHHFunnelDestroy(funnel);
+
+  RHHPrintStat(rhh);
+  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  ResetObjcnt();
+  RHHIterate(rhh, CountObjects, NULL);
+  assert_int_equal(TEST_OBJECTS, objcnt);
+  ResetObjmap();
+  RHHIterate(rhh, CheckObjects, NULL);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(1, objmap[i]);
+    }
+
+  funnel = RHHFunnelNew(rhh, upsert_dup_bucket, 2048, 2048);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelUpsert(funnel, &i, &i, &i, sizeof(int));
+    }
+  RHHFunnelUpsertFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -383,6 +454,7 @@ main (void)
       cmocka_unit_test(test_DistributionForUpdateSmall),
       cmocka_unit_test(test_UpsertSmall),
       cmocka_unit_test(test_FunnelInsert),
+      cmocka_unit_test(test_FunnelUpsert),
     };
 
   return cmocka_run_group_tests(rhh_tests, NULL, NULL);

@@ -357,7 +357,7 @@ RHHFunnel* RHHFunnelNew(RobinHoodHash* rhh,
                             slotsize, partition_size);
 }
 
-void RHHFunnelDestory(RHHFunnel* funnel);
+void RHHFunnelDestroy(RHHFunnel* funnel);
 
 void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
                               uint64_t hashed_key,
@@ -370,11 +370,11 @@ void RHHFunnelInsertFlush(RHHFunnel* funnel);
 void RHHFunnelUpsertHashedKey(RHHFunnel* funnel,
                               uint64_t hashed_key,
                               void* key, void* value,
-                              void* context, uint32_t ctxsize);
+                              void* context, size_t ctxsize);
 
 void RHHFunnelUpsert(RHHFunnel* funnel,
                      void* key, void* value,
-                     void* context, uint32_t ctxsize);
+                     void* context, size_t ctxsize);
 
 void RHHFunnelUpsertFlush(RHHFunnel* funnel);
 
