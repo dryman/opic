@@ -1465,6 +1465,13 @@ void RHHFunnelUpsertFlush(RHHFunnel* funnel)
     }
 }
 
+void RHHFunnelGet(RHHFunnel* funnel, void* key, void* context, size_t ctxsize)
+{
+  uint64_t hashed_key;
+  hashed_key = funnel->hasher(key, funnel->rhh->keysize);
+  RHHFunnelGetHashedKey(funnel, hashed_key, key, context, ctxsize);
+}
+
 void RHHFunnelGetHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
                            void* key, void* context, size_t ctxsize_st)
 {
