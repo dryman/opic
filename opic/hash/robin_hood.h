@@ -359,18 +359,18 @@ RHHFunnel* RHHFunnelNew(RobinHoodHash* rhh,
 
 void RHHFunnelDestroy(RHHFunnel* funnel);
 
-void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
-                              uint64_t hashed_key,
-                              void* key, void* value);
+void RHHFunnelPreHashInsert(RHHFunnel* funnel,
+                            uint64_t hashed_key,
+                            void* key, void* value);
 
 void RHHFunnelInsert(RHHFunnel* funnel, void* key, void* value);
 
 void RHHFunnelInsertFlush(RHHFunnel* funnel);
 
-void RHHFunnelUpsertHashedKey(RHHFunnel* funnel,
-                              uint64_t hashed_key,
-                              void* key, void* value,
-                              void* context, size_t ctxsize);
+void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
+                            uint64_t hashed_key,
+                            void* key, void* value,
+                            void* context, size_t ctxsize);
 
 void RHHFunnelUpsert(RHHFunnel* funnel,
                      void* key, void* value,
@@ -378,15 +378,15 @@ void RHHFunnelUpsert(RHHFunnel* funnel,
 
 void RHHFunnelUpsertFlush(RHHFunnel* funnel);
 
-void RHHFunnelGetHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
-                           void* key, void* context, size_t ctxsize);
+void RHHFunnelPreHashGet(RHHFunnel* funnel, uint64_t hashed_key,
+                         void* key, void* context, size_t ctxsize);
 
 void RHHFunnelGet(RHHFunnel* funnel, void* key, void* context, size_t ctxsize);
 
 void RHHFunnelGetFlush(RHHFunnel* funnel);
 
-void RHHFunnelDeleteHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
-                              void* key, void* context, size_t ctxsize);
+void RHHFunnelPreHashDelete(RHHFunnel* funnel, uint64_t hashed_key,
+                            void* key, void* context, size_t ctxsize);
 
 void RHHFunnelDelete(RHHFunnel* funnel, void* key,
                      void* context, size_t ctxsize);

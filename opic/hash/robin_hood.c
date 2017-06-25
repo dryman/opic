@@ -71,8 +71,10 @@ enum upsert_result_t
   };
 
 static inline enum upsert_result_t
-RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
-                uint64_t hashed_key, uint8_t** matched_bucket,
+RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
+                uint64_t hashed_key,
+                void* key,
+                uint8_t** matched_bucket,
                 int* probe_state);
 
 static inline void
@@ -247,8 +249,10 @@ IncreaseProbeStat(RobinHoodHash* rhh, int probe)
 }
 
 static inline enum upsert_result_t
-RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher, void* key,
-                uint64_t hashed_key, uint8_t** matched_bucket, int* probe_state)
+RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
+                uint64_t hashed_key,
+                void* key,
+                uint8_t** matched_bucket, int* probe_state)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
@@ -569,8 +573,8 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
 }
 
 static inline
-bool RHHInsertHashedKeyCustom(RobinHoodHash* rhh, OPHash hasher,
-                              uint64_t hashed_key, void* key, void* val)
+bool RHHPreHashInsertCustom(RobinHoodHash* rhh, OPHash hasher,
+                            uint64_t hashed_key, void* key, void* val)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
@@ -587,7 +591,7 @@ bool RHHInsertHashedKeyCustom(RobinHoodHash* rhh, OPHash hasher,
         return false;
     }
 
-  upsert_result = RHHUpsertNewKey(rhh, hasher, key, hashed_key,
+  upsert_result = RHHUpsertNewKey(rhh, hasher, hashed_key, key,
                                   &matched_bucket, &probe);
 
   switch (upsert_result)
@@ -612,7 +616,7 @@ bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
 {
   uint64_t hashed_key;
   hashed_key = hasher(key, rhh->keysize);
-  return RHHInsertHashedKeyCustom(rhh, hasher, hashed_key, key, val);
+  return RHHPreHashInsertCustom(rhh, hasher, hashed_key, key, val);
 }
 
 bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
@@ -635,7 +639,7 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
     }
 
   hashed_key = hasher(key, keysize);
-  upsert_result = RHHUpsertNewKey(rhh, hasher, key, hashed_key,
+  upsert_result = RHHUpsertNewKey(rhh, hasher, hashed_key, key,
                                   &matched_bucket, &probe);
   *val_ref = &matched_bucket[keysize + 1];
   switch (upsert_result)
@@ -663,8 +667,8 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
 }
 
 static inline bool
-RHHSearchHashedKeyIdx(RobinHoodHash* rhh, uint64_t hashed_key,
-                      void* key, uintptr_t* idx)
+RHHPreHashSearchIdx(RobinHoodHash* rhh, uint64_t hashed_key,
+                    void* key, uintptr_t* idx)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
@@ -692,7 +696,7 @@ RHHSearchIdx(RobinHoodHash* rhh, OPHash hasher, void* key, uintptr_t* idx)
   const size_t keysize = rhh->keysize;
   uint64_t hashed_key;
   hashed_key = hasher(key, keysize);
-  return RHHSearchHashedKeyIdx(rhh, hashed_key, key, idx);
+  return RHHPreHashSearchIdx(rhh, hashed_key, key, idx);
 }
 
 void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
@@ -709,9 +713,9 @@ void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
   return NULL;
 }
 
-
-void* RHHDeleteHashedKeyCustom(RobinHoodHash* rhh, OPHash hasher,
-                               uint64_t hashed_key, void* key)
+static inline void*
+RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
+                       uint64_t hashed_key, void* key)
 {
   /*
    * This works for load that is not super high, i.e. < 0.9.
@@ -735,7 +739,7 @@ void* RHHDeleteHashedKeyCustom(RobinHoodHash* rhh, OPHash hasher,
         return NULL;
     }
 
-  if (!RHHSearchHashedKeyIdx(rhh, hashed_key, key, &idx))
+  if (!RHHPreHashSearchIdx(rhh, hashed_key, key, &idx))
     return NULL;
 
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
@@ -827,7 +831,7 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
 {
   uint64_t hashed_key;
   hashed_key = hasher(key, rhh->keysize);
-  return RHHDeleteHashedKeyCustom(rhh, hasher, hashed_key, key);
+  return RHHPreHashDeleteCustom(rhh, hasher, hashed_key, key);
 }
 
 void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
@@ -842,9 +846,9 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
     {
       if (buckets[idx*bucket_size] == 1)
         {
-        iterator(&buckets[idx*bucket_size + 1],
-                 &buckets[idx*bucket_size + 1 + keysize],
-                 keysize, valsize, context);
+          iterator(&buckets[idx*bucket_size + 1],
+                   &buckets[idx*bucket_size + 1 + keysize],
+                   keysize, valsize, context);
         }
     }
 }
@@ -898,9 +902,9 @@ void RHHFunnelDestroy(RHHFunnel* funnel)
   free(funnel);
 }
 
-void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
-                              uint64_t hashed_key,
-                              void* key, void* value)
+void RHHFunnelPreHashInsert(RHHFunnel* funnel,
+                            uint64_t hashed_key,
+                            void* key, void* value)
 {
   const size_t keysize = funnel->rhh->keysize;
   const size_t valsize = funnel->rhh->valsize;
@@ -938,8 +942,8 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
             }
           else
             {
-              RHHInsertHashedKeyCustom(rhh, funnel->hasher,
-                                       hashed_key, key, value);
+              RHHPreHashInsertCustom(rhh, funnel->hasher,
+                                     hashed_key, key, value);
               return;
             }
         }
@@ -968,9 +972,9 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
                   tubeidx += keysize;
                   tube_val = &old_tubes[tubeidx];
                   tubeidx += valsize;
-                  RHHFunnelInsertHashedKey(funnel,
-                                           *tube_hashed_key,
-                                           tube_key, tube_val);
+                  RHHFunnelPreHashInsert(funnel,
+                                         *tube_hashed_key,
+                                         tube_key, tube_val);
                 }
             }
           free(old_flowheads);
@@ -996,8 +1000,9 @@ void RHHFunnelInsertHashedKey(RHHFunnel* funnel,
           tube_val = &funnel->tubes[tubeidx];
           tubeidx += valsize;
 
-          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher, tube_key,
+          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
                                           *tube_hashed_key,
+                                          tube_key,
                                           &matched_bucket,
                                           &probe);
           switch (upsert_result)
@@ -1035,7 +1040,7 @@ void RHHFunnelInsert(RHHFunnel* funnel,
 {
   uint64_t hashed_key;
   hashed_key = funnel->hasher(key, funnel->rhh->keysize);
-  RHHFunnelInsertHashedKey(funnel, hashed_key, key, value);
+  RHHFunnelPreHashInsert(funnel, hashed_key, key, value);
 }
 
 void RHHFunnelInsertFlush(RHHFunnel* funnel)
@@ -1072,8 +1077,9 @@ void RHHFunnelInsertFlush(RHHFunnel* funnel)
           tube_val = &funnel->tubes[tubeidx];
           tubeidx += valsize;
 
-          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher, tube_key,
+          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
                                           *tube_hashed_key,
+                                          tube_key,
                                           &matched_bucket,
                                           &probe);
           switch (upsert_result)
@@ -1096,10 +1102,10 @@ void RHHFunnelInsertFlush(RHHFunnel* funnel)
     }
 }
 
-void RHHFunnelUpsertHashedKey(RHHFunnel* funnel,
-                              uint64_t hashed_key,
-                              void* key, void* value,
-                              void* context, size_t ctxsize_st)
+void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
+                            uint64_t hashed_key,
+                            void* key, void* value,
+                            void* context, size_t ctxsize_st)
 {
   const size_t keysize = funnel->rhh->keysize;
   const size_t valsize = funnel->rhh->valsize;
@@ -1144,8 +1150,8 @@ void RHHFunnelUpsertHashedKey(RHHFunnel* funnel,
             {
               RHHInsertCustom(rhh, funnel->hasher, key, value);
               upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
-                                              key,
                                               hashed_key,
+                                              key,
                                               &matched_bucket,
                                               &probe);
               switch (upsert_result)
@@ -1226,8 +1232,8 @@ void RHHFunnelUpsertHashedKey(RHHFunnel* funnel,
                   tube_ctx = &funnel->tubes[tubeidx];
                   tubeidx += *tube_ctxsize;
                   upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
-                                                  tube_key,
                                                   *tube_hashed_key,
+                                                  tube_key,
                                                   &matched_bucket,
                                                   &probe);
                   switch (upsert_result)
@@ -1304,8 +1310,9 @@ void RHHFunnelUpsertHashedKey(RHHFunnel* funnel,
           tubeidx += valsize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher, tube_key,
+          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
                                           *tube_hashed_key,
+                                          tube_key,
                                           &matched_bucket,
                                           &probe);
           switch (upsert_result)
@@ -1376,7 +1383,7 @@ void RHHFunnelUpsert(RHHFunnel* funnel,
 {
   uint64_t hashed_key;
   hashed_key = funnel->hasher(key, funnel->rhh->keysize);
-  RHHFunnelUpsertHashedKey(funnel, hashed_key, key, value, context, ctxsize);
+  RHHFunnelPreHashUpsert(funnel, hashed_key, key, value, context, ctxsize);
 }
 
 void RHHFunnelUpsertFlush(RHHFunnel* funnel)
@@ -1420,8 +1427,9 @@ void RHHFunnelUpsertFlush(RHHFunnel* funnel)
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
 
-          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher, tube_key,
+          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
                                           *tube_hashed_key,
+                                          tube_key,
                                           &matched_bucket,
                                           &probe);
           switch (upsert_result)
@@ -1477,11 +1485,11 @@ void RHHFunnelGet(RHHFunnel* funnel, void* key, void* context, size_t ctxsize)
 {
   uint64_t hashed_key;
   hashed_key = funnel->hasher(key, funnel->rhh->keysize);
-  RHHFunnelGetHashedKey(funnel, hashed_key, key, context, ctxsize);
+  RHHFunnelPreHashGet(funnel, hashed_key, key, context, ctxsize);
 }
 
-void RHHFunnelGetHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
-                           void* key, void* context, size_t ctxsize_st)
+void RHHFunnelPreHashGet(RHHFunnel* funnel, uint64_t hashed_key,
+                         void* key, void* context, size_t ctxsize_st)
 {
   const size_t keysize = funnel->rhh->keysize;
   const size_t valsize = funnel->rhh->valsize;
@@ -1507,10 +1515,10 @@ void RHHFunnelGetHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
   // hash table is too small for using funnel
   if (!funnel->tubes)
     {
-      if (RHHSearchHashedKeyIdx(rhh,
-                                hashed_key,
-                                key,
-                                &bucket_idx))
+      if (RHHPreHashSearchIdx(rhh,
+                              hashed_key,
+                              key,
+                              &bucket_idx))
         {
           if (getcb)
             getcb(&buckets[bucket_idx * bucket_size + 1],
@@ -1546,10 +1554,10 @@ void RHHFunnelGetHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
           tubeidx += keysize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          if (RHHSearchHashedKeyIdx(rhh,
-                                    *tube_hashed_key,
-                                    tube_key,
-                                    &bucket_idx))
+          if (RHHPreHashSearchIdx(rhh,
+                                  *tube_hashed_key,
+                                  tube_key,
+                                  &bucket_idx))
             {
               if (getcb)
                 getcb(&buckets[bucket_idx * bucket_size + 1],
@@ -1617,10 +1625,10 @@ void RHHFunnelGetFlush(RHHFunnel* funnel)
           tubeidx += keysize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          if (RHHSearchHashedKeyIdx(rhh,
-                                    *tube_hashed_key,
-                                    tube_key,
-                                    &bucket_idx))
+          if (RHHPreHashSearchIdx(rhh,
+                                  *tube_hashed_key,
+                                  tube_key,
+                                  &bucket_idx))
             {
               if (getcb)
                 getcb(&buckets[bucket_idx * bucket_size + 1],
@@ -1643,11 +1651,11 @@ void RHHFunnelDelete(RHHFunnel* funnel, void* key,
 {
   uint64_t hashed_key;
   hashed_key = funnel->hasher(key, funnel->rhh->keysize);
-  RHHFunnelDeleteHashedKey(funnel, hashed_key, key, context, ctxsize);
+  RHHFunnelPreHashDelete(funnel, hashed_key, key, context, ctxsize);
 }
 
-void RHHFunnelDeleteHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
-                              void* key, void* context, size_t ctxsize_st)
+void RHHFunnelPreHashDelete(RHHFunnel* funnel, uint64_t hashed_key,
+                            void* key, void* context, size_t ctxsize_st)
 {
   const size_t keysize = funnel->rhh->keysize;
   const size_t valsize = funnel->rhh->valsize;
@@ -1669,9 +1677,9 @@ void RHHFunnelDeleteHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
   // hash table is too small for using funnel
   if (!funnel->tubes)
     {
-      deleted_val = RHHDeleteHashedKeyCustom(rhh,
-                                             funnel->hasher,
-                                             hashed_key, key);
+      deleted_val = RHHPreHashDeleteCustom(rhh,
+                                           funnel->hasher,
+                                           hashed_key, key);
       if (deleted_val)
         {
           deleted_key = deleted_val - keysize;
@@ -1708,9 +1716,9 @@ void RHHFunnelDeleteHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
           tubeidx += keysize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          deleted_val = RHHDeleteHashedKeyCustom(rhh,
-                                                 funnel->hasher,
-                                                 *tube_hashed_key, tube_key);
+          deleted_val = RHHPreHashDeleteCustom(rhh,
+                                               funnel->hasher,
+                                               *tube_hashed_key, tube_key);
           if (deleted_val)
             {
               deleted_key = deleted_val - keysize;
@@ -1775,9 +1783,9 @@ void RHHFunnelDeleteFlush(RHHFunnel* funnel)
           tubeidx += keysize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          deleted_val = RHHDeleteHashedKeyCustom(rhh,
-                                                 funnel->hasher,
-                                                 *tube_hashed_key, tube_key);
+          deleted_val = RHHPreHashDeleteCustom(rhh,
+                                               funnel->hasher,
+                                               *tube_hashed_key, tube_key);
           if (deleted_val)
             {
               deleted_key = deleted_val - keysize;
