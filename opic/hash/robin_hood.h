@@ -378,6 +378,13 @@ void RHHFunnelUpsert(RHHFunnel* funnel,
 
 void RHHFunnelUpsertFlush(RHHFunnel* funnel);
 
+void RHHFunnelGetHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
+                           void* key, void* context, size_t ctxsize);
+
+void RHHFunnelGet(RHHFunnel* funnel, void* key, void* context, size_t ctxsize);
+
+void RHHFunnelGetFlush(RHHFunnel* funnel);
+
 OP_END_DECLS
 
 #endif

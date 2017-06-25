@@ -395,6 +395,7 @@ void upsert_dup_bucket(void* key,
   t_val = (int*)table_value;
   f_val = (int*)funnel_value;
   assert_int_equal(*t_val, *f_val);
+  assert_int_equal(0, ctxsize);
 }
 
 static void
@@ -431,7 +432,7 @@ test_FunnelUpsert(void** context)
   funnel = RHHFunnelNew(rhh, upsert_dup_bucket, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHFunnelUpsert(funnel, &i, &i, &i, sizeof(int));
+      RHHFunnelUpsert(funnel, &i, &i, NULL, 0);
     }
   RHHFunnelUpsertFlush(funnel);
   RHHFunnelDestroy(funnel);
