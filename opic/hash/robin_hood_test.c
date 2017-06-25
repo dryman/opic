@@ -125,6 +125,13 @@ test_BasicInsert(void** context)
     {
       assert_int_equal(1, objmap[i]);
     }
+
+  // test mismatch objects
+  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
+    {
+      assert_null(RHHGet(rhh, &i));
+    }
+
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -241,6 +248,12 @@ test_BasicInsertSmall(void** context)
   ResetObjcnt();
   RHHIterate(rhh, CountObjects, NULL);
   assert_int_equal(SMALL_TEST_OBJECTS, objcnt);
+
+  // test mismatch objects
+  for (int i = SMALL_TEST_OBJECTS; i < SMALL_TEST_OBJECTS*2; i++)
+    {
+      assert_null(RHHGet(rhh, &i));
+    }
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -444,6 +457,9 @@ void funnel_count_objects(void* key, void* value, void* ctx,
                           size_t keysize, size_t valsize,
                           size_t ctxsize)
 {
+  if (!value)
+    return;
+
   objcnt++;
   int* intval = (int*)value;
   int* intctx = (int*)ctx;
@@ -454,6 +470,9 @@ void funnel_check_objects(void* key, void* value, void* ctx,
                           size_t keysize, size_t valsize,
                           size_t ctxsize)
 {
+  if (!value)
+    return;
+
   int* intkey = key;
   objmap[*intkey] = 1;
 }
@@ -491,9 +510,34 @@ test_FunnelGet(void** context)
       RHHFunnelGet(funnel, &i, NULL, 0);
     }
   RHHFunnelGetFlush(funnel);
+  RHHFunnelDestroy(funnel);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       assert_int_equal(1, objmap[i]);
+    }
+
+  // test mismatch object case
+  ResetObjcnt();
+  funnel = RHHFunnelNew(rhh, funnel_count_objects, 2048, 2048);
+  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
+    {
+      RHHFunnelGet(funnel, &i, &i, sizeof(int));
+    }
+  RHHFunnelGetFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  assert_int_equal(0, objcnt);
+
+  ResetObjmap();
+  funnel = RHHFunnelNew(rhh, funnel_check_objects, 2048, 2048);
+  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
+    {
+      RHHFunnelGet(funnel, &i, NULL, 0);
+    }
+  RHHFunnelGetFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(0, objmap[i]);
     }
 
   RHHDestroy(rhh);
