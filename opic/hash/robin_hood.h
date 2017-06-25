@@ -385,6 +385,14 @@ void RHHFunnelGet(RHHFunnel* funnel, void* key, void* context, size_t ctxsize);
 
 void RHHFunnelGetFlush(RHHFunnel* funnel);
 
+void RHHFunnelDeleteHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
+                              void* key, void* context, size_t ctxsize);
+
+void RHHFunnelDelete(RHHFunnel* funnel, void* key,
+                     void* context, size_t ctxsize);
+
+void RHHFunnelDeleteFlush(RHHFunnel* funnel);
+
 OP_END_DECLS
 
 #endif

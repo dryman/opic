@@ -544,6 +544,43 @@ test_FunnelGet(void** context)
   OPHeapDestroy(heap);
 }
 
+static void
+test_FunnelDelete(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  RHHFunnel* funnel;
+
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.8, sizeof(int), sizeof(int)));
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHInsert(rhh, &i, &i);
+    }
+
+  ResetObjmap();
+  funnel = RHHFunnelNew(rhh, funnel_check_objects, 2048, 2048);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelDelete(funnel, &i, NULL, 0);
+    }
+  RHHFunnelDeleteFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(1, objmap[i]);
+    }
+  assert_int_equal(0, RHHObjcnt(rhh));
+  ResetObjcnt();
+  RHHIterate(rhh, CountObjects, NULL);
+  assert_int_equal(0, objcnt);
+
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -561,6 +598,7 @@ main (void)
       cmocka_unit_test(test_FunnelInsert),
       cmocka_unit_test(test_FunnelUpsert),
       cmocka_unit_test(test_FunnelGet),
+      cmocka_unit_test(test_FunnelDelete),
     };
 
   return cmocka_run_group_tests(rhh_tests, NULL, NULL);

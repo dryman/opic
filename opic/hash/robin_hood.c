@@ -709,7 +709,9 @@ void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
   return NULL;
 }
 
-void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
+
+void* RHHDeleteHashedKeyCustom(RobinHoodHash* rhh, OPHash hasher,
+                               uint64_t hashed_key, void* key)
 {
   /*
    * This works for load that is not super high, i.e. < 0.9.
@@ -733,7 +735,7 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
         return NULL;
     }
 
-  if (!RHHSearchIdx(rhh, hasher, key, &idx))
+  if (!RHHSearchHashedKeyIdx(rhh, hashed_key, key, &idx))
     return NULL;
 
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
@@ -821,6 +823,12 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
   return &buckets[idx*bucket_size + 1 + keysize];
 }
 
+void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
+{
+  uint64_t hashed_key;
+  hashed_key = hasher(key, rhh->keysize);
+  return RHHDeleteHashedKeyCustom(rhh, hasher, hashed_key, key);
+}
 
 void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
 {
@@ -1624,6 +1632,164 @@ void RHHFunnelGetFlush(RHHFunnel* funnel)
               if (getcb)
                 getcb(tube_key, NULL,
                       tube_ctx, keysize, valsize, *tube_ctxsize);
+            }
+        }
+      funnel->flowheads[row_idx] = row_idx * funnel->slotsize;
+    }
+}
+
+void RHHFunnelDelete(RHHFunnel* funnel, void* key,
+                     void* context, size_t ctxsize)
+{
+  uint64_t hashed_key;
+  hashed_key = funnel->hasher(key, funnel->rhh->keysize);
+  RHHFunnelDeleteHashedKey(funnel, hashed_key, key, context, ctxsize);
+}
+
+void RHHFunnelDeleteHashedKey(RHHFunnel* funnel, uint64_t hashed_key,
+                              void* key, void* context, size_t ctxsize_st)
+{
+  const size_t keysize = funnel->rhh->keysize;
+  const size_t valsize = funnel->rhh->valsize;
+
+  RobinHoodHash* rhh;
+  OPFunnelDeleteCB deletecb;
+  int row_idx;
+  uint64_t mask;
+  size_t trip_bundle_size;
+  ptrdiff_t flowhead, flowbase, tubeidx;
+  uint8_t *tube_key, *tube_ctx, *deleted_key, *deleted_val;
+  uint32_t* tube_ctxsize;
+  uint32_t ctxsize;
+  uint64_t* tube_hashed_key;
+
+  rhh = funnel->rhh;
+  deletecb = funnel->callback.deletecb;
+
+  // hash table is too small for using funnel
+  if (!funnel->tubes)
+    {
+      deleted_val = RHHDeleteHashedKeyCustom(rhh,
+                                             funnel->hasher,
+                                             hashed_key, key);
+      if (deleted_val)
+        {
+          deleted_key = deleted_val - keysize;
+          if (deletecb)
+            deletecb(deleted_key, deleted_val,
+                     context, keysize, valsize, ctxsize_st);
+        }
+      else
+        {
+          if (deletecb)
+            deletecb(key, NULL, context, keysize, valsize, ctxsize_st);
+        }
+      return;
+    }
+
+  ctxsize = (uint32_t)ctxsize_st;
+  mask = (1ULL << (64 - funnel->capacity_clz)) - 1;
+  row_idx = (hashed_key & mask) >> funnel->partition_clz;
+  flowhead = funnel->flowheads[row_idx];
+  flowbase = row_idx * funnel->slotsize;
+  trip_bundle_size = sizeof(hashed_key) + sizeof(uint32_t) + keysize + ctxsize;
+
+  // flush funnel and call callback
+  if (trip_bundle_size + flowhead - flowbase > funnel->slotsize)
+    {
+      tubeidx = flowbase;
+      while (tubeidx < flowhead)
+        {
+          tube_hashed_key = (uint64_t*)&funnel->tubes[tubeidx];
+          tubeidx += sizeof(uint64_t);
+          tube_ctxsize = (uint32_t*)&funnel->tubes[tubeidx];
+          tubeidx += sizeof(uint32_t);
+          tube_key = &funnel->tubes[tubeidx];
+          tubeidx += keysize;
+          tube_ctx = &funnel->tubes[tubeidx];
+          tubeidx += *tube_ctxsize;
+          deleted_val = RHHDeleteHashedKeyCustom(rhh,
+                                                 funnel->hasher,
+                                                 *tube_hashed_key, tube_key);
+          if (deleted_val)
+            {
+              deleted_key = deleted_val - keysize;
+              if (deletecb)
+                deletecb(deleted_key, deleted_val,
+                         tube_ctx, keysize, valsize, *tube_ctxsize);
+            }
+          else
+            {
+              if (deletecb)
+                deletecb(tube_key, NULL,
+                         tube_ctx, keysize, valsize, *tube_ctxsize);
+            }
+        }
+      funnel->flowheads[row_idx] = flowbase;
+      flowhead = flowbase;
+    }
+
+  tubeidx = flowhead;
+  memcpy(&funnel->tubes[tubeidx], &hashed_key, sizeof(uint64_t));
+  tubeidx += sizeof(hashed_key);
+  memcpy(&funnel->tubes[tubeidx], &ctxsize, sizeof(uint32_t));
+  tubeidx += sizeof(uint32_t);
+  memcpy(&funnel->tubes[tubeidx], key, keysize);
+  tubeidx += keysize;
+  memcpy(&funnel->tubes[tubeidx], context, ctxsize);
+  tubeidx += ctxsize;
+  funnel->flowheads[row_idx] = tubeidx;
+}
+
+void RHHFunnelDeleteFlush(RHHFunnel* funnel)
+{
+  const size_t keysize = funnel->rhh->keysize;
+  const size_t valsize = funnel->rhh->valsize;
+
+  RobinHoodHash* rhh;
+  OPFunnelDeleteCB deletecb;
+  int tube_num, row_idx;
+  ptrdiff_t flowhead, tubeidx;
+  uint8_t *tube_key, *tube_ctx, *deleted_key, *deleted_val;
+  uint32_t* tube_ctxsize;
+  uint64_t* tube_hashed_key;
+
+  if (!funnel->tubes || !funnel->rhh)
+    return;
+
+  rhh = funnel->rhh;
+  deletecb = funnel->callback.deletecb;
+  tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
+
+  for (row_idx = 0; row_idx < tube_num; row_idx++)
+    {
+      tubeidx = row_idx * funnel->slotsize;
+      flowhead = funnel->flowheads[row_idx];
+      while (tubeidx < flowhead)
+        {
+          tube_hashed_key = (uint64_t*)&funnel->tubes[tubeidx];
+          tubeidx += sizeof(uint64_t);
+          tube_ctxsize = (uint32_t*)&funnel->tubes[tubeidx];
+          tubeidx += sizeof(uint32_t);
+          tube_key = &funnel->tubes[tubeidx];
+          tubeidx += keysize;
+          tube_ctx = &funnel->tubes[tubeidx];
+          tubeidx += *tube_ctxsize;
+          deleted_val = RHHDeleteHashedKeyCustom(rhh,
+                                                 funnel->hasher,
+                                                 *tube_hashed_key, tube_key);
+          if (deleted_val)
+            {
+              deleted_key = deleted_val - keysize;
+              if (deletecb)
+                deletecb(deleted_key, deleted_val,
+                         tube_ctx, keysize, valsize, *tube_ctxsize);
+            }
+          else
+            {
+              if (deletecb)
+                deletecb(tube_key, NULL,
+                         tube_ctx, keysize, valsize, *tube_ctxsize);
             }
         }
       funnel->flowheads[row_idx] = row_idx * funnel->slotsize;
