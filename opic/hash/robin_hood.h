@@ -60,6 +60,8 @@ OP_BEGIN_DECLS
  */
 typedef struct RobinHoodHash RobinHoodHash;
 
+typedef struct RHHFunnel RHHFunnel;
+
 /**
  * @relates RobinHoodHash　
  * @brief Constructor for RobinHoodHash.
@@ -339,6 +341,57 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context);
  */
 void RHHPrintStat(RobinHoodHash* rhh);
 
+RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh,
+                              OPHash hasher,
+                              FunnelCB callback,
+                              size_t slotsize,
+                              size_t partition_size);
+
+static inline
+RHHFunnel* RHHFunnelNew(RobinHoodHash* rhh,
+                        FunnelCB callback,
+                        size_t slotsize,
+                        size_t partition_size)
+{
+  return RHHFunnelNewCustom(rhh, OPDefaultHash, callback,
+                            slotsize, partition_size);
+}
+
+void RHHFunnelDestroy(RHHFunnel* funnel);
+
+void RHHFunnelPreHashInsert(RHHFunnel* funnel,
+                            uint64_t hashed_key,
+                            void* key, void* value);
+
+void RHHFunnelInsert(RHHFunnel* funnel, void* key, void* value);
+
+void RHHFunnelInsertFlush(RHHFunnel* funnel);
+
+void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
+                            uint64_t hashed_key,
+                            void* key, void* value,
+                            void* context, size_t ctxsize);
+
+void RHHFunnelUpsert(RHHFunnel* funnel,
+                     void* key, void* value,
+                     void* context, size_t ctxsize);
+
+void RHHFunnelUpsertFlush(RHHFunnel* funnel);
+
+void RHHFunnelPreHashGet(RHHFunnel* funnel, uint64_t hashed_key,
+                         void* key, void* context, size_t ctxsize);
+
+void RHHFunnelGet(RHHFunnel* funnel, void* key, void* context, size_t ctxsize);
+
+void RHHFunnelGetFlush(RHHFunnel* funnel);
+
+void RHHFunnelPreHashDelete(RHHFunnel* funnel, uint64_t hashed_key,
+                            void* key, void* context, size_t ctxsize);
+
+void RHHFunnelDelete(RHHFunnel* funnel, void* key,
+                     void* context, size_t ctxsize);
+
+void RHHFunnelDeleteFlush(RHHFunnel* funnel);
 
 OP_END_DECLS
 

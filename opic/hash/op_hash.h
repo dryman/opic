@@ -72,6 +72,28 @@ uint64_t OPDefaultHash(void* key, size_t size)
   return cityhash64((const uint8_t*)key, size);
 }
 
+typedef void(*OPFunnelUpsertCB)(void* key,
+                                void* table_value,
+                                void* funnel_value,
+                                void* ctx,
+                                size_t keysize, size_t valsize,
+                                size_t ctxsize, bool is_duplicate);
+
+typedef void(*OPFunnelGetCB)(void* key, void* value, void* ctx,
+                             size_t keysize, size_t valsize,
+                             size_t ctxsize);
+
+typedef void(*OPFunnelDeleteCB)(void* key, void* value, void* ctx,
+                                size_t keysize, size_t valsize,
+                                size_t ctxsize);
+
+typedef union FunnelCB
+{
+  OPFunnelUpsertCB upsertcb;
+  OPFunnelGetCB getcb;
+  OPFunnelDeleteCB deletecb;
+} FunnelCB __attribute__((__transparent_union__));
+
 OP_END_DECLS
 
 #endif

@@ -125,6 +125,13 @@ test_BasicInsert(void** context)
     {
       assert_int_equal(1, objmap[i]);
     }
+
+  // test mismatch objects
+  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
+    {
+      assert_null(RHHGet(rhh, &i));
+    }
+
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -241,6 +248,12 @@ test_BasicInsertSmall(void** context)
   ResetObjcnt();
   RHHIterate(rhh, CountObjects, NULL);
   assert_int_equal(SMALL_TEST_OBJECTS, objcnt);
+
+  // test mismatch objects
+  for (int i = SMALL_TEST_OBJECTS; i < SMALL_TEST_OBJECTS*2; i++)
+    {
+      assert_null(RHHGet(rhh, &i));
+    }
   RHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -335,6 +348,239 @@ test_UpsertSmall(void** context)
     }
 }
 
+static void
+test_FunnelInsert(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  RHHFunnel* funnel;
+
+  OP_LOG_INFO(logger, "Starting funnel insert");
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.80, sizeof(int), 0));
+  funnel = RHHFunnelNew(rhh, NULL, 2048, 2048);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelInsert(funnel, &i, NULL);
+    }
+  RHHFunnelInsertFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  RHHPrintStat(rhh);
+  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  ResetObjcnt();
+  RHHIterate(rhh, CountObjects, NULL);
+  assert_int_equal(TEST_OBJECTS, objcnt);
+  ResetObjmap();
+  RHHIterate(rhh, CheckObjects, NULL);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(1, objmap[i]);
+    }
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
+void upsert_empty_bucket(void* key,
+                         void* table_value,
+                         void* funnel_value,
+                         void* ctx,
+                         size_t keysize, size_t valsize,
+                         size_t ctxsize, bool is_duplicate)
+{
+  int* f_val, *ctx_val;
+  f_val = (int*)funnel_value;
+  ctx_val = (int*)ctx;
+  memcpy(table_value, funnel_value, valsize);
+  assert_false(is_duplicate);
+  assert_int_equal(*f_val, *ctx_val);
+}
+
+void upsert_dup_bucket(void* key,
+                       void* table_value,
+                       void* funnel_value,
+                       void* ctx,
+                       size_t keysize, size_t valsize,
+                       size_t ctxsize, bool is_duplicate)
+{
+  int* t_val, *f_val;
+  assert_true(is_duplicate);
+  t_val = (int*)table_value;
+  f_val = (int*)funnel_value;
+  assert_int_equal(*t_val, *f_val);
+  assert_int_equal(0, ctxsize);
+}
+
+static void
+test_FunnelUpsert(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  RHHFunnel* funnel;
+
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.8, sizeof(int), sizeof(int)));
+  funnel = RHHFunnelNew(rhh, upsert_empty_bucket, 2048, 2048);
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelUpsert(funnel, &i, &i, &i, sizeof(int));
+    }
+  RHHFunnelUpsertFlush(funnel);
+  RHHFunnelDestroy(funnel);
+
+  RHHPrintStat(rhh);
+  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  ResetObjcnt();
+  RHHIterate(rhh, CountObjects, NULL);
+  assert_int_equal(TEST_OBJECTS, objcnt);
+  ResetObjmap();
+  RHHIterate(rhh, CheckObjects, NULL);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(1, objmap[i]);
+    }
+
+  funnel = RHHFunnelNew(rhh, upsert_dup_bucket, 2048, 2048);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelUpsert(funnel, &i, &i, NULL, 0);
+    }
+  RHHFunnelUpsertFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
+void funnel_count_objects(void* key, void* value, void* ctx,
+                          size_t keysize, size_t valsize,
+                          size_t ctxsize)
+{
+  if (!value)
+    return;
+
+  objcnt++;
+  int* intval = (int*)value;
+  int* intctx = (int*)ctx;
+  assert_int_equal(*intval, *intctx);
+}
+
+void funnel_check_objects(void* key, void* value, void* ctx,
+                          size_t keysize, size_t valsize,
+                          size_t ctxsize)
+{
+  if (!value)
+    return;
+
+  int* intkey = key;
+  objmap[*intkey] = 1;
+}
+
+static void
+test_FunnelGet(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  RHHFunnel* funnel;
+
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.8, sizeof(int), sizeof(int)));
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHInsert(rhh, &i, &i);
+    }
+
+  ResetObjcnt();
+  funnel = RHHFunnelNew(rhh, funnel_count_objects, 2048, 2048);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelGet(funnel, &i, &i, sizeof(int));
+    }
+  RHHFunnelGetFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  assert_int_equal(TEST_OBJECTS, objcnt);
+
+  ResetObjmap();
+  funnel = RHHFunnelNew(rhh, funnel_check_objects, 2048, 2048);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelGet(funnel, &i, NULL, 0);
+    }
+  RHHFunnelGetFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(1, objmap[i]);
+    }
+
+  // test mismatch object case
+  ResetObjcnt();
+  funnel = RHHFunnelNew(rhh, funnel_count_objects, 2048, 2048);
+  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
+    {
+      RHHFunnelGet(funnel, &i, &i, sizeof(int));
+    }
+  RHHFunnelGetFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  assert_int_equal(0, objcnt);
+
+  ResetObjmap();
+  funnel = RHHFunnelNew(rhh, funnel_check_objects, 2048, 2048);
+  for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
+    {
+      RHHFunnelGet(funnel, &i, NULL, 0);
+    }
+  RHHFunnelGetFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(0, objmap[i]);
+    }
+
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
+static void
+test_FunnelDelete(void** context)
+{
+  OPHeap* heap;
+  RobinHoodHash* rhh;
+  RHHFunnel* funnel;
+
+  assert_true(OPHeapNew(&heap));
+  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+                     0.8, sizeof(int), sizeof(int)));
+
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHInsert(rhh, &i, &i);
+    }
+
+  ResetObjmap();
+  funnel = RHHFunnelNew(rhh, funnel_check_objects, 2048, 2048);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      RHHFunnelDelete(funnel, &i, NULL, 0);
+    }
+  RHHFunnelDeleteFlush(funnel);
+  RHHFunnelDestroy(funnel);
+  for (int i = 0; i < TEST_OBJECTS; i++)
+    {
+      assert_int_equal(1, objmap[i]);
+    }
+  assert_int_equal(0, RHHObjcnt(rhh));
+  ResetObjcnt();
+  RHHIterate(rhh, CountObjects, NULL);
+  assert_int_equal(0, objcnt);
+
+  RHHDestroy(rhh);
+  OPHeapDestroy(heap);
+}
+
 int
 main (void)
 {
@@ -349,6 +595,10 @@ main (void)
       cmocka_unit_test(test_BasicDeleteSmall),
       cmocka_unit_test(test_DistributionForUpdateSmall),
       cmocka_unit_test(test_UpsertSmall),
+      cmocka_unit_test(test_FunnelInsert),
+      cmocka_unit_test(test_FunnelUpsert),
+      cmocka_unit_test(test_FunnelGet),
+      cmocka_unit_test(test_FunnelDelete),
     };
 
   return cmocka_run_group_tests(rhh_tests, NULL, NULL);
