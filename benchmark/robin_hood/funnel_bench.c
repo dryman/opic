@@ -1,11 +1,11 @@
-/* robin_bench.c ---
+/* funnel_bench.c ---
  *
- * Filename: robin_bench.c
+ * Filename: funnel_bench.c
  * Description:
  * Author: Felix Chern
  * Maintainer:
  * Copyright: (c) 2017 Felix Chern
- * Created: Mon Apr  3 22:07:32 2017 (-0700)
+ * Created: Sun Jun 25 00:32:00 2017 (-0700)
  * Version:
  * Package-Requires: ()
  * Last-Updated:
@@ -45,6 +45,7 @@
 
 /* Code: */
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,12 +62,6 @@
 #include "murmurhash3.h"
 #include "spookyhash-c/spookyhash.h"
 #include "farmhash-c/farmhash.h"
-
-#include "rhh_b_k_v.h"
-#include "rhh_b_kv.h"
-#include "rhh_bkv.h"
-#include "rhh_bkv_v4qu.h"
-#include "rhh_b16kv.h"
 
 static int objcnt = 0;
 static uint64_t val_sum = 0;
@@ -114,7 +109,7 @@ uint64_t farm(void* key, size_t size)
   return farmhash64(key, size);
 }
 
-uint64_t RHHPutWrap(void* key, void* context, OPHash hash_impl)
+uint64_t RHHInsertWrap(void* key, void* context, OPHash hash_impl)
 {
   static uint64_t val = 0;
   RHHInsertCustom(context, hash_impl, key, &val);
@@ -127,28 +122,37 @@ uint64_t RHHGetWrap(void* key, void* context, OPHash hash_impl)
   return *(uint64_t*)RHHGetCustom(context, hash_impl, key);
 }
 
-
-void CountObjects(void* key, void* val,
-                  size_t keysize, size_t valsize, void* ctx)
+uint64_t RHHFunnelInsertWrap(void* key, void* context, OPHash hash_impl)
 {
-  objcnt++;
-  uint64_t *val_ptr = val;
-  val_sum += *val_ptr;
+  static uint64_t val = 0;
+  RHHFunnelInsert(context, key, &val);
+  val++;
+  return 0;
 }
 
-struct SequentialCtx
+uint64_t RHHFunnelGetWrap(void* key, void* context, OPHash hash_impl)
 {
-  void* rhh;
-  HashFunc rhh_func;
-  OPHash hasher;
-};
-
-void SequentialOp(void* key, void* val,
-                      size_t keysize, size_t valsize, void* ctx)
-{
-  struct SequentialCtx *sictx = (struct SequentialCtx*) ctx;
-  sictx->rhh_func(key, sictx->rhh, sictx->hasher);
+  RHHFunnelGet(context, key, NULL, 0);
+  return 0;
 }
+
+void funnel_sum_val(void* key, void* value, void* ctx,
+                    size_t keysize, size_t valsize, size_t ctxsize)
+{
+  if (!value) return;
+  int* intval = value;
+  val_sum += *intval;
+}
+
+/*
+ * Things we want to benchmark:
+ * 1. How does funnel rhh perform compare to standard rhh?
+ *   1.1 insertion
+ *   1.2 query
+ * 2. Join scenario
+ * 3. Aggregate scenario (upsert)
+ * others?
+ */
 
 void help(char* program)
 {
@@ -164,7 +168,7 @@ void help(char* program)
      "             s_string: 6 bytes, m_string: 32 bytes,\n"
      "             l_string: 256 bytes, l_int: 8 bytes\n"
      "             For now only robin_hood hash supports long_int benchmark\n"
-     "  -i impl    impl = rhh, rhh_b_k_v, rhh_b_kv\n"
+     "  -i impl    impl = rhh, funnel_rhh\n"
      "  -l load    load number for rhh range from 0.0 to 1.0.\n"
      "  -p         print probing stats of RHH\n"
      "  -h         print help.\n"
@@ -175,13 +179,10 @@ void help(char* program)
 int main(int argc, char* argv[])
 {
   OPHeap* heap;
-  void *rhh, *rhh2;
+  void *rhh;
   struct timeval
     i_start, i_end,
-    q_start, q_end,
-    s_start, s_end,
-    si_start, si_end,
-    sg_start, sg_end;
+    q_start, q_end;
 
   int num_power, opt;
   int repeat = 1;
@@ -190,20 +191,29 @@ int main(int argc, char* argv[])
   uint64_t num;
   double load = 0.8;
   bool print_stat = false;
+  RHHFunnel* funnel;
 
   RHHNew_t rhh_new = (RHHNew_t)RHHNew;
   RHHDestroy_t rhh_destroy = (RHHDestroy_t)RHHDestroy;
-  HashFunc rhh_put = RHHPutWrap;
-  HashFunc rhh_get = RHHGetWrap;
+  HashFunc rhh_put = RHHFunnelInsertWrap;
+  HashFunc rhh_get = RHHFunnelGetWrap;
   RHHPrintStat_t rhh_printstat = (RHHPrintStat_t)RHHPrintStat;
   OPHash hasher = city;
+  size_t funnel_slotsize = 1ULL << 12;
+  size_t funnel_partition_size = 1ULL << 12;
 
   num_power = 20;
 
-  while ((opt = getopt(argc, argv, "n:r:k:i:l:f:ph")) > -1)
+  while ((opt = getopt(argc, argv, "a:b:n:r:k:i:l:f:ph")) > -1)
     {
       switch (opt)
         {
+        case 'a':
+          funnel_slotsize = 1ULL << atoi(optarg);
+          break;
+        case 'b':
+          funnel_partition_size = 1ULL << atoi(optarg);
+          break;
         case 'n':
           num_power = atoi(optarg);
           break;
@@ -235,57 +245,21 @@ int main(int argc, char* argv[])
             help(argv[0]);
           break;
         case 'i':
-          if (!strcmp("rhh", optarg))
-            {
-              printf("Using official robin_hood\n");
-            }
-          else if (!strcmp("rhh_b_k_v", optarg))
-            {
-              printf("Using rhh_b_k_v\n");
-              rhh_new = (RHHNew_t)RHH_b_k_v_New;
-              rhh_destroy = (RHHDestroy_t)RHH_b_k_v_Destroy;
-              rhh_put = RHH_b_k_v_PutWrap;
-              rhh_get = RHH_b_k_v_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_b_k_v_PrintStat;
-            }
-          else if (!strcmp("rhh_b_kv", optarg))
-            {
-              printf("Using rhh_b_kv\n");
-              rhh_new = (RHHNew_t)RHH_b_kv_New;
-              rhh_destroy = (RHHDestroy_t)RHH_b_kv_Destroy;
-              rhh_put = RHH_b_kv_PutWrap;
-              rhh_get = RHH_b_kv_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_b_kv_PrintStat;
-            }
-          else if (!strcmp("rhh_bkv", optarg))
-            {
-              printf("Using rhh_bkv\n");
-              rhh_new = (RHHNew_t)RHH_bkv_New;
-              rhh_destroy = (RHHDestroy_t)RHH_bkv_Destroy;
-              rhh_put = RHH_bkv_PutWrap;
-              rhh_get = RHH_bkv_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_bkv_PrintStat;
-            }
-          else if (!strcmp("rhh_bkv_v4qu", optarg))
-            {
-              printf("Using rhh_bkv_v4qu\n");
-              rhh_new = (RHHNew_t)RHH_bkv_v4qu_New;
-              rhh_destroy = (RHHDestroy_t)RHH_bkv_v4qu_Destroy;
-              rhh_put = RHH_bkv_v4qu_PutWrap;
-              rhh_get = RHH_bkv_v4qu_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_bkv_v4qu_PrintStat;
-            }
-          else if (!strcmp("rhh_b16kv", optarg))
-            {
-              printf("Using rhh_b16kv\n");
-              rhh_new = (RHHNew_t)RHH_b16kv_New;
-              rhh_destroy = (RHHDestroy_t)RHH_b16kv_Destroy;
-              rhh_put = RHH_b16kv_PutWrap;
-              rhh_get = RHH_b16kv_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_b16kv_PrintStat;
-            }
-          else
-            help(argv[0]);
+          /* if (!strcmp("rhh", optarg)) */
+          /*   { */
+          /*     printf("Using official robin_hood\n"); */
+          /*   } */
+          /* else if (!strcmp("rhh_b_k_v", optarg)) */
+          /*   { */
+          /*     printf("Using rhh_b_k_v\n"); */
+          /*     rhh_new = (RHHNew_t)RHH_b_k_v_New; */
+          /*     rhh_destroy = (RHHDestroy_t)RHH_b_k_v_Destroy; */
+          /*     rhh_put = RHH_b_k_v_PutWrap; */
+          /*     rhh_get = RHH_b_k_v_GetWrap; */
+          /*     rhh_printstat = (RHHPrintStat_t)RHH_b_k_v_PrintStat; */
+          /*   } */
+          /* else */
+          /*   help(argv[0]); */
           break;
         case 'l':
           load = atof(optarg);
@@ -334,52 +308,33 @@ int main(int argc, char* argv[])
       printf("attempt %d\n", i + 1);
       op_assert(rhh_new(heap, &rhh, num,
                         load, k_len, 8), "Create RobinHoodHash\n");
-      op_assert(rhh_new(heap, &rhh2, num,
-                        load, k_len, 8), "Create RobinHoodHash\n");
+
+      funnel = RHHFunnelNewCustom(rhh, hasher, NULL,
+                                  funnel_slotsize, funnel_partition_size);
       gettimeofday(&i_start, NULL);
-      key_func(num_power, rhh_put, rhh, hasher);
+      key_func(num_power, rhh_put, funnel, hasher);
+      RHHFunnelInsertFlush(funnel);
       gettimeofday(&i_end, NULL);
+      RHHFunnelDestroy(funnel);
+
       printf("insert finished\n");
+
+      funnel = RHHFunnelNewCustom(rhh, hasher, funnel_sum_val,
+                                  funnel_slotsize, funnel_partition_size);
       gettimeofday(&q_start, NULL);
-      key_func(num_power, rhh_get, rhh, hasher);
+      key_func(num_power, rhh_get, funnel, hasher);
+      RHHFunnelGetFlush(funnel);
       gettimeofday(&q_end, NULL);
+      RHHFunnelDestroy(funnel);
 
-      gettimeofday(&s_start, NULL);
-      RHHIterate(rhh, CountObjects, NULL);
-      gettimeofday(&s_end, NULL);
-
-      /*
-      struct SequentialCtx sictx =
-        {
-          .rhh = rhh2,
-          .rhh_func = rhh_put,
-          .hasher = hasher,
-        };
-      gettimeofday(&si_start, NULL);
-      RHHIterate(rhh, SequentialOp, &sictx);
-      gettimeofday(&si_end, NULL);
-
-      sictx.rhh_func = rhh_get;
-      gettimeofday(&sg_start, NULL);
-      RHHIterate(rhh, SequentialOp, &sictx);
-      gettimeofday(&sg_end, NULL);
-      */
-
-      print_timediff("Insert time: ", i_start, i_end);
-      print_timediff("Query time: ", q_start, q_end);
-      /*
-      print_timediff("Sequential read time: ", s_start, s_end);
-      print_timediff("Sequential insert time: ", si_start, si_end);
-      print_timediff("Sequential get time: ", sg_start, sg_end);
-      */
+      print_timediff("Funnel Insert time: ", i_start, i_end);
+      print_timediff("Funnel Query time: ", q_start, q_end);
 
       if (print_stat)
         {
           rhh_printstat(rhh);
-          //rhh_printstat(rhh2);
         }
       rhh_destroy(rhh);
-      rhh_destroy(rhh2);
     }
   printf("objcnt: %d val_sum: %" PRIu64 "\n", objcnt, val_sum);
 
@@ -511,4 +466,4 @@ void print_timediff(const char* info, struct timeval start, struct timeval end)
 }
 
 
-/* robin_bench.c ends here */
+/* funnel_bench.c ends here */
