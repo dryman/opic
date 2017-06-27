@@ -1,0 +1,182 @@
+ ⌂193% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/robin_bench -n 28 -k m_string 
+running elements 268435456
+attempt 1
+insert finished
+Insert time: 382.117713
+Query time: 429.225371
+objcnt: 268435456 val_sum: 36028796884746240
+ ⌂64% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string 
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 266.669746
+Funnel Query time: 334.985163
+objcnt: 0 val_sum: 36028796884746240
+[dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 20 -b 20
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 312.997846
+Funnel Query time: 367.646937
+objcnt: 0 val_sum: 36028796884746240
+ ⌂69% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 20
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 255.623549
+Funnel Query time: 295.783765
+objcnt: 0 val_sum: 36028796884746240
+ ⌂60% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 10
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 308.354316
+Funnel Query time: 342.068604
+objcnt: 0 val_sum: 36028796884746240
+ ⌂63% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 13
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 282.999848
+Funnel Query time: 327.312037
+objcnt: 0 val_sum: 36028796884746240
+ ⌂61% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 14
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 315.435070
+Funnel Query time: 422.597390
+objcnt: 0 val_sum: 36028796884746240
+[dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 15
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 250.643790
+Funnel Query time: 286.402319
+objcnt: 0 val_sum: 36028796884746240
+ ⌂67% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 16
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 238.087095
+Funnel Query time: 331.419262
+objcnt: 0 val_sum: 36028796884746240
+ ⌂61% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 17
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 249.318784
+Funnel Query time: 309.046917
+objcnt: 0 val_sum: 36028796884746240
+ ⌂68% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 18
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 237.925474
+Funnel Query time: 282.106410
+objcnt: 0 val_sum: 36028796884746240
+ ⌂61% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 19
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 244.823710
+Funnel Query time: 307.284354
+objcnt: 0 val_sum: 36028796884746240
+[dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 20
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 261.288552
+Funnel Query time: 278.432616
+objcnt: 0 val_sum: 36028796884746240
+ ⌂61% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 21
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 249.782036
+Funnel Query time: 330.495039
+objcnt: 0 val_sum: 36028796884746240
+ ⌂61% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 22 -b 22
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 277.619193
+Funnel Query time: 309.487831
+objcnt: 0 val_sum: 36028796884746240
+ ⌂77% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 23 -b 12
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 253.282394
+Funnel Query time: 363.842930
+objcnt: 0 val_sum: 36028796884746240
+ ⌂60% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 23 -b 13
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 269.417410
+Funnel Query time: 302.287336
+objcnt: 0 val_sum: 36028796884746240
+[dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 23 -b 14
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 240.679830
+Funnel Query time: 382.245837
+objcnt: 0 val_sum: 36028796884746240
+ ⌂75% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 23 -b 15
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 252.776317
+Funnel Query time: 345.847956
+objcnt: 0 val_sum: 36028796884746240
+ ⌂68% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 23 -b 16
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 252.536532
+Funnel Query time: 311.737481
+objcnt: 0 val_sum: 36028796884746240
+ ⌂60% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 23 -b 17
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 289.916119
+Funnel Query time: 327.854728
+objcnt: 0 val_sum: 36028796884746240
+ ⌂71% [dryman:~/opic] OPIC-53(+15/-3)+
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 23 -b 2
+running elements 268435456
+attempt 1
+^C
+[dryman:~/opic] OPIC-53(+0/-0)+ 130
+ ± ./benchmark/robin_hood/funnel_bench -n 28 -k m_string -a 23 -b 20
+running elements 268435456
+attempt 1
+insert finished
+Funnel Insert time: 282.138823
+Funnel Query time: 355.847525
+objcnt: 0 val_sum: 36028796884746240
+ ⌂63% [dryman:~/opic] OPIC-53(+0/-0)+
