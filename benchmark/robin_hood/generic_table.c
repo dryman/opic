@@ -45,7 +45,7 @@
 
 /* Code: */
 
-#define PROBE_STATS_SIZE 256
+#define PROBE_STATS_SIZE 2048
 
 
 #include <stdio.h> // TODO use op_log instead
@@ -124,6 +124,10 @@ void TablePrintStat(GenericTable* table)
       printf("probe %02d: %d\n", i, table->stats[i]);
 }
 
+/*
+ * The implementations below are quite naive, but it gives better
+ * insertion and query performance under medium load.
+ */
 
 static inline uintptr_t
 linear_probe(GenericTable* table, uint64_t key, int probe)
