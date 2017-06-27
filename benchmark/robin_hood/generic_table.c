@@ -412,9 +412,10 @@ bool ChainInsertCustom(GenericTable* table, OPHash hasher,
           return true;
         }
     }
+  chain_len++;
   candidate = OPCalloc(ObtainOPHeap(table), 1, chain_item_size);
   memcpy(candidate, key, keysize);
-  memcpy(candidate, value, valsize);
+  memcpy(&candidate[keysize], value, valsize);
   *next = OPPtr2Ref(candidate);
   IncreaseProbeStat(table, chain_len);
   table->stats[chain_len - 1]--;
