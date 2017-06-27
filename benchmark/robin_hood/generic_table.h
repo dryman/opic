@@ -60,7 +60,7 @@ typedef struct GenericTable GenericTable;
 
 bool TableNew(OPHeap* heap, GenericTable** table,
               uint64_t num_objects, double load,
-              size_t keysize, size_t valsize);
+              size_t keysize, size_t valsize, bool is_chain_table);
 
 void TableDestroy(GenericTable* table);
 
@@ -68,6 +68,9 @@ void TablePrintStat(GenericTable* table);
 
 bool LPInsertCustom(GenericTable* table, OPHash hasher,
                     void* key, void* value);
+
+bool ChainInsertCustom(GenericTable* table, OPHash hasher,
+                       void* key, void* value);
 
 void* LPGetCustom(GenericTable* table, OPHash hasher, void* key);
 
@@ -80,6 +83,8 @@ bool DHInsertCustom(GenericTable* table, OPHash hasher,
                     void* key, void* value);
 
 void* DHGetCustom(GenericTable* table, OPHash hasher, void* key);
+
+void* ChainGetCustom(GenericTable* table, OPHash hasher, void* key);
 
 OP_END_DECLS
 
