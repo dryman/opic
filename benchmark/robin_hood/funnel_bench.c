@@ -50,6 +50,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <inttypes.h>
@@ -201,13 +202,22 @@ int main(int argc, char* argv[])
   OPHash hasher = city;
   size_t funnel_slotsize = 1ULL << 12;
   size_t funnel_partition_size = 1ULL << 12;
+  struct rlimit rlp;
 
   num_power = 20;
 
-  while ((opt = getopt(argc, argv, "a:b:n:r:k:i:l:f:ph")) > -1)
+  while ((opt = getopt(argc, argv, "m:a:b:n:r:k:i:l:f:ph")) > -1)
     {
       switch (opt)
         {
+        case 'm':
+          op_assert(!getrlimit(RLIMIT_RSS, &rlp), "get RLIMIT_RSS");
+          printf("current mem limit is %" PRIu64 "\n", rlp.rlim_cur);
+          rlp.rlim_cur = atol(optarg);
+          op_assert(!setrlimit(RLIMIT_RSS, &rlp), "set RLIMIT_RSS");
+          op_assert(!getrlimit(RLIMIT_RSS, &rlp), "get RLIMIT_RSS");
+          printf("Reset mem limit to %" PRIu64 "\n", rlp.rlim_cur);
+          break;
         case 'a':
           funnel_slotsize = 1ULL << atoi(optarg);
           break;
