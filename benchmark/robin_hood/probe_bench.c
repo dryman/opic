@@ -126,6 +126,14 @@ uint64_t DHInsertWrap(void* key, void* context, OPHash hash_impl)
   return 0;
 }
 
+uint64_t ChainInsertWrap(void* key, void* context, OPHash hash_impl)
+{
+  static uint64_t val = 0;
+  ChainInsertCustom(context, hash_impl, key, &val);
+  val++;
+  return 0;
+}
+
 uint64_t LPGetWrap(void* key, void* context, OPHash hash_impl)
 {
   return *(uint64_t*)LPGetCustom(context, hash_impl, key);
@@ -139,6 +147,11 @@ uint64_t QPGetWrap(void* key, void* context, OPHash hash_impl)
 uint64_t DHGetWrap(void* key, void* context, OPHash hash_impl)
 {
   return *(uint64_t*)DHGetCustom(context, hash_impl, key);
+}
+
+uint64_t ChainGetWrap(void* key, void* context, OPHash hash_impl)
+{
+  return *(uint64_t*)ChainGetCustom(context, hash_impl, key);
 }
 
 void help(char* program)
@@ -155,7 +168,7 @@ void help(char* program)
      "             s_string: 6 bytes, m_string: 32 bytes,\n"
      "             l_string: 256 bytes, l_int: 8 bytes\n"
      "             For now only robin_hood hash supports long_int benchmark\n"
-     "  -i impl    impl = linear, quadratic, double_hashing\n"
+     "  -i impl    impl = linear, quadratic, double_hashing, chain\n"
      "  -l load    load number range from 0.0 to 1.0.\n"
      "  -p         print probing stats of hash table\n"
      "  -h         print help.\n"
@@ -178,6 +191,7 @@ int main(int argc, char* argv[])
   uint64_t num;
   double load = 0.8;
   bool print_stat = false;
+  bool is_chain = false;
 
   HashFunc put_func = LPInsertWrap;
   HashFunc get_func = LPGetWrap;
@@ -236,6 +250,13 @@ int main(int argc, char* argv[])
               get_func = DHGetWrap;
               printf("double hashing\n");
             }
+          else if (!strcmp("chain", optarg))
+            {
+              is_chain = true;
+              put_func = ChainInsertWrap;
+              get_func = ChainGetWrap;
+              printf("chaining\n");
+            }
           else
             help(argv[0]);
           break;
@@ -284,7 +305,8 @@ int main(int argc, char* argv[])
   for (int i = 0; i < repeat; i++)
     {
       printf("attempt %d\n", i + 1);
-      op_assert(TableNew(heap, &table, num, load, k_len, 8), "Create Table\n");
+      op_assert(TableNew(heap, &table, num, load, k_len, 8,
+                         is_chain), "Create Table\n");
 
       gettimeofday(&i_start, NULL);
       key_func(num_power, put_func, table, hasher);

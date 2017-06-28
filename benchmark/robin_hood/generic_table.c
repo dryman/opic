@@ -74,7 +74,8 @@ struct GenericTable
 
 bool
 TableNew(OPHeap* heap, GenericTable** table,
-         uint64_t num_objects, double load, size_t keysize, size_t valsize)
+         uint64_t num_objects, double load, size_t keysize, size_t valsize,
+         bool is_chain_table)
 {
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
@@ -91,7 +92,14 @@ TableNew(OPHeap* heap, GenericTable** table,
   capacity_ms4b = round_up_div(capacity, 1UL << (capacity_msb - 4));
   capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
 
-  bucket_size = keysize + valsize + 1;
+  if (is_chain_table)
+    {
+      bucket_size = 1 + keysize + valsize + sizeof(opref_t);
+    }
+  else
+    {
+      bucket_size = 1 + keysize + valsize;
+    }
 
   *table = OPCalloc(heap, 1, sizeof(GenericTable));
   if (!*table)
@@ -121,7 +129,7 @@ void TablePrintStat(GenericTable* table)
 {
   for (int i = 0; i < PROBE_STATS_SIZE; i++)
     if (table->stats[i])
-      printf("probe %02d: %d\n", i, table->stats[i]);
+      printf("probe/chain %02d: %d\n", i, table->stats[i]);
 }
 
 /*
@@ -160,7 +168,7 @@ double_hashing_probe(GenericTable* table, uint64_t key, int probe)
 static inline void
 IncreaseProbeStat(GenericTable* table, int probe)
 {
-  table->objcnt++;
+  table->objcnt++; // should remove this line
   table->longest_probes = probe > table->longest_probes ?
     probe : table->longest_probes;
   table->stats[probe]++;
@@ -357,6 +365,91 @@ void* DHGetCustom(GenericTable* table, OPHash hasher, void* key)
         }
       if (!memcmp(key, &buckets[idx * bucket_size + 1], keysize))
         return &buckets[idx * bucket_size + 1 + keysize];
+    }
+  return NULL;
+}
+
+bool ChainInsertCustom(GenericTable* table, OPHash hasher,
+                    void* key, void* value)
+{
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
+  const size_t chain_item_size = keysize + valsize + sizeof(opref_t);
+  const size_t bucket_size = 1 + chain_item_size;
+  const uint64_t hashed_key = hasher(key, keysize);
+  const uint64_t mask = (1ULL << (64 - table->capacity_clz)) - 1;
+  uint8_t* buckets = OPRef2Ptr(table, table->bucket_ref);
+  uintptr_t idx = (hashed_key & mask) * table->capacity_ms4b >> 4;
+
+  uint8_t* candidate = &buckets[idx * bucket_size];
+  opref_t* next = (opref_t*)&candidate[1 + keysize + valsize];
+  int chain_len = 0;
+
+  if (!*candidate)
+    {
+      IncreaseProbeStat(table, chain_len);
+      *candidate = 1;
+      memcpy(&candidate[1], key, keysize);
+      memcpy(&candidate[1 + keysize], value, valsize);
+      *next = 0;
+      return true;
+    }
+
+  if (!memcmp(key, &candidate[1], keysize))
+    {
+      memcpy(&candidate[1 + keysize], value, valsize);
+      return true;
+    }
+
+  while (*next)
+    {
+      chain_len++;
+      candidate = OPRef2Ptr(table, *next);
+      next = (opref_t*)&candidate[keysize + valsize];
+      if (!memcmp(key, candidate, keysize))
+        {
+          memcpy(&candidate[keysize], value, valsize);
+          return true;
+        }
+    }
+  chain_len++;
+  candidate = OPCalloc(ObtainOPHeap(table), 1, chain_item_size);
+  memcpy(candidate, key, keysize);
+  memcpy(&candidate[keysize], value, valsize);
+  *next = OPPtr2Ref(candidate);
+  IncreaseProbeStat(table, chain_len);
+  table->stats[chain_len - 1]--;
+
+  return true;
+}
+
+void* ChainGetCustom(GenericTable* table, OPHash hasher, void* key)
+{
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
+  const size_t chain_item_size = keysize + valsize + sizeof(opref_t);
+  const size_t bucket_size = 1 + chain_item_size;
+  const uint64_t hashed_key = hasher(key, keysize);
+  const uint64_t mask = (1ULL << (64 - table->capacity_clz)) - 1;
+  uint8_t* buckets = OPRef2Ptr(table, table->bucket_ref);
+  uintptr_t idx = (hashed_key & mask) * table->capacity_ms4b >> 4;
+  uint8_t* candidate = &buckets[idx * bucket_size];
+
+  opref_t* next;
+
+  if (!*candidate)
+    return NULL;
+  if (!memcmp(key, &candidate[1], keysize))
+    return &candidate[1 + keysize];
+
+  next = (opref_t*)&candidate[1 + keysize + valsize];
+
+  while (*next)
+    {
+      candidate = OPRef2Ptr(table, *next);
+      if (!memcmp(key, candidate, keysize))
+        return &candidate[keysize];
+      next = (opref_t*)&candidate[keysize + valsize];
     }
   return NULL;
 }
