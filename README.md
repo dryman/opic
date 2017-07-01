@@ -21,7 +21,18 @@ SYNOPSIS
 --------
 
 ```c
+#include <stdio.h>
 #include "opic/op_malloc.h"
+
+struct S1
+{
+  opref_t s2_ref;
+};
+
+struct S2
+{
+  char[1024] data;
+};
 
 void simple_object_database(char* filename)
 {
