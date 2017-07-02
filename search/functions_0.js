@@ -11,8 +11,13 @@ var searchData=
   ['opheaprestoreptr',['OPHeapRestorePtr',['../struct_o_p_heap.html#aa5fe27e04dfe7e1cfe83f9be71f06fb5',1,'OPHeap']]],
   ['opheapstoreptr',['OPHeapStorePtr',['../struct_o_p_heap.html#a9344a2d48d87540c6504047a8ec81f8d',1,'OPHeap']]],
   ['opheapwrite',['OPHeapWrite',['../struct_o_p_heap.html#a3a0773b74fca26b74ed713383b84373c',1,'OPHeap']]],
+  ['oplenref2ptr',['OPLenRef2Ptr',['../group__malloc.html#gab432ba35035d9680bb56110cf2150b47',1,'op_malloc.h']]],
+  ['oplenref2ref',['OPLenRef2Ref',['../group__malloc.html#ga16c1e0f68bbffccd1e21d9d152599ebc',1,'op_malloc.h']]],
+  ['oplenref2size',['OPLenRef2Size',['../group__malloc.html#ga6166f0dbc2a59d21c36fe880ab08ccdf',1,'op_malloc.h']]],
+  ['oplenrefcreate',['OPLenRefCreate',['../group__malloc.html#gaf88f08e1aa85fbe42648844a51d99d9d',1,'op_malloc.h']]],
   ['opmalloc',['OPMalloc',['../struct_o_p_heap.html#acfef6e9691c89eb8dd4b19f7fd8521c1',1,'OPHeap']]],
   ['opmallocadviced',['OPMallocAdviced',['../struct_o_p_heap.html#ae2140559236ba0383bffaaa2d90ace58',1,'OPHeap']]],
+  ['opptr2lenref',['OPPtr2LenRef',['../group__malloc.html#gaab4ce0eed9af942fd8a0c918df9a8e3a',1,'op_malloc.h']]],
   ['opptr2ref',['OPPtr2Ref',['../group__malloc.html#ga21549a129c945c88f2164365485b19e7',1,'op_malloc.h']]],
   ['opref2ptr',['OPRef2Ptr',['../group__malloc.html#gab5f885921a1b6bd7fee87068c0623ef2',1,'op_malloc.h']]]
 ];

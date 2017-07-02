@@ -64,8 +64,10 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Data Structures</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
-<a href="#func-members">Functions</a>  </div>
+<a href="#func-members">Functions</a> &#124;
+<a href="#var-members">Variables</a>  </div>
   <div class="headertitle">
 <div class="title">op_hash.h File Reference</div>  </div>
 </div><!--header-->
@@ -73,6 +75,11 @@ $(function() {
 
 <p><a href="op__hash_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Data Structures</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">union &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="union_funnel_c_b.html">FunnelCB</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:ga677a811a212f37504245763418cae6d8"><td class="memItemLeft" align="right" valign="top">typedef uint64_t(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a>) (void *key, size_t size)</td></tr>
@@ -81,12 +88,36 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ga0d5e125f496f03099590b179c3e893b6"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hash.html#ga0d5e125f496f03099590b179c3e893b6">OPHashIterator</a>) (void *key, void *value, size_t keysize, size_t valsize, void *context)</td></tr>
 <tr class="memdesc:ga0d5e125f496f03099590b179c3e893b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">HashTable iterator interface.  <a href="group__hash.html#ga0d5e125f496f03099590b179c3e893b6">More...</a><br /></td></tr>
 <tr class="separator:ga0d5e125f496f03099590b179c3e893b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a734549f8a65c6c07e9594667ec052636"><td class="memItemLeft" align="right" valign="top"><a id="a734549f8a65c6c07e9594667ec052636"></a>
+typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>OPFunnelUpsertCB</b>) (void *key, void *table_value, void *funnel_value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize, bool is_duplicate)</td></tr>
+<tr class="separator:a734549f8a65c6c07e9594667ec052636"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aebf5804ce3b55d064315a431f3364fbf"><td class="memItemLeft" align="right" valign="top"><a id="aebf5804ce3b55d064315a431f3364fbf"></a>
+typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>OPFunnelGetCB</b>) (void *key, void *value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize)</td></tr>
+<tr class="separator:aebf5804ce3b55d064315a431f3364fbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aab58ba3b1ae9ff2883658386bd0cb719"><td class="memItemLeft" align="right" valign="top"><a id="aab58ba3b1ae9ff2883658386bd0cb719"></a>
+typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>OPFunnelDeleteCB</b>) (void *key, void *value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize)</td></tr>
+<tr class="separator:aab58ba3b1ae9ff2883658386bd0cb719"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:ga99b4f7c7c66c52879672596f3240e9c1"><td class="memItemLeft" align="right" valign="top">static uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hash.html#ga99b4f7c7c66c52879672596f3240e9c1">OPDefaultHash</a> (void *key, size_t size)</td></tr>
 <tr class="memdesc:ga99b4f7c7c66c52879672596f3240e9c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default hash function.  <a href="group__hash.html#ga99b4f7c7c66c52879672596f3240e9c1">More...</a><br /></td></tr>
 <tr class="separator:ga99b4f7c7c66c52879672596f3240e9c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeb94e3cfda5dcbb68bca6d68cce6c13c"><td class="memItemLeft" align="right" valign="top"><a id="aeb94e3cfda5dcbb68bca6d68cce6c13c"></a>
+union <a class="el" href="union_funnel_c_b.html">FunnelCB</a>&#160;</td><td class="memItemRight" valign="bottom"><b>__attribute__</b> ((__transparent_union__))</td></tr>
+<tr class="separator:aeb94e3cfda5dcbb68bca6d68cce6c13c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:a527190b13df07edf06be99098f9044e2"><td class="memItemLeft" align="right" valign="top"><a id="a527190b13df07edf06be99098f9044e2"></a>
+OPFunnelUpsertCB&#160;</td><td class="memItemRight" valign="bottom"><b>upsertcb</b></td></tr>
+<tr class="separator:a527190b13df07edf06be99098f9044e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a80f729161434cfd90dd677a6b290e8e4"><td class="memItemLeft" align="right" valign="top"><a id="a80f729161434cfd90dd677a6b290e8e4"></a>
+OPFunnelGetCB&#160;</td><td class="memItemRight" valign="bottom"><b>getcb</b></td></tr>
+<tr class="separator:a80f729161434cfd90dd677a6b290e8e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa258c09e8a95c3268d567c10ea1e4486"><td class="memItemLeft" align="right" valign="top"><a id="aa258c09e8a95c3268d567c10ea1e4486"></a>
+OPFunnelDeleteCB&#160;</td><td class="memItemRight" valign="bottom"><b>deletecb</b></td></tr>
+<tr class="separator:aa258c09e8a95c3268d567c10ea1e4486"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><dl class="section author"><dt>Author</dt><dd>Felix Chern </dd></dl>
@@ -97,7 +128,7 @@ Functions</h2></td></tr>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu May 25 2017 23:55:36 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sun Jul 2 2017 09:58:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

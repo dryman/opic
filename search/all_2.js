@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['log',['Log',['../group__log.html',1,'']]]
+  ['hash',['Hash',['../group__hash.html',1,'']]]
 ];

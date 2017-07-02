@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['opheap',['OPHeap',['../struct_o_p_heap.html',1,'']]]
+  ['funnelcb',['FunnelCB',['../union_funnel_c_b.html',1,'']]]
 ];

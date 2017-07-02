@@ -96,9 +96,9 @@ typedef struct <a class="el" href="struct_o_p_heap.html">OPHeap</a>&#160;</td><t
 <tr class="memitem:ga2410dcf39c07e467e980fec46db48acf"><td class="memItemLeft" align="right" valign="top">typedef uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__malloc.html#ga2410dcf39c07e467e980fec46db48acf">opref_t</a></td></tr>
 <tr class="memdesc:ga2410dcf39c07e467e980fec46db48acf"><td class="mdescLeft">&#160;</td><td class="mdescRight">The "pointer type" used within objects created by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="group__malloc.html#ga2410dcf39c07e467e980fec46db48acf">More...</a><br /></td></tr>
 <tr class="separator:ga2410dcf39c07e467e980fec46db48acf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad268fa262c5370d667dc9462552713e6"><td class="memItemLeft" align="right" valign="top"><a id="ad268fa262c5370d667dc9462552713e6"></a>
-typedef uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><b>oplenref_t</b></td></tr>
-<tr class="separator:ad268fa262c5370d667dc9462552713e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae28cb62d41fdedbec19af9dd2d21f655"><td class="memItemLeft" align="right" valign="top">typedef uintptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__malloc.html#gae28cb62d41fdedbec19af9dd2d21f655">oplenref_t</a></td></tr>
+<tr class="memdesc:gae28cb62d41fdedbec19af9dd2d21f655"><td class="mdescLeft">&#160;</td><td class="mdescRight">Another "pointer type" used within objects created by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>,.  <a href="group__malloc.html#gae28cb62d41fdedbec19af9dd2d21f655">More...</a><br /></td></tr>
+<tr class="separator:gae28cb62d41fdedbec19af9dd2d21f655"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -108,18 +108,21 @@ Functions</h2></td></tr>
 <tr class="memitem:gab5f885921a1b6bd7fee87068c0623ef2"><td class="memItemLeft" align="right" valign="top">static void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__malloc.html#gab5f885921a1b6bd7fee87068c0623ef2">OPRef2Ptr</a> (void *ptr_in_heap, <a class="el" href="group__malloc.html#ga2410dcf39c07e467e980fec46db48acf">opref_t</a> ref)</td></tr>
 <tr class="memdesc:gab5f885921a1b6bd7fee87068c0623ef2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts an opref_t reference to a regular pointer.  <a href="group__malloc.html#gab5f885921a1b6bd7fee87068c0623ef2">More...</a><br /></td></tr>
 <tr class="separator:gab5f885921a1b6bd7fee87068c0623ef2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aab4ce0eed9af942fd8a0c918df9a8e3a"><td class="memItemLeft" align="right" valign="top"><a id="aab4ce0eed9af942fd8a0c918df9a8e3a"></a>
-static oplenref_t&#160;</td><td class="memItemRight" valign="bottom"><b>OPPtr2LenRef</b> (void *addr, size_t size)</td></tr>
-<tr class="separator:aab4ce0eed9af942fd8a0c918df9a8e3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6166f0dbc2a59d21c36fe880ab08ccdf"><td class="memItemLeft" align="right" valign="top"><a id="a6166f0dbc2a59d21c36fe880ab08ccdf"></a>
-static size_t&#160;</td><td class="memItemRight" valign="bottom"><b>OPLenRef2Size</b> (oplenref_t ref)</td></tr>
-<tr class="separator:a6166f0dbc2a59d21c36fe880ab08ccdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a16c1e0f68bbffccd1e21d9d152599ebc"><td class="memItemLeft" align="right" valign="top"><a id="a16c1e0f68bbffccd1e21d9d152599ebc"></a>
-static <a class="el" href="group__malloc.html#ga2410dcf39c07e467e980fec46db48acf">opref_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>OPLenRef2Ref</b> (oplenref_t ref)</td></tr>
-<tr class="separator:a16c1e0f68bbffccd1e21d9d152599ebc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab432ba35035d9680bb56110cf2150b47"><td class="memItemLeft" align="right" valign="top"><a id="ab432ba35035d9680bb56110cf2150b47"></a>
-static void *&#160;</td><td class="memItemRight" valign="bottom"><b>OPLenRef2Ptr</b> (void *ptr_in_heap, oplenref_t ref)</td></tr>
-<tr class="separator:ab432ba35035d9680bb56110cf2150b47"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaab4ce0eed9af942fd8a0c918df9a8e3a"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="group__malloc.html#gae28cb62d41fdedbec19af9dd2d21f655">oplenref_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__malloc.html#gaab4ce0eed9af942fd8a0c918df9a8e3a">OPPtr2LenRef</a> (void *addr, size_t size)</td></tr>
+<tr class="memdesc:gaab4ce0eed9af942fd8a0c918df9a8e3a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a pointer allocated in <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> and the size of the object it pointed to to an oplenref_t.  <a href="group__malloc.html#gaab4ce0eed9af942fd8a0c918df9a8e3a">More...</a><br /></td></tr>
+<tr class="separator:gaab4ce0eed9af942fd8a0c918df9a8e3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6166f0dbc2a59d21c36fe880ab08ccdf"><td class="memItemLeft" align="right" valign="top">static size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__malloc.html#ga6166f0dbc2a59d21c36fe880ab08ccdf">OPLenRef2Size</a> (<a class="el" href="group__malloc.html#gae28cb62d41fdedbec19af9dd2d21f655">oplenref_t</a> ref)</td></tr>
+<tr class="memdesc:ga6166f0dbc2a59d21c36fe880ab08ccdf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the size encoded in oplenref_t.  <a href="group__malloc.html#ga6166f0dbc2a59d21c36fe880ab08ccdf">More...</a><br /></td></tr>
+<tr class="separator:ga6166f0dbc2a59d21c36fe880ab08ccdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga16c1e0f68bbffccd1e21d9d152599ebc"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="group__malloc.html#ga2410dcf39c07e467e980fec46db48acf">opref_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__malloc.html#ga16c1e0f68bbffccd1e21d9d152599ebc">OPLenRef2Ref</a> (<a class="el" href="group__malloc.html#gae28cb62d41fdedbec19af9dd2d21f655">oplenref_t</a> ref)</td></tr>
+<tr class="memdesc:ga16c1e0f68bbffccd1e21d9d152599ebc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert oplenref_t to opref_t.  <a href="group__malloc.html#ga16c1e0f68bbffccd1e21d9d152599ebc">More...</a><br /></td></tr>
+<tr class="separator:ga16c1e0f68bbffccd1e21d9d152599ebc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab432ba35035d9680bb56110cf2150b47"><td class="memItemLeft" align="right" valign="top">static void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__malloc.html#gab432ba35035d9680bb56110cf2150b47">OPLenRef2Ptr</a> (void *ptr_in_heap, <a class="el" href="group__malloc.html#gae28cb62d41fdedbec19af9dd2d21f655">oplenref_t</a> ref)</td></tr>
+<tr class="memdesc:gab432ba35035d9680bb56110cf2150b47"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts an oplenref_t reference to a regular pointer.  <a href="group__malloc.html#gab432ba35035d9680bb56110cf2150b47">More...</a><br /></td></tr>
+<tr class="separator:gab432ba35035d9680bb56110cf2150b47"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf88f08e1aa85fbe42648844a51d99d9d"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="group__malloc.html#gae28cb62d41fdedbec19af9dd2d21f655">oplenref_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__malloc.html#gaf88f08e1aa85fbe42648844a51d99d9d">OPLenRefCreate</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, void *data, size_t size)</td></tr>
+<tr class="memdesc:gaf88f08e1aa85fbe42648844a51d99d9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">A constructor that copies the data to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, and returns the oplenref_t referencing the data in <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="group__malloc.html#gaf88f08e1aa85fbe42648844a51d99d9d">More...</a><br /></td></tr>
+<tr class="separator:gaf88f08e1aa85fbe42648844a51d99d9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><dl class="section author"><dt>Author</dt><dd>Felix Chern </dd></dl>
@@ -130,7 +133,7 @@ static void *&#160;</td><td class="memItemRight" valign="bottom"><b>OPLenRef2Ptr
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu May 25 2017 23:55:36 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sun Jul 2 2017 09:58:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

@@ -193,7 +193,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>true when the allocation succeeded, false otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00079">79</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00100">100</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -230,7 +230,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 </dl>
 <p>All the keys managed by this instance will get dealloc as well. User need to manage the values by themselves. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00118">118</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00139">139</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -301,7 +301,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>The content pointed by key and val will be copied into the hash table. If the value size were 0, only the key get copied. When there's a key collision, the coresponding value get replaced.</p>
 <p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00520">520</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00579">579</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -379,7 +379,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>This method does not insert the value automatically, instead it provides the pointer to the address where value can be inserted or overriden.</p>
 <p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00553">553</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00627">627</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -442,7 +442,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, NULL otherwise.</dd></dl>
 <p>If the value size were set to 0, PRHHGetCustom would still return a pointer to where it would store the value. User can still use the returned value to exam if the key were present in the hash table. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00617">617</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00714">714</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -505,7 +505,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, NULL otherwise.</dd></dl>
 <p>The key would get deallocated after deletion. Table will resize when many entries are deleted. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00630">630</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00727">727</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -806,7 +806,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   </dd>
 </dl>
 <div class="fragment"><div class="line"><span class="comment">// Function interface matches OPHashIterator</span></div><div class="line"><span class="keywordtype">void</span> my_iterator(<span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value,</div><div class="line">                 <span class="keywordtype">size_t</span> keysize, <span class="keywordtype">size_t</span> valsize,</div><div class="line">                 <span class="keywordtype">void</span>* context)</div><div class="line">{</div><div class="line">  <span class="comment">// Obtain the object we passed in.</span></div><div class="line">  <span class="keyword">struct </span>MyStruct* my_s = (<span class="keyword">struct </span>MyStruct*) context;</div><div class="line"></div><div class="line">  <span class="comment">// assumes both key and value were null terminated string</span></div><div class="line">  printf(<span class="stringliteral">&quot;key: %s, value: %s\n&quot;</span>, key, value);</div><div class="line">}</div><div class="line"></div><div class="line"><span class="comment">// User defined context</span></div><div class="line"><span class="keyword">struct </span>MyStruct my_s;</div><div class="line"></div><div class="line"><span class="comment">// PRHHIterate takes in a PascalRobinHoodHash object, a fuction pointer</span></div><div class="line"><span class="comment">// OPHashIterator and a user defined context for iteration.</span></div><div class="line"><a class="code" href="struct_pascal_robin_hood_hash　.html#abd2f4d3b962e971ce11cd10d9dd6967f">PRHHIterate</a>(rhh, &amp;my_iterator, &amp;my_s);</div></div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00751">751</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8c_source.html#l00848">848</a> of file <a class="el" href="pascal__robin__hood_8c_source.html">pascal_robin_hood.c</a>.</p>
 
 </div>
 </div>
@@ -816,7 +816,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu May 25 2017 23:55:36 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sun Jul 2 2017 09:58:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

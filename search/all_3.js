@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['malloc',['Malloc',['../group__malloc.html',1,'']]]
+  ['log',['Log',['../group__log.html',1,'']]]
 ];

@@ -91,9 +91,6 @@ Related Functions</h2></td></tr>
 <tr class="memitem:aa5fe27e04dfe7e1cfe83f9be71f06fb5"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_o_p_heap.html#aa5fe27e04dfe7e1cfe83f9be71f06fb5">OPHeapRestorePtr</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, int pos)</td></tr>
 <tr class="memdesc:aa5fe27e04dfe7e1cfe83f9be71f06fb5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Restore a pointer from specified root pointer slot.  <a href="#aa5fe27e04dfe7e1cfe83f9be71f06fb5">More...</a><br /></td></tr>
 <tr class="separator:aa5fe27e04dfe7e1cfe83f9be71f06fb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a11f047ff62574e119f17635b169fac61"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="struct_o_p_heap.html">OPHeap</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_o_p_heap.html#a11f047ff62574e119f17635b169fac61">ObtainOPHeap</a> (void *addr)</td></tr>
-<tr class="memdesc:a11f047ff62574e119f17635b169fac61"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given any pointer in the <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a11f047ff62574e119f17635b169fac61">More...</a><br /></td></tr>
-<tr class="separator:a11f047ff62574e119f17635b169fac61"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acfef6e9691c89eb8dd4b19f7fd8521c1"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_o_p_heap.html#acfef6e9691c89eb8dd4b19f7fd8521c1">OPMalloc</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, size_t size) __attribute__((malloc))</td></tr>
 <tr class="memdesc:acfef6e9691c89eb8dd4b19f7fd8521c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate an object from <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> with given size.  <a href="#acfef6e9691c89eb8dd4b19f7fd8521c1">More...</a><br /></td></tr>
 <tr class="separator:acfef6e9691c89eb8dd4b19f7fd8521c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -109,6 +106,9 @@ Related Functions</h2></td></tr>
 <tr class="memitem:a9e80c02486f21a6480407261ea31934b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_o_p_heap.html#a9e80c02486f21a6480407261ea31934b">OPDealloc</a> (void *addr)</td></tr>
 <tr class="memdesc:a9e80c02486f21a6480407261ea31934b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dealloc an object created by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a9e80c02486f21a6480407261ea31934b">More...</a><br /></td></tr>
 <tr class="separator:a9e80c02486f21a6480407261ea31934b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11f047ff62574e119f17635b169fac61"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="struct_o_p_heap.html">OPHeap</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_o_p_heap.html#a11f047ff62574e119f17635b169fac61">ObtainOPHeap</a> (void *addr)</td></tr>
+<tr class="memdesc:a11f047ff62574e119f17635b169fac61"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given any pointer in the <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>.  <a href="#a11f047ff62574e119f17635b169fac61">More...</a><br /></td></tr>
+<tr class="separator:a11f047ff62574e119f17635b169fac61"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Opaque object for memory allocation. </p>
@@ -373,43 +373,6 @@ Related Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a11f047ff62574e119f17635b169fac61"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a11f047ff62574e119f17635b169fac61">&#9670;&nbsp;</a></span>ObtainOPHeap()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static <a class="el" href="struct_o_p_heap.html">OPHeap</a> * ObtainOPHeap </td>
-          <td>(</td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>addr</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">related</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Given any pointer in the <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">addr</td><td>A pointer allocated by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00194">194</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
-
-</div>
-</div>
 <a id="acfef6e9691c89eb8dd4b19f7fd8521c1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acfef6e9691c89eb8dd4b19f7fd8521c1">&#9670;&nbsp;</a></span>OPMalloc()</h2>
 
@@ -656,13 +619,50 @@ Related Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a11f047ff62574e119f17635b169fac61"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a11f047ff62574e119f17635b169fac61">&#9670;&nbsp;</a></span>ObtainOPHeap()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static <a class="el" href="struct_o_p_heap.html">OPHeap</a> * ObtainOPHeap </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>addr</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">related</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Given any pointer in the <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>, returns the pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">addr</td><td>A pointer allocated by <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>pointer to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="op__malloc_8h_source.html#l00268">268</a> of file <a class="el" href="op__malloc_8h_source.html">op_malloc.h</a>.</p>
+
+</div>
+</div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>opic/<a class="el" href="op__malloc_8h_source.html">op_malloc.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu May 25 2017 23:55:36 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sun Jul 2 2017 09:58:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

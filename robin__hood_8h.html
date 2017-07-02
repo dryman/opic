@@ -64,7 +64,8 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#typedef-members">Typedefs</a>  </div>
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">robin_hood.h File Reference</div>  </div>
 </div><!--header-->
@@ -80,6 +81,57 @@ Typedefs</h2></td></tr>
 <tr class="memitem:acc4ada35dc8482fb1739e9910afa5bce"><td class="memItemLeft" align="right" valign="top"><a id="acc4ada35dc8482fb1739e9910afa5bce"></a>
 typedef struct RobinHoodHash&#160;</td><td class="memItemRight" valign="bottom"><b>RobinHoodHash</b></td></tr>
 <tr class="separator:acc4ada35dc8482fb1739e9910afa5bce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a15105e64b70c54b96e28ae2871ba91e6"><td class="memItemLeft" align="right" valign="top"><a id="a15105e64b70c54b96e28ae2871ba91e6"></a>
+typedef struct RHHFunnel&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnel</b></td></tr>
+<tr class="separator:a15105e64b70c54b96e28ae2871ba91e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:a8434e405c508ca825b7835a8f4a2d86f"><td class="memItemLeft" align="right" valign="top"><a id="a8434e405c508ca825b7835a8f4a2d86f"></a>
+RHHFunnel *&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelNewCustom</b> (RobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, <a class="el" href="union_funnel_c_b.html">FunnelCB</a> callback, size_t slotsize, size_t partition_size)</td></tr>
+<tr class="separator:a8434e405c508ca825b7835a8f4a2d86f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2ae93c95d32b33156b8d813535a9072b"><td class="memItemLeft" align="right" valign="top"><a id="a2ae93c95d32b33156b8d813535a9072b"></a>
+static RHHFunnel *&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelNew</b> (RobinHoodHash *rhh, <a class="el" href="union_funnel_c_b.html">FunnelCB</a> callback, size_t slotsize, size_t partition_size)</td></tr>
+<tr class="separator:a2ae93c95d32b33156b8d813535a9072b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f0ddb51f03b2b63a0387dfc4be4c483"><td class="memItemLeft" align="right" valign="top"><a id="a1f0ddb51f03b2b63a0387dfc4be4c483"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelDestroy</b> (RHHFunnel *funnel)</td></tr>
+<tr class="separator:a1f0ddb51f03b2b63a0387dfc4be4c483"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acf09d821e71ff7fd6794d35aaaa09c67"><td class="memItemLeft" align="right" valign="top"><a id="acf09d821e71ff7fd6794d35aaaa09c67"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelPreHashInsert</b> (RHHFunnel *funnel, uint64_t hashed_key, void *key, void *value)</td></tr>
+<tr class="separator:acf09d821e71ff7fd6794d35aaaa09c67"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a46995a2a2581dd739e78b2dccb8192ef"><td class="memItemLeft" align="right" valign="top"><a id="a46995a2a2581dd739e78b2dccb8192ef"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelInsert</b> (RHHFunnel *funnel, void *key, void *value)</td></tr>
+<tr class="separator:a46995a2a2581dd739e78b2dccb8192ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a002b8d06b6387bad149a4bfd37cb37b5"><td class="memItemLeft" align="right" valign="top"><a id="a002b8d06b6387bad149a4bfd37cb37b5"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelInsertFlush</b> (RHHFunnel *funnel)</td></tr>
+<tr class="separator:a002b8d06b6387bad149a4bfd37cb37b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe06d1e25dce8dd3801cbfb8bb53a322"><td class="memItemLeft" align="right" valign="top"><a id="afe06d1e25dce8dd3801cbfb8bb53a322"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelPreHashUpsert</b> (RHHFunnel *funnel, uint64_t hashed_key, void *key, void *value, void *context, size_t ctxsize)</td></tr>
+<tr class="separator:afe06d1e25dce8dd3801cbfb8bb53a322"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ada957cd82f83c2ad169359025c0a53ed"><td class="memItemLeft" align="right" valign="top"><a id="ada957cd82f83c2ad169359025c0a53ed"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelUpsert</b> (RHHFunnel *funnel, void *key, void *value, void *context, size_t ctxsize)</td></tr>
+<tr class="separator:ada957cd82f83c2ad169359025c0a53ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a80b5489996c0a0726084ceb2b806d61d"><td class="memItemLeft" align="right" valign="top"><a id="a80b5489996c0a0726084ceb2b806d61d"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelUpsertFlush</b> (RHHFunnel *funnel)</td></tr>
+<tr class="separator:a80b5489996c0a0726084ceb2b806d61d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb34976483caf68c01cdd750fb20936e"><td class="memItemLeft" align="right" valign="top"><a id="afb34976483caf68c01cdd750fb20936e"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelPreHashGet</b> (RHHFunnel *funnel, uint64_t hashed_key, void *key, void *context, size_t ctxsize)</td></tr>
+<tr class="separator:afb34976483caf68c01cdd750fb20936e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a286265e634c26b3d4b689ef9a8fa3a96"><td class="memItemLeft" align="right" valign="top"><a id="a286265e634c26b3d4b689ef9a8fa3a96"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelGet</b> (RHHFunnel *funnel, void *key, void *context, size_t ctxsize)</td></tr>
+<tr class="separator:a286265e634c26b3d4b689ef9a8fa3a96"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0854250d44634ca2f1fb1609cb72a07d"><td class="memItemLeft" align="right" valign="top"><a id="a0854250d44634ca2f1fb1609cb72a07d"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelGetFlush</b> (RHHFunnel *funnel)</td></tr>
+<tr class="separator:a0854250d44634ca2f1fb1609cb72a07d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a34f94884f3f98e4beb1acfa4ff0a517a"><td class="memItemLeft" align="right" valign="top"><a id="a34f94884f3f98e4beb1acfa4ff0a517a"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelPreHashDelete</b> (RHHFunnel *funnel, uint64_t hashed_key, void *key, void *context, size_t ctxsize)</td></tr>
+<tr class="separator:a34f94884f3f98e4beb1acfa4ff0a517a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7c543a056fd4f1e283927348c1a82dd"><td class="memItemLeft" align="right" valign="top"><a id="ab7c543a056fd4f1e283927348c1a82dd"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelDelete</b> (RHHFunnel *funnel, void *key, void *context, size_t ctxsize)</td></tr>
+<tr class="separator:ab7c543a056fd4f1e283927348c1a82dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2b59af86bb5728e04891b7e8e0bc54ac"><td class="memItemLeft" align="right" valign="top"><a id="a2b59af86bb5728e04891b7e8e0bc54ac"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>RHHFunnelDeleteFlush</b> (RHHFunnel *funnel)</td></tr>
+<tr class="separator:a2b59af86bb5728e04891b7e8e0bc54ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A general hashmap/hashset/hashmultimap implemantation using robin hood hashing. </p>
@@ -91,7 +143,7 @@ typedef struct RobinHoodHash&#160;</td><td class="memItemRight" valign="bottom">
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu May 25 2017 23:55:36 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sun Jul 2 2017 09:58:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>
