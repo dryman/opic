@@ -41,8 +41,8 @@ void simple_object_database(char* filename)
 
   OPHeapNew(&heap1);
 
-  struct S1* s1 = (struct S1*)OPMallocRaw(heap1, sizeof(struct S1));
-  struct S2* s2 = (struct S2*)OPMallocRaw(heap1, sizeof(struct S2));
+  struct S1* s1 = (struct S1*)OPMalloc(heap1, sizeof(struct S1));
+  struct S2* s2 = (struct S2*)OPMalloc(heap1, sizeof(struct S2));
 
   // object relationships in OPIC must convert to opref_t
   s1->s2_ref = OPPtr2Ref(s2);
