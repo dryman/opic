@@ -228,15 +228,13 @@ bool RHH_b16kv_PutCustom(RHH_b16kv* rhh,
     }
 }
 
-static inline bool
-RHHSearchIdx(RHH_b16kv* rhh, OPHash hasher, void* key,
-             uintptr_t* lb_idx, uintptr_t* sb_idx)
+void* RHH_b16kv_GetCustom(RHH_b16kv* rhh, OPHash hasher, void* key)
 {
   const size_t keysize = rhh->keysize;
   const size_t valsize = rhh->valsize;
   const size_t sb_size = keysize + valsize;
   const size_t lb_size = sb_size * 8 + 2;
-  uintptr_t idx, key_idx;
+  uintptr_t idx, lb_idx, sb_idx, key_idx;
   uint64_t hashed_key;
   uint16_t* bmap;
 
@@ -245,34 +243,19 @@ RHHSearchIdx(RHH_b16kv* rhh, OPHash hasher, void* key,
   for (int probe = 0; probe <= rhh->longest_probes; probe++)
     {
       idx = hash_with_probe(rhh, hashed_key, probe);
-      *lb_idx = idx / 8;
-      *sb_idx = idx % 8;
-      bmap = (uint16_t*)&rhh->bucket[*lb_idx * lb_size];
-      key_idx = *lb_idx * lb_size + 2 + *sb_idx * sb_size;
+      lb_idx = idx / 8;
+      sb_idx = idx % 8;
+      bmap = (uint16_t*)&rhh->bucket[lb_idx * lb_size];
+      key_idx = lb_idx * lb_size + 2 + sb_idx * sb_size;
 
-      switch((*bmap >> (*sb_idx * 2)) & 0x03)
+      switch((*bmap >> (sb_idx * 2)) & 0x03)
         {
-        case 0: return false;
+        case 0: return NULL;
         case 2: continue;
         default: (void)0;
         }
       if (!memcmp(key, &rhh->bucket[key_idx], keysize))
-        return true;
-    }
-  return false;
-}
-
-void* RHH_b16kv_GetCustom(RHH_b16kv* rhh, OPHash hasher, void* key)
-{
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
-  const size_t sb_size = keysize + valsize;
-  const size_t lb_size = sb_size * 8 + 16;
-  uintptr_t lb_idx, sb_idx, key_idx;
-  if (RHHSearchIdx(rhh, hasher, key, &lb_idx, &sb_idx))
-    {
-      key_idx = lb_idx * lb_size + 2 + sb_idx * sb_size;
-      return &rhh->bucket[key_idx + keysize];
+        return &rhh->bucket[key_idx + keysize];
     }
   return NULL;
 }
@@ -282,6 +265,18 @@ void RHH_b16kv_PrintStat(RHH_b16kv* rhh)
   for (int i = 0; i < PROBE_STATS_SIZE; i++)
     if (rhh->stats[i])
       printf("probe %02d: %d\n", i, rhh->stats[i]);
+}
+
+uint32_t RHH_b16kv_MaxProbe(RHH_b16kv* rhh)
+{
+  return rhh->longest_probes;
+}
+
+uint32_t RHH_b16kv_ProbeStat(RHH_b16kv* rhh, uint32_t idx)
+{
+  if (idx < PROBE_STATS_SIZE)
+    return rhh->stats[idx];
+  return 0;
 }
 
 /* rhh_b16kv.c ends here */

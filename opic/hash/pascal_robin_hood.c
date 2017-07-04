@@ -877,4 +877,16 @@ void PRHHPrintStat(PascalRobinHoodHash* rhh)
       printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
+uint32_t PRHHMaxProbe(PascalRobinHoodHash* rhh)
+{
+  return rhh->longest_probes;
+}
+
+uint32_t PRHHProbeStat(PascalRobinHoodHash* rhh, uint32_t idx)
+{
+  if (idx < PROBE_STATS_SIZE)
+    return rhh->stats[idx];
+  return 0;
+}
+
 /* pascal_robin_hood.c ends here */

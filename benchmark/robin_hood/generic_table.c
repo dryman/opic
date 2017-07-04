@@ -132,6 +132,18 @@ void TablePrintStat(GenericTable* table)
       printf("probe/chain %02d: %d\n", i, table->stats[i]);
 }
 
+uint32_t TableMaxProbe(GenericTable* table)
+{
+  return table->longest_probes;
+}
+
+uint32_t TableProbeStat(GenericTable* table, uint32_t idx)
+{
+  if (idx < PROBE_STATS_SIZE)
+    return table->stats[idx];
+  return 0;
+}
+
 /*
  * The implementations below are quite naive, but it gives better
  * insertion and query performance under medium load.

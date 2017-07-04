@@ -95,11 +95,14 @@ static inline uint64_t
 RHH_b16kv_GetWrap(void* key, void* context, OPHash hash_impl)
 {
   uint64_t* val = RHH_b16kv_GetCustom(context, hash_impl, key);
-  op_assert(val, "get successful\n");
   return *val;
 }
 
 void RHH_b16kv_PrintStat(RHH_b16kv* rhh);
+
+uint32_t RHH_b16kv_MaxProbe(RHH_b16kv* rhh);
+
+uint32_t RHH_b16kv_ProbeStat(RHH_b16kv* rhh, uint32_t idx);
 
 OP_END_DECLS
 

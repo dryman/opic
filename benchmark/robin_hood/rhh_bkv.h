@@ -99,6 +99,10 @@ RHH_bkv_GetWrap(void* key, void* context, OPHash hash_impl)
 
 void RHH_bkv_PrintStat(RHH_bkv* rhh);
 
+uint32_t RHH_bkv_MaxProbe(RHH_bkv* rhh);
+
+uint32_t RHH_bkv_ProbeStat(RHH_bkv* rhh, uint32_t idx);
+
 OP_END_DECLS
 
 #endif

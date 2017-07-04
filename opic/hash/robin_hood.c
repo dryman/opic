@@ -860,6 +860,18 @@ void RHHPrintStat(RobinHoodHash* rhh)
       printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
+uint32_t RHHMaxProbe(RobinHoodHash* rhh)
+{
+  return rhh->longest_probes;
+}
+
+uint32_t RHHProbeStat(RobinHoodHash* rhh, uint32_t idx)
+{
+  if (idx < PROBE_STATS_SIZE)
+    return rhh->stats[idx];
+  return 0;
+}
+
 RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh, OPHash hasher,
                               FunnelCB callback,
                               size_t slotsize, size_t partition_size)

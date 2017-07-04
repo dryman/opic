@@ -305,6 +305,10 @@ void PRHHIterate(PascalRobinHoodHash* rhh,
  */
 void PRHHPrintStat(PascalRobinHoodHash* rhh);
 
+uint32_t PRHHMaxProbe(PascalRobinHoodHash* rhh);
+
+uint32_t PRHHProbeStat(PascalRobinHoodHash* rhh, uint32_t idx);
+
 OP_END_DECLS
 
 #endif
