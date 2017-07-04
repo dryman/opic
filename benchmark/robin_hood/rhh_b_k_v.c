@@ -267,4 +267,16 @@ void RHH_b_k_v_PrintStat(RHH_b_k_v* rhh)
       printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
+uint32_t RHH_b_k_v_MaxProbe(RHH_b_k_v* rhh)
+{
+  return rhh->longest_probes;
+}
+
+uint32_t RHH_b_k_v_ProbeStat(RHH_b_k_v* rhh, uint32_t idx)
+{
+  if (idx < PROBE_STATS_SIZE)
+    return rhh->stats[idx];
+  return 0;
+}
+
 /* rhh_b_k_v.c ends here */

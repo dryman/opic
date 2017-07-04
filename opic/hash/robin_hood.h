@@ -341,6 +341,10 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context);
  */
 void RHHPrintStat(RobinHoodHash* rhh);
 
+uint32_t RHHMaxProbe(RobinHoodHash* rhh);
+
+uint32_t RHHProbeStat(RobinHoodHash* rhh, uint32_t idx);
+
 RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh,
                               OPHash hasher,
                               FunnelCB callback,

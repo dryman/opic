@@ -292,4 +292,16 @@ void RHH_bkv_v4qu_PrintStat(RHH_bkv_v4qu* rhh)
       printf("probe %02d: %d\n", i, rhh->stats[i]);
 }
 
+uint32_t RHH_bkv_v4qu_MaxProbe(RHH_bkv_v4qu* rhh)
+{
+  return rhh->longest_probes;
+}
+
+uint32_t RHH_bkv_v4qu_ProbeStat(RHH_bkv_v4qu* rhh, uint32_t idx)
+{
+  if (idx < PROBE_STATS_SIZE)
+    return rhh->stats[idx];
+  return 0;
+}
+
 /* rhh_bkv_v4qu.c ends here */

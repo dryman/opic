@@ -79,7 +79,8 @@ typedef bool (*RHHNew_t)(OPHeap* heap, void* rhh,
                          uint64_t num_objects, double load,
                          size_t keysize, size_t valsize);
 typedef void (*RHHDestroy_t)(void* rhh);
-typedef void (*RHHPrintStat_t)(void* rhh);
+typedef uint32_t (*RHHMaxProbe_t)(void* rhh);
+typedef uint32_t (*RHHProbeStat_t)(void* rhh, uint32_t idx);
 
 static void run_short_keys(int size, HashFunc hash_func,
                            void* context, OPHash hasher);
@@ -164,7 +165,8 @@ void help(char* program)
      "             s_string: 6 bytes, m_string: 32 bytes,\n"
      "             l_string: 256 bytes, l_int: 8 bytes\n"
      "             For now only robin_hood hash supports long_int benchmark\n"
-     "  -i impl    impl = rhh, rhh_b_k_v, rhh_b_kv\n"
+     "  -i impl    impl = rhh, rhh_b_k_v, rhh_b_kv, rhh_bkv,\n"
+     "             rhh_b16kv, rhh_bkv_v4qu\n"
      "  -l load    load number for rhh range from 0.0 to 1.0.\n"
      "  -p         print probing stats of RHH\n"
      "  -h         print help.\n"
@@ -189,18 +191,20 @@ int main(int argc, char* argv[])
   int k_len = 6;
   uint64_t num;
   double load = 0.8;
-  bool print_stat = false;
+  char* stat_header = "RHH";
+  FILE* stat_stream = NULL;
 
   RHHNew_t rhh_new = (RHHNew_t)RHHNew;
   RHHDestroy_t rhh_destroy = (RHHDestroy_t)RHHDestroy;
   HashFunc rhh_put = RHHPutWrap;
   HashFunc rhh_get = RHHGetWrap;
-  RHHPrintStat_t rhh_printstat = (RHHPrintStat_t)RHHPrintStat;
+  RHHMaxProbe_t rhh_maxprobe = (RHHMaxProbe_t)RHHMaxProbe;
+  RHHProbeStat_t rhh_probestat = (RHHProbeStat_t)RHHProbeStat;
   OPHash hasher = city;
 
   num_power = 20;
 
-  while ((opt = getopt(argc, argv, "n:r:k:i:l:f:ph")) > -1)
+  while ((opt = getopt(argc, argv, "n:r:k:i:l:f:p:h")) > -1)
     {
       switch (opt)
         {
@@ -246,7 +250,9 @@ int main(int argc, char* argv[])
               rhh_destroy = (RHHDestroy_t)RHH_b_k_v_Destroy;
               rhh_put = RHH_b_k_v_PutWrap;
               rhh_get = RHH_b_k_v_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_b_k_v_PrintStat;
+              stat_header = "RHH_b_k_v";
+              rhh_maxprobe = (RHHMaxProbe_t)RHH_b_k_v_MaxProbe;
+              rhh_probestat = (RHHProbeStat_t)RHH_b_k_v_ProbeStat;
             }
           else if (!strcmp("rhh_b_kv", optarg))
             {
@@ -255,7 +261,9 @@ int main(int argc, char* argv[])
               rhh_destroy = (RHHDestroy_t)RHH_b_kv_Destroy;
               rhh_put = RHH_b_kv_PutWrap;
               rhh_get = RHH_b_kv_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_b_kv_PrintStat;
+              stat_header = "RHH_b_kv";
+              rhh_maxprobe = (RHHMaxProbe_t)RHH_b_kv_MaxProbe;
+              rhh_probestat = (RHHProbeStat_t)RHH_b_kv_ProbeStat;
             }
           else if (!strcmp("rhh_bkv", optarg))
             {
@@ -264,7 +272,9 @@ int main(int argc, char* argv[])
               rhh_destroy = (RHHDestroy_t)RHH_bkv_Destroy;
               rhh_put = RHH_bkv_PutWrap;
               rhh_get = RHH_bkv_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_bkv_PrintStat;
+              stat_header = "RHH_bkv";
+              rhh_maxprobe = (RHHMaxProbe_t)RHH_bkv_MaxProbe;
+              rhh_probestat = (RHHProbeStat_t)RHH_bkv_ProbeStat;
             }
           else if (!strcmp("rhh_bkv_v4qu", optarg))
             {
@@ -273,7 +283,9 @@ int main(int argc, char* argv[])
               rhh_destroy = (RHHDestroy_t)RHH_bkv_v4qu_Destroy;
               rhh_put = RHH_bkv_v4qu_PutWrap;
               rhh_get = RHH_bkv_v4qu_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_bkv_v4qu_PrintStat;
+              stat_header = "RHH_bkv_v4qu";
+              rhh_maxprobe = (RHHMaxProbe_t)RHH_bkv_v4qu_MaxProbe;
+              rhh_probestat = (RHHProbeStat_t)RHH_bkv_v4qu_ProbeStat;
             }
           else if (!strcmp("rhh_b16kv", optarg))
             {
@@ -282,7 +294,9 @@ int main(int argc, char* argv[])
               rhh_destroy = (RHHDestroy_t)RHH_b16kv_Destroy;
               rhh_put = RHH_b16kv_PutWrap;
               rhh_get = RHH_b16kv_GetWrap;
-              rhh_printstat = (RHHPrintStat_t)RHH_b16kv_PrintStat;
+              stat_header = "RHH_b16kv";
+              rhh_maxprobe = (RHHMaxProbe_t)RHH_b16kv_MaxProbe;
+              rhh_probestat = (RHHProbeStat_t)RHH_b16kv_ProbeStat;
             }
           else
             help(argv[0]);
@@ -315,7 +329,7 @@ int main(int argc, char* argv[])
             help(argv[0]);
           break;
         case 'p':
-          print_stat = true;
+          stat_stream = fopen(optarg, "w");
           break;
         case 'h':
         case '?':
@@ -348,7 +362,6 @@ int main(int argc, char* argv[])
       RHHIterate(rhh, CountObjects, NULL);
       gettimeofday(&s_end, NULL);
 
-      /*
       struct SequentialCtx sictx =
         {
           .rhh = rhh2,
@@ -363,25 +376,25 @@ int main(int argc, char* argv[])
       gettimeofday(&sg_start, NULL);
       RHHIterate(rhh, SequentialOp, &sictx);
       gettimeofday(&sg_end, NULL);
-      */
 
       print_timediff("Insert time: ", i_start, i_end);
       print_timediff("Query time: ", q_start, q_end);
-      /*
       print_timediff("Sequential read time: ", s_start, s_end);
       print_timediff("Sequential insert time: ", si_start, si_end);
       print_timediff("Sequential get time: ", sg_start, sg_end);
-      */
 
-      if (print_stat)
+      if (stat_stream)
         {
-          rhh_printstat(rhh);
-          //rhh_printstat(rhh2);
+          fprintf(stat_stream, "%s load %1.2f\n", stat_header, load);
+          for (uint32_t i = 0; i <= rhh_maxprobe(rhh); i++)
+            fprintf(stat_stream, "%u\n", rhh_probestat(rhh, i));
         }
       rhh_destroy(rhh);
       rhh_destroy(rhh2);
     }
   printf("objcnt: %d val_sum: %" PRIu64 "\n", objcnt, val_sum);
+  if (stat_stream)
+    fclose(stat_stream);
 
   return 0;
 }

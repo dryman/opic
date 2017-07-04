@@ -158,7 +158,7 @@ void help(char* program)
 {
   printf
     ("usage: %s [-n power_of_2] [-r repeat] [-k keytype] [-i impl]\n"
-     "       [-l load] [-p]\n"
+     "       [-l load] [-p file]\n"
      "Options:\n"
      "  -n num     Number of elements measured in power of 2.\n"
      "             -n 20 => run 2^20 = 1 million elements.\n"
@@ -170,7 +170,7 @@ void help(char* program)
      "             For now only robin_hood hash supports long_int benchmark\n"
      "  -i impl    impl = linear, quadratic, double_hashing, chain\n"
      "  -l load    load number range from 0.0 to 1.0.\n"
-     "  -p         print probing stats of hash table\n"
+     "  -p file    print probing stats of hash table to file\n"
      "  -h         print help.\n"
      ,program);
   exit(1);
@@ -190,7 +190,8 @@ int main(int argc, char* argv[])
   int k_len = 6;
   uint64_t num;
   double load = 0.8;
-  bool print_stat = false;
+  FILE *stat_stream = NULL;
+  char* stat_header = "linear probing";
   bool is_chain = false;
 
   HashFunc put_func = LPInsertWrap;
@@ -199,7 +200,7 @@ int main(int argc, char* argv[])
 
   num_power = 20;
 
-  while ((opt = getopt(argc, argv, "n:r:k:i:l:f:ph")) > -1)
+  while ((opt = getopt(argc, argv, "n:r:k:i:l:f:p:h")) > -1)
     {
       switch (opt)
         {
@@ -237,18 +238,21 @@ int main(int argc, char* argv[])
           if (!strcmp("linear", optarg))
             {
               printf("linear probing\n");
+              stat_header = "linear probing";
             }
           else if (!strcmp("quadratic", optarg))
             {
               put_func = QPInsertWrap;
               get_func = QPGetWrap;
               printf("quadratic probing\n");
+              stat_header = "quadratic probing";
             }
           else if (!strcmp("double_hashing", optarg))
             {
               put_func = DHInsertWrap;
               get_func = DHGetWrap;
               printf("double hashing\n");
+              stat_header = "double hashing";
             }
           else if (!strcmp("chain", optarg))
             {
@@ -256,6 +260,7 @@ int main(int argc, char* argv[])
               put_func = ChainInsertWrap;
               get_func = ChainGetWrap;
               printf("chaining\n");
+              stat_header = "chaining";
             }
           else
             help(argv[0]);
@@ -288,7 +293,7 @@ int main(int argc, char* argv[])
             help(argv[0]);
           break;
         case 'p':
-          print_stat = true;
+          stat_stream = fopen(optarg, "w");
           break;
         case 'h':
         case '?':
@@ -321,12 +326,16 @@ int main(int argc, char* argv[])
       print_timediff("Funnel Insert time: ", i_start, i_end);
       print_timediff("Funnel Query time: ", q_start, q_end);
 
-      if (print_stat)
+      if (stat_stream)
         {
-          TablePrintStat(table);
+          fprintf(stat_stream, "%s load %1.2f\n", stat_header, load);
+          for (uint32_t i = 0; i <= TableMaxProbe(table); i++)
+            fprintf(stat_stream, "%u\n", TableProbeStat(table, i));
         }
       TableDestroy(table);
     }
+  if (stat_stream)
+    fclose(stat_stream);
 
   return 0;
 }

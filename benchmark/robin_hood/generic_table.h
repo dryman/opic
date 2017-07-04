@@ -66,6 +66,10 @@ void TableDestroy(GenericTable* table);
 
 void TablePrintStat(GenericTable* table);
 
+uint32_t TableMaxProbe(GenericTable* table);
+
+uint32_t TableProbeStat(GenericTable* table, uint32_t idx);
+
 bool LPInsertCustom(GenericTable* table, OPHash hasher,
                     void* key, void* value);
 
