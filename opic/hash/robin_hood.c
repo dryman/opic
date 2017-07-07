@@ -674,18 +674,25 @@ RHHPreHashSearchIdx(RobinHoodHash* rhh, uint64_t hashed_key,
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uintptr_t idx_next;
 
-  for (int probe = 0; probe <= rhh->longest_probes; probe++)
+  *idx = hash_with_probe(rhh, hashed_key, 0);
+  idx_next = hash_with_probe(rhh, hashed_key, 1);
+  for (int probe = 1; probe <= rhh->longest_probes+1; probe++)
     {
-      *idx = hash_with_probe(rhh, hashed_key, probe);
+      __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0);
       switch(buckets[*idx*bucket_size])
         {
         case 0: return false;
-        case 2: continue;
+        case 2: goto next_iter;
         default: (void)0;
         }
+      // this is the potential slow step, can we speed it up?
       if (!memcmp(key, &buckets[*idx*bucket_size + 1], keysize))
         return true;
+    next_iter:
+      *idx = idx_next;
+      idx_next = hash_with_probe(rhh, hashed_key, probe+1);
     }
   return false;
 }
