@@ -8,6 +8,7 @@ robin_bench_SOURCES = robin_bench.c \
   rhh_bkv.c \
   rhh_bkv_v4qu.c \
   rhh_b16kv.c \
+  rhh_b16kv2.c \
   murmurhash3.c
 
 robin_bench_LDADD = $(top_builddir)/opic/libopic.la \
