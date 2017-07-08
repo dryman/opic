@@ -274,18 +274,21 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
           buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
           continue;
         }
+      // empty bucket
       if (buckets[idx * bucket_size] == 0)
         {
           IncreaseProbeStat(rhh, probe);
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_EMPTY;
         }
+      // deleted bucket
       else if (buckets[idx * bucket_size] == 2)
         {
           for (int p = probe+1; p <= rhh->longest_probes; p++)
             {
               _idx = hash_with_probe(rhh, hashed_key, p);
-              if (buckets[_idx * bucket_size] != 1)
+              // if is empty or deleted, skip and look for next one
+              if (!(buckets[_idx * bucket_size] & 1))
                 continue;
               if (!memcmp(key, &buckets[_idx * bucket_size + 1], bucket_size))
                 {
@@ -390,7 +393,7 @@ RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
       visit++;
 
       // empty bucket or tombstone bucket
-      if (buckets[idx * bucket_size] != 1)
+      if (!(buckets[idx * bucket_size] & 1))
         {
           IncreaseProbeStat(rhh, probe);
           memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
@@ -492,7 +495,7 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
 
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
-      if (old_buckets[idx*bucket_size] == 1)
+      if (old_buckets[idx*bucket_size] & 1)
         {
           RHHUpsertPushDown(rhh, hasher, &old_buckets[idx * bucket_size],
                             0, NULL, &resized);
@@ -562,7 +565,7 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
 
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
-      if (old_buckets[idx*bucket_size] == 1)
+      if (old_buckets[idx*bucket_size] & 1)
         {
           RHHUpsertPushDown(rhh, hasher, &old_buckets[idx * bucket_size],
                             0, NULL, &resized);
@@ -584,6 +587,7 @@ bool RHHPreHashInsertCustom(RobinHoodHash* rhh, OPHash hasher,
   int probe;
   uint8_t bucket_cpy[bucket_size];
   bool resized;
+  uint8_t signature;
 
   if (rhh->objcnt > rhh->objcnt_high)
     {
@@ -591,19 +595,21 @@ bool RHHPreHashInsertCustom(RobinHoodHash* rhh, OPHash hasher,
         return false;
     }
 
+  signature = ((hashed_key >> 58) << 2) | 1;
   upsert_result = RHHUpsertNewKey(rhh, hasher, hashed_key, key,
                                   &matched_bucket, &probe);
 
   switch (upsert_result)
     {
     case UPSERT_EMPTY:
-      *matched_bucket = 1;
+      *matched_bucket = signature;
       memcpy(&matched_bucket[1], key, keysize);
     case UPSERT_DUP:
       memcpy(&matched_bucket[1 + keysize], val, valsize);
       break;
     case UPSERT_PUSHDOWN:
       memcpy(bucket_cpy, matched_bucket, bucket_size);
+      *matched_bucket = signature;
       memcpy(&matched_bucket[1], key, keysize);
       memcpy(&matched_bucket[1 + keysize], val, valsize);
       RHHUpsertPushDown(rhh, hasher, bucket_cpy, probe,
@@ -631,6 +637,7 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
   int probe;
   uint8_t bucket_cpy[bucket_size];
   bool resized;
+  uint8_t signature;
 
   if (rhh->objcnt > rhh->objcnt_high)
     {
@@ -639,6 +646,7 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
     }
 
   hashed_key = hasher(key, keysize);
+  signature = ((hashed_key >> 58) << 2) | 1;
   upsert_result = RHHUpsertNewKey(rhh, hasher, hashed_key, key,
                                   &matched_bucket, &probe);
   *val_ref = &matched_bucket[keysize + 1];
@@ -646,7 +654,7 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
     {
     case UPSERT_EMPTY:
       *is_duplicate = false;
-      *matched_bucket = 1;
+      *matched_bucket = signature;
       memcpy(&matched_bucket[1], key, keysize);
       break;
     case UPSERT_DUP:
@@ -655,6 +663,7 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
     case UPSERT_PUSHDOWN:
       *is_duplicate = false;
       memcpy(bucket_cpy, matched_bucket, bucket_size);
+      *matched_bucket = signature;
       memcpy(&matched_bucket[1], key, keysize);
       RHHUpsertPushDown(rhh, hasher, bucket_cpy, probe,
                         matched_bucket, &resized);
@@ -675,19 +684,18 @@ RHHPreHashSearchIdx(RobinHoodHash* rhh, uint64_t hashed_key,
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uintptr_t idx_next;
+  uint8_t signature;
 
+  signature = ((hashed_key >> 58) << 2) | 1;
   *idx = hash_with_probe(rhh, hashed_key, 0);
   idx_next = hash_with_probe(rhh, hashed_key, 1);
   for (int probe = 1; probe <= rhh->longest_probes+1; probe++)
     {
       __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0);
-      switch(buckets[*idx*bucket_size])
-        {
-        case 0: return false;
-        case 2: goto next_iter;
-        default: (void)0;
-        }
-      // this is the potential slow step, can we speed it up?
+      if (buckets[*idx * bucket_size] == 0)
+        return false;
+      if (buckets[*idx * bucket_size] != signature)
+        goto next_iter;
       if (!memcmp(key, &buckets[*idx*bucket_size + 1], keysize))
         return true;
     next_iter:
@@ -793,7 +801,7 @@ RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
               candidate_idx =
                 ((premod_idx + candidate + (probe + 1)*(probe + 1)*2
                   - probe*probe*2) & mask) * rhh->capacity_ms4b >> 4;
-              if (buckets[candidate_idx * bucket_size] == 1 &&
+              if (buckets[candidate_idx * bucket_size] & 1 &&
                   hash_with_probe(rhh,
                                   hasher(&buckets[candidate_idx*bucket_size+1],
                                          keysize),
@@ -851,7 +859,7 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
 
   for (uint64_t idx = 0; idx < capacity; idx++)
     {
-      if (buckets[idx*bucket_size] == 1)
+      if (buckets[idx*bucket_size] & 1)
         {
           iterator(&buckets[idx*bucket_size + 1],
                    &buckets[idx*bucket_size + 1 + keysize],
