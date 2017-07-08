@@ -67,6 +67,7 @@
 #include "rhh_bkv.h"
 #include "rhh_bkv_v4qu.h"
 #include "rhh_b16kv.h"
+#include "rhh_b16kv2.h"
 
 static int objcnt = 0;
 static uint64_t val_sum = 0;
@@ -298,6 +299,17 @@ int main(int argc, char* argv[])
               rhh_maxprobe = (RHHMaxProbe_t)RHH_b16kv_MaxProbe;
               rhh_probestat = (RHHProbeStat_t)RHH_b16kv_ProbeStat;
             }
+          else if (!strcmp("rhh_b16kv2", optarg))
+            {
+              printf("Using rhh_b16kv2\n");
+              rhh_new = (RHHNew_t)RHH_b16kv2_New;
+              rhh_destroy = (RHHDestroy_t)RHH_b16kv2_Destroy;
+              rhh_put = RHH_b16kv2_PutWrap;
+              rhh_get = RHH_b16kv2_GetWrap;
+              stat_header = "RHH_b16kv2";
+              rhh_maxprobe = (RHHMaxProbe_t)RHH_b16kv2_MaxProbe;
+              rhh_probestat = (RHHProbeStat_t)RHH_b16kv2_ProbeStat;
+            }
           else
             help(argv[0]);
           break;
@@ -358,6 +370,7 @@ int main(int argc, char* argv[])
       key_func(num_power, rhh_get, rhh, hasher);
       gettimeofday(&q_end, NULL);
 
+      /*
       gettimeofday(&s_start, NULL);
       RHHIterate(rhh, CountObjects, NULL);
       gettimeofday(&s_end, NULL);
@@ -376,12 +389,15 @@ int main(int argc, char* argv[])
       gettimeofday(&sg_start, NULL);
       RHHIterate(rhh, SequentialOp, &sictx);
       gettimeofday(&sg_end, NULL);
+      */
 
       print_timediff("Insert time: ", i_start, i_end);
       print_timediff("Query time: ", q_start, q_end);
+      /*
       print_timediff("Sequential read time: ", s_start, s_end);
       print_timediff("Sequential insert time: ", si_start, si_end);
       print_timediff("Sequential get time: ", sg_start, sg_end);
+      */
 
       if (stat_stream)
         {

@@ -269,10 +269,10 @@ bool QPInsertCustom(GenericTable* table, OPHash hasher,
   while (true)
     {
       idx = quadratic_probe(table, hashed_key, probe);
-      if (buckets[idx * bucket_size] != 1)
+      if (!(buckets[idx * bucket_size] & 1))
         {
           IncreaseProbeStat(table, probe);
-          buckets[idx * bucket_size] = 1;
+          buckets[idx * bucket_size] = 1 | ((hashed_key >> 58) << 2);
           memcpy(&buckets[idx * bucket_size + 1], key, keysize);
           memcpy(&buckets[idx * bucket_size + 1 + keysize],
                  value, valsize);
@@ -296,22 +296,26 @@ void* QPGetCustom(GenericTable* table, OPHash hasher, void* key)
   const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   const uint64_t hashed_key = hasher(key, keysize);
+  const uint8_t matched_meta = ((hashed_key >> 58) << 2) | 1;
 
   uint8_t* buckets;
-  uintptr_t idx;
+  uintptr_t idx, idx_next;
   buckets = OPRef2Ptr(table, table->bucket_ref);
 
-  for (int probe = 0; probe <= table->longest_probes; probe++)
+  idx = quadratic_probe(table, hashed_key, 0);
+  idx_next = quadratic_probe(table, hashed_key, 1);
+  for (int probe = 1; probe <= table->longest_probes+1; probe++)
     {
-      idx = quadratic_probe(table, hashed_key, probe);
-      switch(buckets[idx * bucket_size])
-        {
-        case 0: return NULL;
-        case 2: continue;
-        default: (void)0;
-        }
+      __builtin_prefetch(&buckets[idx_next * bucket_size]);
+      if (!(buckets[idx * bucket_size] & 1))
+        return NULL;
+      if (buckets[idx * bucket_size] != matched_meta)
+        goto next_iter;
       if (!memcmp(key, &buckets[idx * bucket_size + 1], keysize))
         return &buckets[idx * bucket_size + 1 + keysize];
+    next_iter:
+      idx = idx_next;
+      idx_next = quadratic_probe(table, hashed_key, probe+1);
     }
   return NULL;
 }
@@ -363,20 +367,26 @@ void* DHGetCustom(GenericTable* table, OPHash hasher, void* key)
   const uint64_t hashed_key = hasher(key, keysize);
 
   uint8_t* buckets;
-  uintptr_t idx;
+  uintptr_t idx, idx_next;
   buckets = OPRef2Ptr(table, table->bucket_ref);
 
-  for (int probe = 0; probe <= table->longest_probes; probe++)
+  idx = double_hashing_probe(table, hashed_key, 0);
+  idx_next = double_hashing_probe(table, hashed_key, 1);
+  for (int probe = 1; probe <= table->longest_probes+1; probe++)
     {
-      idx = double_hashing_probe(table, hashed_key, probe);
+      __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0);
       switch(buckets[idx * bucket_size])
         {
         case 0: return NULL;
-        case 2: continue;
+        case 2: goto next_iter;
         default: (void)0;
         }
       if (!memcmp(key, &buckets[idx * bucket_size + 1], keysize))
         return &buckets[idx * bucket_size + 1 + keysize];
+
+    next_iter:
+      idx = idx_next;
+      idx_next = double_hashing_probe(table, hashed_key, probe+1);
     }
   return NULL;
 }
