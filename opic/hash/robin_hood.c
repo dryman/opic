@@ -111,6 +111,9 @@ struct RHHFunnel
   ptrdiff_t* flowheads;
 };
 
+static inline
+uint64_t RHHCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b);
+
 bool
 RHHNew(OPHeap* heap, RobinHoodHash** rhh,
        uint64_t num_objects, double load, size_t keysize, size_t valsize)
@@ -128,7 +131,7 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   capacity_clz = __builtin_clzl(capacity);
   capacity_msb = 64 - capacity_clz;
   capacity_ms4b = round_up_div(capacity, 1UL << (capacity_msb - 4));
-  capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
+  capacity = RHHCapacityInternal((uint8_t)capacity_clz, (uint8_t)capacity_ms4b);
 
   bucket_size = keysize + valsize + 1;
 
@@ -164,12 +167,6 @@ uint64_t RHHObjcnt(RobinHoodHash* rhh)
   return rhh->objcnt;
 }
 
-static inline
-uint64_t RHHCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b)
-{
-  return (1UL << (64 - capacity_clz - 4)) * capacity_ms4b;
-}
-
 uint64_t RHHCapacity(RobinHoodHash* rhh)
 {
   return RHHCapacityInternal(rhh->capacity_clz, rhh->capacity_ms4b);
@@ -183,6 +180,11 @@ size_t RHHKeysize(RobinHoodHash* rhh)
 size_t RHHValsize(RobinHoodHash* rhh)
 {
   return rhh->valsize;
+}
+
+uint64_t RHHCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b)
+{
+  return (1UL << (64 - capacity_clz - 4)) * capacity_ms4b;
 }
 
 static inline uintptr_t
@@ -290,7 +292,7 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
               // if is empty or deleted, skip and look for next one
               if (!(buckets[_idx * bucket_size] & 1))
                 continue;
-              if (!memcmp(key, &buckets[_idx * bucket_size + 1], bucket_size))
+              if (memeq(key, &buckets[_idx * bucket_size + 1], bucket_size))
                 {
                   *matched_bucket = &buckets[_idx * bucket_size];
                   return UPSERT_DUP;
@@ -300,7 +302,7 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_EMPTY;
         }
-      if (!memcmp(key, &buckets[idx * bucket_size + 1], keysize))
+      if (memeq(key, &buckets[idx * bucket_size + 1], keysize))
         {
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_DUP;
@@ -696,7 +698,9 @@ RHHPreHashSearchIdx(RobinHoodHash* rhh, uint64_t hashed_key,
         return false;
       if (buckets[*idx * bucket_size] != signature)
         goto next_iter;
-      if (!memcmp(key, &buckets[*idx*bucket_size + 1], keysize))
+      /* if (buckets[*idx * bucket_size] == 2) */
+      /*   goto next_iter; */
+      if (memeq(key, &buckets[*idx*bucket_size + 1], keysize))
         return true;
     next_iter:
       *idx = idx_next;
