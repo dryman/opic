@@ -316,7 +316,7 @@ void* QPGetCustom(GenericTable* table, OPHash hasher, void* key)
        probe <= table->longest_probes+2;
        probe++)
     {
-      __builtin_prefetch(&buckets[idx_next * bucket_size]);
+      __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0);
       if (!(buckets[idx * bucket_size] & 1))
         return NULL;
       /* if (buckets[idx * bucket_size] != matched_meta) */
