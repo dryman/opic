@@ -157,33 +157,6 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
     default:
       return true;
     }
-
-  /*
-  for (; num > 4; num -= 4, p1 += 4, p2 += 4)
-    {
-      uint32_t *d1 = (uint32_t*)p1;
-      uint32_t *d2 = (uint32_t*)p2;
-      if (*d1 != *d2)
-        return false;
-    }
-
-  for (; num > 2; num -= 2, p1 += 2, p2 += 2)
-    {
-      uint16_t *d1 = (uint16_t*)p1;
-      uint16_t *d2 = (uint16_t*)p2;
-      if (*d1 != *d2)
-        return false;
-    }
-
-  if (num)
-    {
-      uint8_t *d1 = (uint8_t*)p1;
-      uint8_t *d2 = (uint8_t*)p2;
-      if (*d1 != *d2)
-        return false;
-    }
-  return true;
-  */
 }
 
 static inline int fftstr1 (uint32_t x, int n)
