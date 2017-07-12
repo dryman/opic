@@ -101,8 +101,7 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
       if (result != 0xFFFF)
         return false;
     }
-#endif
-
+#else
   for (; num >= 16; num -= 8, p1 += 8, p2 += 8)
     {
       uint64_t *d1 = (uint64_t*)p1;
@@ -110,6 +109,7 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
       if (*d1 != *d2)
         return false;
     }
+#endif
 
   uint64_t *d1_64, *d2_64;
   uint32_t *d1_32, *d2_32;
