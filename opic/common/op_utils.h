@@ -103,7 +103,7 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
     }
 #endif
 
-  for (; num >= 8; num -= 8, p1 += 8, p2 += 8)
+  for (; num >= 16; num -= 8, p1 += 8, p2 += 8)
     {
       uint64_t *d1 = (uint64_t*)p1;
       uint64_t *d2 = (uint64_t*)p2;
@@ -111,11 +111,69 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
         return false;
     }
 
+  uint64_t *d1_64, *d2_64;
   uint32_t *d1_32, *d2_32;
   uint16_t *d1_16, *d2_16;
   uint8_t *d1_8, *d2_8;
   switch(num)
     {
+    case 15:
+      d1_64 = (uint64_t*)p1;
+      d2_64 = (uint64_t*)p2;
+      d1_32 = (uint32_t*)(p1+8);
+      d2_32 = (uint32_t*)(p2+8);
+      d1_16 = (uint16_t*)(p1+12);
+      d2_16 = (uint16_t*)(p2+12);
+      d1_8 = (uint8_t*)(p1+14);
+      d2_8 = (uint8_t*)(p2+14);
+      return *d1_64 == *d2_64 && *d1_32 == *d2_32 &&
+        *d1_16 == *d2_16 && *d1_8 == *d2_8;
+    case 14:
+      d1_64 = (uint64_t*)p1;
+      d2_64 = (uint64_t*)p2;
+      d1_32 = (uint32_t*)(p1+8);
+      d2_32 = (uint32_t*)(p2+8);
+      d1_16 = (uint16_t*)(p1+12);
+      d2_16 = (uint16_t*)(p2+12);
+      return *d1_64 == *d2_64 && *d1_32 == *d2_32 && *d1_16 == *d2_16;
+    case 13:
+      d1_64 = (uint64_t*)p1;
+      d2_64 = (uint64_t*)p2;
+      d1_32 = (uint32_t*)(p1+8);
+      d2_32 = (uint32_t*)(p2+8);
+      d1_8 = (uint8_t*)(p1+12);
+      d2_8 = (uint8_t*)(p2+12);
+      return *d1_64 == *d2_64 && *d1_32 == *d2_32 && *d1_8 == *d2_8;
+    case 12:
+      d1_64 = (uint64_t*)p1;
+      d2_64 = (uint64_t*)p2;
+      d1_32 = (uint32_t*)(p1+8);
+      d2_32 = (uint32_t*)(p2+8);
+      return *d1_64 == *d2_64 && *d1_32 == *d2_32;
+    case 11:
+      d1_64 = (uint64_t*)p1;
+      d2_64 = (uint64_t*)p2;
+      d1_16 = (uint16_t*)(p1+8);
+      d2_16 = (uint16_t*)(p2+8);
+      d1_8 = (uint8_t*)(p1+10);
+      d2_8 = (uint8_t*)(p2+10);
+      return *d1_64 == *d2_64 && *d1_16 == *d2_16 && *d1_8 == *d2_8;
+    case 10:
+      d1_64 = (uint64_t*)p1;
+      d2_64 = (uint64_t*)p2;
+      d1_16 = (uint16_t*)(p1+8);
+      d2_16 = (uint16_t*)(p2+8);
+      return *d1_64 == *d2_64 && *d1_16 == *d2_16;
+    case 9:
+      d1_64 = (uint64_t*)p1;
+      d2_64 = (uint64_t*)p2;
+      d1_8 = (uint8_t*)(p1+8);
+      d2_8 = (uint8_t*)(p2+8);
+      return *d1_64 == *d2_64 && *d1_8 == *d2_8;
+    case 8:
+      d1_64 = (uint64_t*)p1;
+      d2_64 = (uint64_t*)p2;
+      return *d1_64 == *d2_64;
     case 7:
       d1_32 = (uint32_t*)p1;
       d2_32 = (uint32_t*)p2;
