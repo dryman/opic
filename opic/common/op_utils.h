@@ -70,7 +70,7 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
   p2 = (uintptr_t)ptr2;
 
 #ifdef __AVX2__
-  for (; num > 32; num -= 32, p1 += 32, p2 += 32)
+  for (; num >= 32; num -= 32, p1 += 32, p2 += 32)
     {
       __m256i d1 = _mm256_lddqu_si256((void*)p1);
       __m256i d2 = _mm256_lddqu_si256((void*)p2);
@@ -82,7 +82,7 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
 #endif
 
 #ifdef __SSE4_1__
-  for (; num > 16; num -= 16, p1 += 16, p2 += 16)
+  for (; num >= 16; num -= 16, p1 += 16, p2 += 16)
     {
       __m128i d1 = _mm_lddqu_si128((void*)p1);
       __m128i d2 = _mm_lddqu_si128((void*)p2);
@@ -92,7 +92,7 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
         return false;
     }
 #elif defined(__SSE2__)
-  for (; num > 16; num -= 16, p1 += 16, p2 += 16)
+  for (; num >= 16; num -= 16, p1 += 16, p2 += 16)
     {
       __m128i d1 = _mm_loadu_si128((void*)p1);
       __m128i d2 = _mm_loadu_si128((void*)p2);
@@ -103,7 +103,7 @@ static inline bool memeq(const void* ptr1, const void* ptr2, size_t num)
     }
 #endif
 
-  for (; num > 8; num -= 8, p1 += 8, p2 += 8)
+  for (; num >= 8; num -= 8, p1 += 8, p2 += 8)
     {
       uint64_t *d1 = (uint64_t*)p1;
       uint64_t *d2 = (uint64_t*)p2;
