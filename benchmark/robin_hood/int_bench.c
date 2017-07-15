@@ -90,6 +90,16 @@ uint64_t farm(void* key, size_t size)
   return farmhash64(key, size);
 }
 
+uint64_t std_hash(void* key, size_t size)
+{
+  //uint64_t result = 14695981039346656037ULL;
+  //uint64_t result = 2654435761ULL;
+  uint64_t *intkey = key;
+  //result *= *intkey;
+  //result *= 1099511628211ULL;
+  return *intkey;
+}
+
 void help(char* program)
 {
   printf
@@ -193,6 +203,11 @@ int main(int argc, char* argv[])
             {
               printf("using farmhash\n");
               hasher = farm;
+            }
+          else if (!strcmp("std_hash", optarg))
+            {
+              printf("using std::hash");
+              hasher = std_hash;
             }
           else
             help(argv[0]);
