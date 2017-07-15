@@ -1,5 +1,5 @@
 SUBDIRS = spookyhash-c farmhash-c
-noinst_PROGRAMS = robin_bench funnel_bench probe_bench
+noinst_PROGRAMS = robin_bench funnel_bench probe_bench int_bench
 AM_CFLAGS = -I$(top_builddir) @log4c_CFLAGS@
 
 robin_bench_SOURCES = robin_bench.c \
@@ -32,3 +32,12 @@ probe_bench_LDADD = $(top_builddir)/opic/libopic.la \
   spookyhash-c/libspookyhash-c.la \
   farmhash-c/libfarmhash-c.la
 probe_bench_LDFLAGS = -static
+
+int_bench_SOURCES = int_bench.c int_table.c murmurhash3.c
+int_bench_CFLAGS = -fno-strict-aliasing
+
+int_bench_LDADD = $(top_builddir)/opic/libopic.la \
+  @PTHREAD_LIBS@ @atomic_LIBS@ @log4c_LIBS@ \
+  spookyhash-c/libspookyhash-c.la \
+  farmhash-c/libfarmhash-c.la
+int_bench_LDFLAGS = -static
