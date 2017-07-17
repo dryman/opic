@@ -181,7 +181,7 @@ double_hashing_probe(GenericTable* table, uint64_t key, int probe)
 static inline void
 IncreaseProbeStat(GenericTable* table, int probe)
 {
-  table->objcnt++; // should remove this line
+  table->objcnt++;
   table->longest_probes = probe > table->longest_probes ?
     probe : table->longest_probes;
   table->stats[probe]++;
@@ -270,10 +270,13 @@ bool QPInsertCustom(GenericTable* table, OPHash hasher,
   while (true)
     {
       idx = quadratic_probe(table, hashed_key, probe);
-      if (!(buckets[idx * bucket_size] & 1))
+      uint64_t* intkey = key;
+      if (*intkey == 0)
+        printf("insert idx %"PRIuPTR"\n", idx);
+      if (buckets[idx * bucket_size] != 1)
         {
           IncreaseProbeStat(table, probe);
-          buckets[idx * bucket_size] = 1 | ((hashed_key >> 58) << 2);
+          buckets[idx * bucket_size] = 1;
           memcpy(&buckets[idx * bucket_size + 1], key, keysize);
           memcpy(&buckets[idx * bucket_size + 1 + keysize],
                  value, valsize);
@@ -288,21 +291,17 @@ bool QPInsertCustom(GenericTable* table, OPHash hasher,
         }
       probe++;
     }
-  return true;
+  return false;
 }
 
-void* QPGetCustom(GenericTable* table, OPHash hasher, void* key)
+static inline void*
+QPGetCustomInternal(GenericTable* table, OPHash hasher, void* key, int* probe)
 {
   const size_t keysize = table->keysize;
   const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   const uint64_t hashed_key = hasher(key, keysize);
-  //const uint8_t matched_meta = ((hashed_key >> 58) << 2) | 1;
   const uint64_t mask = (1ULL << (64 - table->capacity_clz)) - 1;
-  //uint64_t probed_hash = key + probe * probe * 2;
-  //uint64_t probed_hash = key + probe * (probe + 1);
-
-  //return (probed_hash & mask) * table->capacity_ms4b >> 4;
   uint64_t probing_key = hashed_key;
 
   uint8_t* buckets;
@@ -312,25 +311,65 @@ void* QPGetCustom(GenericTable* table, OPHash hasher, void* key)
   idx = (probing_key & mask) * table->capacity_ms4b >> 4;
   probing_key += 2;
   idx_next = (probing_key & mask) * table->capacity_ms4b >> 4;
-  for (int probe = 2;
-       probe <= table->longest_probes+2;
-       probe++)
+  *probe = 0;
+  for (; *probe <= table->longest_probes;
+       *probe = *probe +1)
     {
       __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0);
-      if (!(buckets[idx * bucket_size] & 1))
-        return NULL;
-      /* if (buckets[idx * bucket_size] != matched_meta) */
-      /*   goto next_iter; */
+      if (buckets[idx * bucket_size] == 0)
+        {
+          return NULL;
+        }
       if (buckets[idx * bucket_size] == 2)
         goto next_iter;
       if (memeq(key, &buckets[idx * bucket_size + 1], keysize))
         return &buckets[idx * bucket_size + 1 + keysize];
     next_iter:
       idx = idx_next;
-      probing_key += probe*2;
+      probing_key += (*probe + 2)*2;
       idx_next = (probing_key & mask) * table->capacity_ms4b >> 4;
     }
   return NULL;
+}
+
+void* QPGetCustom(GenericTable* table, OPHash hasher, void* key)
+{
+  int probe;
+  return QPGetCustomInternal(table, hasher, key, &probe);
+}
+
+void* QPDelCustom(GenericTable* table, OPHash hasher, void* key)
+{
+  uint8_t* bucket;
+  int probe;
+  const size_t keysize = table->keysize;
+
+  void* valptr = QPGetCustomInternal(table, hasher, key, &probe);
+  uintptr_t val_position = (uintptr_t)valptr;
+
+  if (val_position == 0)
+    return NULL;
+
+  table->objcnt--;
+  if (probe < PROBE_STATS_SIZE)
+    table->stats[probe]--;
+
+  if (probe == table->longest_probes &&
+      table->stats[probe] == 0)
+    {
+      for (int i = table->longest_probes; i >= 0; i--)
+        {
+          if (table->stats[i])
+            {
+              table->longest_probes = i;
+              break;
+            }
+        }
+    }
+
+  bucket = (uint8_t*)(val_position - keysize - 1);
+  *bucket = 2;
+  return (void*)valptr;
 }
 
 bool DHInsertCustom(GenericTable* table, OPHash hasher,

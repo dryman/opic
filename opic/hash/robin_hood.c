@@ -748,36 +748,6 @@ void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
       return &buckets[idx*bucket_size + keysize + 1];
     }
   return NULL;
-
-  /* const size_t keysize = rhh->keysize; */
-  /* const size_t valsize = rhh->valsize; */
-  /* const size_t bucket_size = keysize + valsize + 1; */
-  /* uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref); */
-  /* uintptr_t idx, idx_next; */
-  /* uint64_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1; */
-  /* uint64_t probing_key; */
-  /* uint64_t hashed_key; */
-
-  /* hashed_key = hasher(key, keysize); */
-  /* probing_key = hashed_key; */
-  /* idx = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b); */
-  /* probing_key = quadratic_partial(probing_key, 1); */
-  /* idx_next = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b); */
-  /* for (int probe = 2; probe <= rhh->longest_probes+2; probe++) */
-  /*   { */
-  /*     __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0); */
-  /*     if (buckets[idx * bucket_size] == 0) */
-  /*       return NULL; */
-  /*     if (buckets[idx * bucket_size] == 2) */
-  /*       goto next_iter; */
-  /*     if (memeq(key, &buckets[idx * bucket_size + 1], keysize)) */
-  /*       return &buckets[idx * bucket_size + 1 + keysize]; */
-  /*   next_iter: */
-  /*     idx = idx_next; */
-  /*     probing_key = quadratic_partial(probing_key, probe); */
-  /*     idx_next = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b); */
-  /*   } */
-  /* return NULL; */
 }
 
 static inline void*
@@ -822,8 +792,18 @@ RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
   if (record_probe == rhh->longest_probes &&
       rhh->stats[record_probe] == 0)
     {
-      rhh->longest_probes--;
+      for (int i = rhh->longest_probes; i >= 0; i--)
+        {
+          if (rhh->stats[i])
+            {
+              rhh->longest_probes = i;
+              break;
+            }
+        }
     }
+  // experiment only
+  buckets[idx * bucket_size] = 2;
+  return &buckets[idx * bucket_size + 1 + keysize];
 
   while (true)
     {
@@ -872,7 +852,14 @@ RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
                   if (probe + 1 == rhh->longest_probes &&
                       rhh->stats[probe+1] == 0)
                     {
-                      rhh->longest_probes--;
+                      for (int i = rhh->longest_probes; i >= 0; i--)
+                        {
+                          if (rhh->stats[i])
+                            {
+                              rhh->longest_probes = i;
+                              break;
+                            }
+                        }
                     }
                   memcpy(bucket_tmp, &buckets[idx * bucket_size], bucket_size);
                   memcpy(&buckets[idx*bucket_size],
