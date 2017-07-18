@@ -100,7 +100,9 @@ int main(int argc, char* argv[])
   GenericTable* table;
   FILE* fd;
   OPHash hasher = city;
-  bool use_rhh;
+  bool use_rhh = false;
+  char uuid1 [] = "!!!!!!!!";
+  char uuid2 [] = "!!!!!!!!";
 
   while ((opt = getopt(argc, argv, "n:l:p:r:f:i:")) > -1)
     {
@@ -157,10 +159,34 @@ int main(int argc, char* argv[])
       printf("iteration %d\n", 0);
       sprintf(fname, "%s_%02d", fname_base, 0);
       fd = fopen(fname, "w+");
-      for (uint64_t j = 0; j < num; j++)
+      /* for (uint64_t j = 0; j < num; j++) */
+      /*   { */
+      /*     op_assert(RHHInsertCustom(rhh, hasher, &j, &j), */
+      /*               "insert must succeed\n"); */
+      /*   } */
+      /* fprintf(fd, "%s\n", fname); */
+      /* for (uint32_t k = 0; k <= RHHMaxProbe(rhh); k++) */
+      /*   { */
+      /*     fprintf(fd, "%u\n", RHHProbeStat(rhh, k)); */
+      /*   } */
+      /* fclose(fd); */
+      for (int j = 0; j < 4; j++)
         {
-          op_assert(RHHInsertCustom(rhh, hasher, &j, &j),
-                    "insert must succeed\n");
+          uuid1[3] = 0x21 + j;
+          for (int k = 0; k < 64; k++)
+            {
+              uuid1[2] = 0x21 + k;
+              for (int l = 0; l < 64; l++)
+                {
+                  uuid1[1] = 0x21 + l;
+                  for (int m = 0; m < 64; m++)
+                    {
+                      uuid1[0] = 0x21 + m;
+                      op_assert(RHHInsertCustom(rhh, hasher, uuid1, uuid1),
+                                "insert must succeed\n");
+                    }
+                }
+            }
         }
       fprintf(fd, "%s\n", fname);
       for (uint32_t k = 0; k <= RHHMaxProbe(rhh); k++)
@@ -169,18 +195,56 @@ int main(int argc, char* argv[])
         }
       fclose(fd);
 
+      /* for (int i = 1; i < repeat; i++) */
+      /*   { */
+      /*     printf("iteration %d\n", i); */
+      /*     sprintf(fname, "%s_%02d", fname_base, i); */
+      /*     fd = fopen(fname, "w+"); */
+      /*     for (uint64_t j = i * num; j < (i+1) * num; j++) */
+      /*       { */
+      /*         uint64_t k = j - num; */
+      /*         op_assert(RHHDeleteCustom(rhh, hasher, &k), */
+      /*                   "del item cannot be null\n"); */
+      /*         op_assert(RHHInsertCustom(rhh, hasher, &j, &j), */
+      /*                   "insert mush succeed\n"); */
+      /*       } */
+      /*     fprintf(fd, "%s\n", fname); */
+      /*     for (uint32_t k = 0; k <= RHHMaxProbe(rhh); k++) */
+      /*       { */
+      /*         fprintf(fd, "%u\n", RHHProbeStat(rhh, k)); */
+      /*       } */
+      /*     fclose(fd); */
+      /*   } */
       for (int i = 1; i < repeat; i++)
         {
           printf("iteration %d\n", i);
           sprintf(fname, "%s_%02d", fname_base, i);
           fd = fopen(fname, "w+");
-          for (uint64_t j = i * num; j < (i+1) * num; j++)
+          uuid1[4] = 0x21 + i;
+          uuid2[4] = 0x21 + i - 1;
+          for (int j = 0; j < 4; j++)
             {
-              uint64_t k = j - num;
-              op_assert(RHHDeleteCustom(rhh, hasher, &k),
-                        "del item cannot be null\n");
-              op_assert(RHHInsertCustom(rhh, hasher, &j, &j),
-                        "insert mush succeed\n");
+              uuid1[3] = 0x21 + j;
+              uuid2[3] = 0x21 + j;
+              for (int k = 0; k < 64; k++)
+                {
+                  uuid1[2] = 0x21 + k;
+                  uuid2[2] = 0x21 + k;
+                  for (int l = 0; l < 64; l++)
+                    {
+                      uuid1[1] = 0x21 + l;
+                      uuid2[1] = 0x21 + l;
+                      for (int m = 0; m < 64; m++)
+                        {
+                          uuid1[0] = 0x21 + m;
+                          uuid2[0] = 0x21 + m;
+                          op_assert(RHHDeleteCustom(rhh, hasher, uuid2),
+                                    "del item cannot be null\n");
+                          op_assert(RHHInsertCustom(rhh, hasher, uuid1, uuid1),
+                                    "insert must succeed\n");
+                        }
+                    }
+                }
             }
           fprintf(fd, "%s\n", fname);
           for (uint32_t k = 0; k <= RHHMaxProbe(rhh); k++)
@@ -193,6 +257,8 @@ int main(int argc, char* argv[])
     }
   else
     {
+      /*
+        // integer setup
       TableNew(heap, &table, num, load, 8, 8, false);
 
       printf("iteration %d\n", 0);
@@ -222,6 +288,78 @@ int main(int argc, char* argv[])
                         "del item cannot be null\n");
               op_assert(QPInsertCustom(table, hasher, &j, &j),
                         "insert mush succeed\n");
+            }
+          fprintf(fd, "%s\n", fname);
+          for (uint32_t k = 0; k <= TableMaxProbe(table); k++)
+            {
+              fprintf(fd, "%u\n", TableProbeStat(table, k));
+            }
+          fclose(fd);
+        }
+      TableDestroy(table);
+      */
+      TableNew(heap, &table, num, load, 8, 8, false);
+
+      printf("iteration %d\n", 0);
+      sprintf(fname, "%s_%02d", fname_base, 0);
+      fd = fopen(fname, "w+");
+
+      for (int j = 0; j < 4; j++)
+        {
+          uuid1[3] = 0x21 + j;
+          for (int k = 0; k < 64; k++)
+            {
+              uuid1[2] = 0x21 + k;
+              for (int l = 0; l < 64; l++)
+                {
+                  uuid1[1] = 0x21 + l;
+                  for (int m = 0; m < 64; m++)
+                    {
+                      uuid1[0] = 0x21 + m;
+                      op_assert(QPInsertCustom(table, hasher, uuid1, uuid1),
+                                "insert must succeed\n");
+                    }
+                }
+            }
+        }
+      fprintf(fd, "%s\n", fname);
+      for (uint32_t k = 0; k <= TableMaxProbe(table); k++)
+        {
+          fprintf(fd, "%u\n", TableProbeStat(table, k));
+        }
+      fclose(fd);
+
+
+      for (int i = 1; i < repeat; i++)
+        {
+          printf("iteration %d\n", i);
+          sprintf(fname, "%s_%02d", fname_base, i);
+          fd = fopen(fname, "w+");
+          uuid1[4] = 0x21 + i;
+          uuid2[4] = 0x21 + i - 1;
+          for (int j = 0; j < 4; j++)
+            {
+              uuid1[3] = 0x21 + j;
+              uuid2[3] = 0x21 + j;
+              for (int k = 0; k < 64; k++)
+                {
+                  uuid1[2] = 0x21 + k;
+                  uuid2[2] = 0x21 + k;
+                  for (int l = 0; l < 64; l++)
+                    {
+                      uuid1[1] = 0x21 + l;
+                      uuid2[1] = 0x21 + l;
+                      for (int m = 0; m < 64; m++)
+                        {
+                          uuid1[0] = 0x21 + m;
+                          uuid2[0] = 0x21 + m;
+                          op_assert(QPDelCustom(table, hasher, uuid2),
+                                    "del item cannot be null\n");
+                          op_assert(QPInsertCustom(table, hasher, uuid1, uuid1),
+                                    "insert must succeed\n");
+                        }
+                    }
+                }
             }
           fprintf(fd, "%s\n", fname);
           for (uint32_t k = 0; k <= TableMaxProbe(table); k++)
