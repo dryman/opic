@@ -763,11 +763,8 @@ RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* restrict buckets;
-  uintptr_t idx, premod_idx, candidate_idx;
-  uintptr_t mask;
-  int candidates;
+  uintptr_t idx;
   int record_probe;
-  uint8_t bucket_tmp[bucket_size];
 
   if (rhh->objcnt < rhh->objcnt_low &&
       rhh->objcnt > 16)
@@ -780,7 +777,6 @@ RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
     return NULL;
 
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
   rhh->objcnt--;
   record_probe = findprobe(rhh, hasher, idx);
@@ -801,84 +797,15 @@ RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
             }
         }
     }
-  // experiment only
+  // Turns out marking tombstone is good enough.
+  // I used a have a implementation which lookup candidates
+  // with high probing count that can fullfill the deleted spot, and
+  // thought this would reduce both the mean and variance of the probe
+  // counts like robin hood insertion does.
+  // After some experiments I found this strategy gives similar probe
+  // distribution like the one without the rebalancing strategy.
   buckets[idx * bucket_size] = 2;
   return &buckets[idx * bucket_size + 1 + keysize];
-
-  while (true)
-    {
-    next_iter:
-      if (record_probe == 0)
-        goto end_iter;
-      switch (rhh->capacity_ms4b)
-        {
-        case 8: premod_idx =  round_up_div(16*idx, 8); break;
-        case 9: premod_idx =  round_up_div(16*idx, 9); break;
-        case 10: premod_idx = round_up_div(16*idx, 10); break;
-        case 11: premod_idx = round_up_div(16*idx, 11); break;
-        case 12: premod_idx = round_up_div(16*idx, 12); break;
-        case 13: premod_idx = round_up_div(16*idx, 13); break;
-        case 14: premod_idx = round_up_div(16*idx, 14); break;
-        case 15: premod_idx = round_up_div(16*idx, 15); break;
-        default: op_assert(false, "Unknown capacity_ms4b %d\n",
-                           rhh->capacity_ms4b);
-        }
-      candidates = (((premod_idx + 1) & mask) * rhh->capacity_ms4b >> 4)
-        == idx ? 2 : 1;
-      for (int probe = rhh->longest_probes - 1;
-           probe > 0; probe--)
-        {
-          for (int candidate = 0; candidate < candidates; candidate++)
-            {
-              candidate_idx =
-                ((premod_idx + candidate + (probe + 1)*(probe + 1)*2
-                  - probe*probe*2) & mask) * rhh->capacity_ms4b >> 4;
-              if (buckets[candidate_idx * bucket_size] == 1 &&
-                  hash_with_probe(rhh,
-                                  hasher(&buckets[candidate_idx*bucket_size+1],
-                                         keysize),
-                                  probe + 1) == candidate_idx &&
-                  hash_with_probe(rhh,
-                                  hasher(&buckets[candidate_idx*bucket_size+1],
-                                         keysize),
-                                  probe) == idx)
-                {
-                  if (probe + 1 < PROBE_STATS_SIZE)
-                    rhh->stats[probe + 1]--;
-                  if (probe < PROBE_STATS_SIZE)
-                    rhh->stats[probe]++;
-                  else
-                    OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-                  if (probe + 1 == rhh->longest_probes &&
-                      rhh->stats[probe+1] == 0)
-                    {
-                      for (int i = rhh->longest_probes; i >= 0; i--)
-                        {
-                          if (rhh->stats[i])
-                            {
-                              rhh->longest_probes = i;
-                              break;
-                            }
-                        }
-                    }
-                  memcpy(bucket_tmp, &buckets[idx * bucket_size], bucket_size);
-                  memcpy(&buckets[idx*bucket_size],
-                         &buckets[candidate_idx*bucket_size],
-                         bucket_size);
-                  memcpy(&buckets[candidate_idx * bucket_size],
-                         bucket_tmp, bucket_size);
-                  idx = candidate_idx;
-                  record_probe--;
-                  goto next_iter;
-                }
-            }
-        }
-      goto end_iter;
-    }
-
- end_iter:
-  buckets[idx*bucket_size] = 2;
-  return &buckets[idx*bucket_size + 1 + keysize];
 }
 
 void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
