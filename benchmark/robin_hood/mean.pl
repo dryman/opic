@@ -27,5 +27,4 @@ for my $num (@arr) {
 }
 $var /= $sum;
 
-say $mean;
-say $var;
+say $mean . "," . $var;

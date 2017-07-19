@@ -83,6 +83,8 @@ bool QPInsertCustom(GenericTable* table, OPHash hasher,
 
 void* QPGetCustom(GenericTable* table, OPHash hasher, void* key);
 
+void* QPDelCustom(GenericTable* table, OPHash hasher, void* key);
+
 bool DHInsertCustom(GenericTable* table, OPHash hasher,
                     void* key, void* value);
 
