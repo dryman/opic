@@ -345,6 +345,14 @@ uint32_t RHHMaxProbe(RobinHoodHash* rhh);
 
 uint32_t RHHProbeStat(RobinHoodHash* rhh, uint32_t idx);
 
+int RHHGetProbeCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
+
+static inline
+int RHHGetProbe(RobinHoodHash* rhh, void* key)
+{
+  return RHHGetProbeCustom(rhh, OPDefaultHash, key);
+}
+
 RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh,
                               OPHash hasher,
                               FunnelCB callback,

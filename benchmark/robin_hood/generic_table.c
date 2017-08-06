@@ -162,8 +162,7 @@ static inline uintptr_t
 quadratic_probe(GenericTable* table, uint64_t key, int probe)
 {
   uint64_t mask = (1ULL << (64 - table->capacity_clz)) - 1;
-  uint64_t probed_hash = key + probe * probe * 2;
-  //uint64_t probed_hash = key + probe * (probe + 1);
+  uint64_t probed_hash = key + probe * (probe + 1);
 
   return (probed_hash & mask) * table->capacity_ms4b >> 4;
 }
@@ -308,40 +307,38 @@ QPGetCustomInternal(GenericTable* table, OPHash hasher, void* key, int* probe)
   uintptr_t idx, idx_next;
   buckets = OPRef2Ptr(table, table->bucket_ref);
 
-  for (*probe = 0; *probe <= table->longest_probes;
-       *probe = *probe+1)
+  idx = (probing_key & mask) * table->capacity_ms4b >> 4;
+  probing_key += 2;
+  idx_next = (probing_key & mask) * table->capacity_ms4b >> 4;
+  *probe = 0;
+  for (; *probe <= table->longest_probes;
+       *probe = *probe +1)
     {
-      idx = quadratic_probe(table, hashed_key, *probe);
+      __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0);
       if (buckets[idx * bucket_size] == 0)
-        return NULL;
+        {
+          return NULL;
+        }
       if (buckets[idx * bucket_size] == 2)
-        continue;
+        goto next_iter;
       if (memeq(key, &buckets[idx * bucket_size + 1], keysize))
         return &buckets[idx * bucket_size + 1 + keysize];
+    next_iter:
+      idx = idx_next;
+      probing_key += (*probe + 2)*2;
+      idx_next = (probing_key & mask) * table->capacity_ms4b >> 4;
     }
+  return NULL;
+}
 
-  /* idx = (probing_key & mask) * table->capacity_ms4b >> 4; */
-  /* probing_key += 2; */
-  /* idx_next = (probing_key & mask) * table->capacity_ms4b >> 4; */
-  /* *probe = 0; */
-  /* for (; *probe <= table->longest_probes; */
-  /*      *probe = *probe +1) */
-  /*   { */
-  /*     __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0); */
-  /*     if (buckets[idx * bucket_size] == 0) */
-  /*       { */
-  /*         return NULL; */
-  /*       } */
-  /*     if (buckets[idx * bucket_size] == 2) */
-  /*       goto next_iter; */
-  /*     if (memeq(key, &buckets[idx * bucket_size + 1], keysize)) */
-  /*       return &buckets[idx * bucket_size + 1 + keysize]; */
-  /*   next_iter: */
-  /*     idx = idx_next; */
-  /*     probing_key += (*probe + 2)*2; */
-  /*     idx_next = (probing_key & mask) * table->capacity_ms4b >> 4; */
-  /*   } */
-  /* return NULL; */
+int QPGetProbeCustom(GenericTable* table, OPHash hasher, void* key)
+{
+  int probe;
+  if (QPGetCustomInternal(table, hasher, key, &probe))
+    {
+      return probe;
+    }
+  return -1;
 }
 
 void* QPGetCustom(GenericTable* table, OPHash hasher, void* key)
@@ -453,6 +450,28 @@ void* DHGetCustom(GenericTable* table, OPHash hasher, void* key)
       idx_next = double_hashing_probe(table, hashed_key, probe+1);
     }
   return NULL;
+}
+
+void TableIterate(GenericTable* table, OPHashIterator iterator, void* context)
+{
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* buckets;
+  uint64_t idx, capacity;
+  buckets = OPRef2Ptr(table, table->bucket_ref);
+  capacity = (1ULL << (64 - table->capacity_clz - 4)) *
+    table->capacity_ms4b;
+
+  for (idx = 0; idx < capacity; idx++)
+    {
+      if (buckets[idx * bucket_size] == 1)
+        {
+          iterator(&buckets[idx * bucket_size + 1],
+                   &buckets[idx * bucket_size + 1 + keysize],
+                   keysize, valsize, context);
+        }
+    }
 }
 
 bool ChainInsertCustom(GenericTable* table, OPHash hasher,

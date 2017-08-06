@@ -83,6 +83,8 @@ bool QPInsertCustom(GenericTable* table, OPHash hasher,
 
 void* QPGetCustom(GenericTable* table, OPHash hasher, void* key);
 
+int QPGetProbeCustom(GenericTable* table, OPHash hasher, void* key);
+
 void* QPDelCustom(GenericTable* table, OPHash hasher, void* key);
 
 bool DHInsertCustom(GenericTable* table, OPHash hasher,
@@ -91,6 +93,8 @@ bool DHInsertCustom(GenericTable* table, OPHash hasher,
 void* DHGetCustom(GenericTable* table, OPHash hasher, void* key);
 
 void* ChainGetCustom(GenericTable* table, OPHash hasher, void* key);
+
+void TableIterate(GenericTable* table, OPHashIterator iterator, void* context);
 
 OP_END_DECLS
 
