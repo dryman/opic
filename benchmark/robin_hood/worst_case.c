@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
           break;
         case 'p':
           percent = atof(optarg);
-          op_assert(percent < 1.0 && percent > 0.0,
+          op_assert(percent <= 1.0 && percent > 0.0,
                     "-p <percent> must within 0.0 and 1.0\n");
           break;
         case 'i':
@@ -252,6 +252,15 @@ int main(int argc, char* argv[])
           gettimeofday(&q_end, NULL);
           print_timediff("Query time ", q_start, q_end);
         }
+      int items = 0, probe_sum = 0;
+      for (char* key = &allkeys[k_len * (int)(num * (1.0 - percent))];
+           key < allkeys + k_len * num;
+           key += k_len)
+        {
+          items++;
+          probe_sum += RHHGetProbeCustom(rhh, hasher, key);
+        }
+      printf("probe mean: %f\n", (float)probe_sum/(float)items);
     }
   else
     {
@@ -278,6 +287,15 @@ int main(int argc, char* argv[])
           gettimeofday(&q_end, NULL);
           print_timediff("Query time ", q_start, q_end);
         }
+      int items = 0, probe_sum = 0;
+      for (char* key = &allkeys[k_len * (int)(num * (1.0 - percent))];
+           key < allkeys + k_len * num;
+           key += k_len)
+        {
+          items++;
+          probe_sum += QPGetProbeCustom(table, hasher, key);
+        }
+      printf("probe mean: %f\n", (float)probe_sum/(float)items);
     }
   printf("val_sum: %" PRIu64 "\n",  val_sum);
   OPHeapDestroy(heap);
