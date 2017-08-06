@@ -135,7 +135,7 @@ void RecordHashKey(void* key, void* value, size_t keysize, size_t valsize,
                    void* context)
 {
   char** keyrecord = (char**)context;
-  memcpy(key, *keyrecord, keysize);
+  memcpy(*keyrecord, key, keysize);
   *keyrecord += keysize;
 }
 
