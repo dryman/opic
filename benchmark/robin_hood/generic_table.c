@@ -344,6 +344,16 @@ QPGetCustomInternal(GenericTable* table, OPHash hasher, void* key, int* probe)
   /* return NULL; */
 }
 
+int QPGetProbeCustom(GenericTable* table, OPHash hasher, void* key)
+{
+  int probe;
+  if (QPGetCustomInternal(table, hasher, key, &probe))
+    {
+      return probe;
+    }
+  return -1;
+}
+
 void* QPGetCustom(GenericTable* table, OPHash hasher, void* key)
 {
   int probe;
@@ -453,6 +463,28 @@ void* DHGetCustom(GenericTable* table, OPHash hasher, void* key)
       idx_next = double_hashing_probe(table, hashed_key, probe+1);
     }
   return NULL;
+}
+
+void TableIterate(GenericTable* table, OPHashIterator iterator, void* context)
+{
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
+  const size_t bucket_size = keysize + valsize + 1;
+  uint8_t* buckets;
+  uint64_t idx, capacity;
+  buckets = OPRef2Ptr(table, table->bucket_ref);
+  capacity = (1ULL << (64 - table->capacity_clz - 4)) *
+    table->capacity_ms4b;
+
+  for (idx = 0; idx < capacity; idx++)
+    {
+      if (buckets[idx * bucket_size] == 1)
+        {
+          iterator(&buckets[idx * bucket_size + 1],
+                   &buckets[idx * bucket_size + 1 + keysize],
+                   keysize, valsize, context);
+        }
+    }
 }
 
 bool ChainInsertCustom(GenericTable* table, OPHash hasher,
