@@ -111,21 +111,35 @@ typedef uintptr_t opref_t;
 /**
  * @ingroup malloc
  * @typedef oplenref_t
- * @brief Another "pointer type" used within objects created by OPHeap,
+ * @brief Another "pointer type" used within objects created in OPHeap.
  *
- * oplenref_t not only served as opref_t, but also encodes length of
- * the object it pointed to. The length oplenref_t encodes must be
- * smaller than OPLENREF_MAX_LEN.
+ * oplenref_t can encode an object created in OPHeap *and* the size of
+ * such object. User can query the size of the object by OPLenRef2Szie.
+ * The size of the object must smaller than OPLENREF_MAX_LEN, which is
+ * 256MB and suppose to be sufficient for regular use.
+ *
+ * When oplenref_t is used in a container, oplenref_t can be used to encode
+ * the inline data in the container. The container holding oplenref_t can
+ * provide additional space next to oplenref_t to hold the inline data.
+ * When encoding or decoding oplenref_t the addtional space information
+ * must present so we know if the data is next to oplenref_t, or it is
+ * somewhere else in OPHeap.
  *
  * @see
- *   - OPPtr2LenRef
  *   - OPLenRef2Ptr
  *   - OPLenRef2Size
- *   - OPLenRef2Ref
  *   - OPLenRefCreate
+ *   - OPLenRefDelete
+ *   - OPLenRefReplace
  */
 typedef uintptr_t oplenref_t;
 
+/**
+ * @ingroup malloc
+ * @brief Maximum size oplenref_t can hold.
+ *
+ * The size is roughly 256MB, which should be sufficient for most applications.
+ */
 #define OPLENREF_MAX_LEN (1ULL << (64 - OPHEAP_BITS))
 
 /**
@@ -299,28 +313,6 @@ OPRef2Ptr(void* ptr_in_heap, opref_t ref)
 
 /**
  * @ingroup malloc
- * @brief Converts a pointer allocated in OPHeap and the size
- * of the object it pointed to to an oplenref_t.
- *
- * @param addr Any pointer that is allocated with OPHeap.
- * @param size The size of the object allocated with OPHeap.
- * @return An oplenref_t value.
- */
-static inline oplenref_t
-OPPtr2LenRef(void* addr, size_t size)
-{
-  oplenref_t ref;
-
-  op_assert(size < OPLENREF_MAX_LEN,
-            "Size for oplenref_t must smaller than %" PRIu64
-            ", but was %zu\n", OPLENREF_MAX_LEN, size);
-  ref = (oplenref_t)addr & (OPHEAP_SIZE - 1);
-  ref |= size << OPHEAP_BITS;
-  return ref;
-}
-
-/**
- * @ingroup malloc
  * @brief Obtain the size encoded in oplenref_t
  *
  * @param ref A oplenref_t value.
@@ -332,12 +324,14 @@ OPLenRef2Size(oplenref_t ref)
   return (size_t)(ref >> OPHEAP_BITS);
 }
 
-/**
- * @ingroup malloc
- * @brief Convert oplenref_t to opref_t.
+/*
+ * Internal use only.  Extracts opref_t part from oplenref_t. This
+ * value could be 0 if the size portion of oplenref_t is smaller than
+ * the container size.
  *
- * @param ref A oplenref_t value.
- * @return An opref_t value.
+ * In most cases, user should use OPLenRef2Ptr instead of this
+ * function.
+ *
  */
 static inline opref_t
 OPLenRef2Ref(oplenref_t ref)
@@ -345,40 +339,147 @@ OPLenRef2Ref(oplenref_t ref)
   return ref & (OPHEAP_SIZE - 1);
 }
 
-/**
- * @ingroup malloc
- * @brief Converts an oplenref_t reference to a regular pointer.
- *
- * @param ptr_in_heap Any pointer in the heap, including OPHeap*.
- * @param ref A oplenref_t value.
- * @return A regular pointer.
+/*
+ * Internal use only.  It encodes if a reference is an empty key in
+ * container.
  */
-static inline void*
-OPLenRef2Ptr(void* ptr_in_heap, oplenref_t ref)
+static inline bool
+OPLenRefIsEmpty(oplenref_t ref)
 {
-  return OPRef2Ptr(ptr_in_heap, OPLenRef2Ref(ref));
+  return ref == 0;
+}
+
+/*
+ * Internal use only.  It encodes if a reference is a deleted key in
+ * container.
+ */
+static inline bool
+OPLenRefIsDeleted(oplenref_t ref)
+{
+  return ref == ~0ULL;
 }
 
 /**
  * @ingroup malloc
- * @brief A constructor that copies the data to OPHeap,
- * and returns the oplenref_t referencing the data in OPHeap.
+ * @brief Converts an oplenref_t reference to a regular pointer.
  *
- * @param heap OPHeap reference.
- * @param data The data to copy over to OPHeap.
- * @param size Size of the data.
- * @return An oplenref_t value. If the allocation failed, the
- * value would be 0.
+ * @param ref Pointer to oplenref_t.
+ * @param container_size Size of the container that holds oplenref_t.
+ *   If used without a container, set this parameter to 0.
+ * @return A regular pointer.
  */
-static inline oplenref_t
-OPLenRefCreate(OPHeap* heap, void* data, size_t size)
+static inline void*
+OPLenRef2Ptr(oplenref_t* ref, size_t container_size)
 {
-  void* ptr;
-  ptr = OPCalloc(heap, 1, size);
-  if (!ptr)
-    return 0;
-  memcpy(ptr, data, size);
-  return OPPtr2LenRef(ptr, size);
+  if (OPLenRefIsEmpty(*ref) || OPLenRefIsDeleted(*ref))
+    return NULL;
+  if (OPLenRef2Size(*ref) > container_size)
+    return OPRef2Ptr(ObtainOPHeap(ref), OPLenRef2Ref(*ref));
+  return ref + 1;
+}
+
+
+/**
+ * @ingroup malloc
+ * @brief A constructor for oplenref_t to hold the input data.
+ *
+ * When oplenref_t used in a container, there would be some spaces
+ * next to the oplenref_t address that can hold inline data. The
+ * inline space is specified by the container_size. Data get copied to
+ * the inline space if the data_size is smaller than the
+ * container_size; otherwise the data would get copied to a newly
+ * allocated object in OPHeap. In either case, oplenref_t would store
+ * the information of which scheme was used.
+ *
+ * @param ref Pointer to oplenref_t.
+ * @param data The data to copy over to OPHeap.
+ * @param data_size Size of the data. This size must smaller than
+ *   OPLENREF_MAX_LEN.
+ * @param container_size Size of the container that holds oplenref_t.
+ *   If used without a container, set this paramter to 0.
+ *
+ */
+static inline void
+OPLenRefCreate(oplenref_t* ref, void* data, size_t data_size,
+               size_t container_size)
+{
+  if (data_size > OPLENREF_MAX_LEN)
+    {
+      *ref = 0;
+      return;
+    }
+  if (data_size > container_size)
+    {
+      void* ptr;
+      ptr = OPCalloc(ObtainOPHeap(ref), 1, size);
+      if (!ptr)
+        {
+          *ref = 0;
+          return;
+        }
+      memcpy(ptr, data, data_size);
+      *ref = (oplenref_t)ptr;
+    }
+  else
+    {
+      memcpy(ref+1, data, data_size);
+      *ref = 0;
+    }
+  *ref |= data_size << OPHEAP_BITS;
+}
+
+/**
+ * @ingroup malloc
+ * @brief A destructor for oplenref_t.
+ *
+ * Deallocates the data stored in oplenref_t.
+ *
+ * @param ref Pointer to oplenref_t.
+ * @param container_size Size of the container that holds oplenref_t.
+ *   If used without a container, set this paramter to 0.
+ *
+ */
+static inline void
+OPLenRefDelete(oplenref_t* ref, size_t container_size)
+{
+  if (OPLenRefIsEmpty(*ref) || OPLenRefIsDeleted(*ref))
+    return;
+  if (OPLenRef2Size(ref) > container_size)
+    {
+      OPDealloc(OPLenRef2Ptr(ref, container_size));
+    }
+  *ref = ~0ULL;
+}
+
+/**
+ * @ingroup malloc
+ * @brief Relace the data stored in oplenref_t.
+ *
+ * Will deallocate the original data stored in oplenref_t if it exists.
+ *
+ * @param ref Pointer to oplenref_t.
+ * @param data The data to copy over to OPHeap.
+ * @param data_size Size of the data.
+ * @param container_size Size of the container that holds oplenref_t.
+ *   If used without a container, set this paramter to 0.
+ *
+ */
+static inline void
+OPLenRefRelpace(oplenref_t* ref, void* data, size_t data_size,
+                size_t container_size)
+{
+  if (OPLenRefIsEmpty(*ref) || OPLenRefIsDeleted(*ref))
+    {
+      OPLenRefCreate(ref, data, data_size, container_size);
+      return;
+    }
+  if (data == OPLenRef2Ptr(ref, container_size))
+    return;
+  if (OPLenRef2Size(*ref) > container_size)
+    {
+      OPDealloc(OPLenRef2Ptr(ref, container_size));
+    }
+  OPLenRefCreate(ref, data, data_size, container_size);
 }
 
 OP_END_DECLS
