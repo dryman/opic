@@ -1,4 +1,4 @@
-,Quadratic probing probe mean, Quadratic probing throughput, RHH probe mean, RHH throughput
+,Quadratic probing avg probe count, Quadratic probing throughput, RHH avg probe count, RHH throughput
 all keys,1.304111,33822611,1.451982,45167612
 worst 50% keys,2.608222,19867036,2.433121,32000000
 worst 20% keys,5.145224,10666541,3.431002,18861665
