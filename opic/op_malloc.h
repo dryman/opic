@@ -411,7 +411,7 @@ OPLenRefCreate(oplenref_t* ref, void* data, size_t data_size,
   if (data_size > container_size)
     {
       void* ptr;
-      ptr = OPCalloc(ObtainOPHeap(ref), 1, size);
+      ptr = OPCalloc(ObtainOPHeap(ref), 1, data_size);
       if (!ptr)
         {
           *ref = 0;
@@ -444,7 +444,7 @@ OPLenRefDelete(oplenref_t* ref, size_t container_size)
 {
   if (OPLenRefIsEmpty(*ref) || OPLenRefIsDeleted(*ref))
     return;
-  if (OPLenRef2Size(ref) > container_size)
+  if (OPLenRef2Size(*ref) > container_size)
     {
       OPDealloc(OPLenRef2Ptr(ref, container_size));
     }

@@ -105,7 +105,10 @@ test_RHHNew(void** context)
   PascalRobinHoodHash* rhh;
   assert_true(OPHeapNew(&heap));
   assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS,
-                      0.95, 0));
+                      0.95, 0, 0));
+  PRHHDestroy(rhh);
+  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS,
+                      0.95, 10, 0));
   PRHHDestroy(rhh);
   OPHeapDestroy(heap);
 }
@@ -119,7 +122,7 @@ test_BasicInsert(void** context)
 
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, 20, 0.80,  0));
+  assert_true(PRHHNew(heap, &rhh, 20, 0.80, 0, 0));
   OP_LOG_DEBUG(logger, "PRHH addr %p", rhh);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -151,7 +154,7 @@ test_BasicDelete(void** context)
   size_t keylen;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS, 0.95, 0));
+  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS, 0.95, 0, 0));
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
@@ -182,7 +185,7 @@ test_DistributionForUpdate(void** context)
 
   assert_true(OPHeapNew(&heap));
   assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS,
-                     0.70, 0));
+                      0.70, 0, 0));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -218,7 +221,7 @@ test_Upsert(void** context)
 
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, 20, 0.80,  sizeof(int)));
+  assert_true(PRHHNew(heap, &rhh, 20, 0.80, 0, sizeof(int)));
   OP_LOG_DEBUG(logger, "PRHH addr %p", rhh);
 
   for (int i = 0; i < TEST_OBJECTS; i++)

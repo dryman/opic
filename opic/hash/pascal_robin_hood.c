@@ -57,8 +57,6 @@
 
 #define PROBE_STATS_SIZE 64
 #define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
-#define PRHH_EMPTY_KEY 0
-#define PRHH_TOMBSTONE_KEY ~0ULL
 #define VISIT_IDX_CACHE 8
 
 OP_LOGGER_FACTORY(logger, "opic.hash.pascal_robin_hood");
@@ -92,13 +90,15 @@ struct PascalRobinHoodHash
   uint8_t capacity_clz;    // leading zeros of capacity
   uint8_t capacity_ms4b;   // most significant 4 bits
   uint16_t longest_probes;
+  size_t key_inline_size;
   size_t valsize;
   uint32_t stats[PROBE_STATS_SIZE];
   opref_t bucket_ref;
 };
 
 bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh,
-             uint64_t num_objects, double load, size_t valsize)
+             uint64_t num_objects, double load,
+             size_t key_inline_size, size_t valsize)
 {
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
@@ -132,27 +132,24 @@ bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh,
   (*rhh)->capacity_ms4b = capacity_ms4b;
   (*rhh)->objcnt_high = (uint64_t)(capacity * load);
   (*rhh)->objcnt_low = capacity * 2 / 10;
+  (*rhh)->key_inline_size = key_inline_size;
   (*rhh)->valsize = valsize;
   return true;
 }
 
 void PRHHDestroy(PascalRobinHoodHash* rhh)
 {
-  const size_t bucket_size = sizeof(oplenref_t) + rhh->valsize;
+  const size_t key_inline_size = rhh->key_inline_size;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   oplenref_t* recref;
-  void* recptr;
   uint64_t capacity = PRHHCapacity(rhh);
 
   for (uint64_t idx = 0; idx < capacity; idx++)
     {
       recref = (oplenref_t*)&buckets[idx * bucket_size];
-      if (*recref != PRHH_EMPTY_KEY &&
-          *recref != PRHH_TOMBSTONE_KEY)
-        {
-          recptr = OPLenRef2Ptr(rhh, *recref);
-          OPDealloc(recptr);
-        }
+      OPLenRefDelete(recref, key_inline_size);
     }
   OPDealloc(OPRef2Ptr(rhh, rhh->bucket_ref));
   OPDealloc(rhh);
@@ -210,8 +207,9 @@ hash_with_probe(PascalRobinHoodHash* rhh, uint64_t key, int probe)
 static inline int
 findprobe(PascalRobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
 {
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = sizeof(oplenref_t) + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uint64_t hashed_key;
   oplenref_t *keyref;
@@ -219,7 +217,7 @@ findprobe(PascalRobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   size_t keysize;
 
   keyref = (oplenref_t*)&buckets[idx * bucket_size];
-  keyptr = OPLenRef2Ptr(rhh, *keyref);
+  keyptr = OPLenRef2Ptr(keyref, key_inline_size);
   keysize = OPLenRef2Size(*keyref);
   hashed_key = hasher(keyptr, keysize);
   for (int i = 0; i <= rhh->longest_probes; i++)
@@ -236,9 +234,9 @@ PRHHUpsertNewKey(PascalRobinHoodHash* rhh, OPHash hasher,
                  void* key, size_t keysize, uint64_t hashed_key,
                  uint8_t** matched_bucket, int* probe_state)
 {
-  const size_t refsize = sizeof(oplenref_t);
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = refsize + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* buckets;
   int probe, old_probe;
   uintptr_t idx, _idx;
@@ -260,25 +258,25 @@ PRHHUpsertNewKey(PascalRobinHoodHash* rhh, OPHash hasher,
           continue;
         }
       recref = (oplenref_t*)&buckets[idx * bucket_size];
-      if (*recref == PRHH_EMPTY_KEY)
+      if (OPLenRefIsEmpty(*recref))
         {
           IncreaseProbeStat(rhh, probe);
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_EMPTY;
         }
-      else if (*recref == PRHH_TOMBSTONE_KEY)
+      else if (OPLenRefIsDeleted(*recref))
         {
           for (int p = probe+1; p <= rhh->longest_probes; p++)
             {
               _idx = hash_with_probe(rhh, hashed_key, p);
               _recref = (oplenref_t*)&buckets[_idx * bucket_size];
-              if (*_recref == PRHH_EMPTY_KEY ||
-                  *_recref == PRHH_TOMBSTONE_KEY)
+              if (OPLenRefIsEmpty(*_recref) ||
+                  OPLenRefIsDeleted(*_recref))
                 continue;
-              _recptr = OPLenRef2Ptr(rhh, *_recref);
+              _recptr = OPLenRef2Ptr(_recref, key_inline_size);
               _recsize = OPLenRef2Size(*_recref);
               if (_recsize == keysize &&
-                  !memcmp(key, _recptr, keysize))
+                  !memeq(key, _recptr, keysize))
                 {
                   *matched_bucket = &buckets[_idx * bucket_size];
                   return UPSERT_DUP;
@@ -288,10 +286,10 @@ PRHHUpsertNewKey(PascalRobinHoodHash* rhh, OPHash hasher,
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_EMPTY;
         }
-      recptr = OPLenRef2Ptr(rhh, *recref);
+      recptr = OPLenRef2Ptr(recref, key_inline_size);
       recsize = OPLenRef2Size(*recref);
       if (keysize == recsize &&
-          !memcmp(key, recptr, keysize))
+          !memeq(key, recptr, keysize))
         {
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_DUP;
@@ -304,7 +302,7 @@ PRHHUpsertNewKey(PascalRobinHoodHash* rhh, OPHash hasher,
           rhh->stats[old_probe]--;
           rhh->stats[probe]++;
           *matched_bucket = &buckets[idx * bucket_size];
-          *probe_state = old_probe+1;
+          *probe_state = old_probe + 1;
           return UPSERT_PUSHDOWN;
         }
       probe++;
@@ -316,9 +314,9 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
                    uint8_t* bucket_cpy, int probe, uint8_t* avoid_bucket,
                    bool* resized)
 {
-  const size_t refsize = sizeof(oplenref_t);
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = refsize + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   oplenref_t *recref, *_recref;
   void *recptr;
   size_t recsize;
@@ -334,7 +332,7 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
   *resized = false;
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   recref = (oplenref_t*)&bucket_cpy[0];
-  recptr = OPLenRef2Ptr(rhh, *recref);
+  recptr = OPLenRef2Ptr(recref, key_inline_size);
   recsize = OPLenRef2Size(*recref);
   hashed_key = hasher(recptr, recsize);
   while (true)
@@ -384,9 +382,8 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
       visit++;
 
       _recref = (oplenref_t*)&buckets[idx * bucket_size];
-      // empty bucket and tombstone bucket
-      if (*_recref == PRHH_EMPTY_KEY ||
-          *_recref == PRHH_TOMBSTONE_KEY)
+      if (OPLenRefIsEmpty(*_recref) ||
+          OPLenRefIsDeleted(*_recref))
         {
           IncreaseProbeStat(rhh, probe);
           memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
@@ -405,7 +402,7 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
           memcpy(bucket_cpy, bucket_tmp, bucket_size);
           probe = old_probe + 1;
           recref = (oplenref_t*)&bucket_cpy[0];
-          recptr = OPLenRef2Ptr(rhh, *recref);
+          recptr = OPLenRef2Ptr(recref, key_inline_size);
           recsize = OPLenRef2Size(*recref);
           hashed_key = hasher(recptr, recsize);
           continue;
@@ -417,9 +414,9 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
 static bool
 PRHHSizeUp(PascalRobinHoodHash* rhh, OPHash hasher)
 {
-  const size_t keysize = sizeof(oplenref_t);
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = keysize + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   const size_t large_data_threshold = rhh->large_data_threshold;
   uint8_t* old_buckets;
   uint8_t* new_buckets;
@@ -493,8 +490,8 @@ PRHHSizeUp(PascalRobinHoodHash* rhh, OPHash hasher)
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
       recref = (oplenref_t*)&old_buckets[idx * bucket_size];
-      if (*recref != PRHH_EMPTY_KEY &&
-          *recref != PRHH_TOMBSTONE_KEY)
+      if (!OPLenRefIsEmpty(*recref) &&
+          !OPLenRefIsDeleted(*recref))
         {
           PRHHUpsertPushDown(rhh, hasher, &old_buckets[idx * bucket_size],
                              0, NULL, &resized);
@@ -507,8 +504,9 @@ PRHHSizeUp(PascalRobinHoodHash* rhh, OPHash hasher)
 static bool
 PRHHSizeDown(PascalRobinHoodHash* rhh, OPHash hasher)
 {
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = sizeof(oplenref_t) + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* old_buckets;
   uint8_t* new_buckets;
   uint8_t new_capacity_ms4b, new_capacity_clz;
@@ -565,8 +563,8 @@ PRHHSizeDown(PascalRobinHoodHash* rhh, OPHash hasher)
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
       recref = (oplenref_t*)&old_buckets[idx * bucket_size];
-      if (*recref != PRHH_EMPTY_KEY &&
-          *recref != PRHH_TOMBSTONE_KEY)
+      if (!OPLenRefIsEmpty(*recref) &&
+          !OPLenRefIsDeleted(*recref))
         {
           PRHHUpsertPushDown(rhh, hasher, &old_buckets[idx * bucket_size],
                              0, NULL, &resized);
@@ -579,12 +577,11 @@ PRHHSizeDown(PascalRobinHoodHash* rhh, OPHash hasher)
 bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                       void* key, size_t keysize, void* val)
 {
-  const size_t refsize = sizeof(oplenref_t);
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = refsize + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   enum upsert_result_t upsert_result;
   uint64_t hashed_key;
-  oplenref_t keylref;
   uint8_t* matched_bucket;
   uint8_t bucket_cpy[bucket_size];
   int probe;
@@ -604,20 +601,21 @@ bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   switch (upsert_result)
     {
     case UPSERT_EMPTY:
-      keylref = OPLenRefCreate(ObtainOPHeap(rhh), key, keysize);
-      op_assert(keylref, "allocated pointer should not be NULL");
-      memcpy(matched_bucket, &keylref, sizeof(oplenref_t));
-      memcpy(&matched_bucket[refsize], val, valsize);
+      OPLenRefCreate((oplenref_t*)matched_bucket,
+                     key, keysize, key_inline_size);
+      memcpy(&matched_bucket[sizeof(oplenref_t)+key_inline_size],
+             val, valsize);
       break;
     case UPSERT_DUP:
-      memcpy(&matched_bucket[refsize], val, valsize);
+      memcpy(&matched_bucket[sizeof(oplenref_t)+key_inline_size],
+             val, valsize);
       break;
     case UPSERT_PUSHDOWN:
       memcpy(bucket_cpy, matched_bucket, bucket_size);
-      keylref = OPLenRefCreate(ObtainOPHeap(rhh), key, keysize);
-      op_assert(keylref, "allocated pointer should not be NULL");
-      memcpy(matched_bucket, &keylref, sizeof(oplenref_t));
-      memcpy(&matched_bucket[refsize], val, valsize);
+      OPLenRefCreate((oplenref_t*)matched_bucket,
+                     key, keysize, key_inline_size);
+      memcpy(&matched_bucket[sizeof(oplenref_t)+key_inline_size],
+             val, valsize);
       PRHHUpsertPushDown(rhh, hasher, bucket_cpy, probe,
                          matched_bucket, &resized);
     }
@@ -628,13 +626,12 @@ bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                       void* key, size_t keysize, void** val_ref,
                       bool* is_duplicate)
 {
-  const size_t refsize = sizeof(oplenref_t);
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = refsize + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   enum upsert_result_t upsert_result;
   uint8_t* matched_bucket;
   uint64_t hashed_key;
-  oplenref_t keylref;
   int probe;
   uint8_t bucket_cpy[bucket_size];
   bool resized;
@@ -649,7 +646,7 @@ bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   upsert_result = PRHHUpsertNewKey(rhh, hasher,
                                    key, keysize, hashed_key,
                                    &matched_bucket, &probe);
-  *val_ref = &matched_bucket[sizeof(oplenref_t)];
+  *val_ref = &matched_bucket[sizeof(oplenref_t) + key_inline_size];
 
   switch (upsert_result)
     {
@@ -658,16 +655,14 @@ bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
       break;
     case UPSERT_EMPTY:
       *is_duplicate = false;
-      keylref = OPLenRefCreate(ObtainOPHeap(rhh), key, keysize);
-      op_assert(keylref, "allocated pointer should not be NULL");
-      memcpy(matched_bucket, &keylref, sizeof(oplenref_t));
+      OPLenRefCreate((oplenref_t*)matched_bucket,
+                     key, keysize, key_inline_size);
       break;
     case UPSERT_PUSHDOWN:
       *is_duplicate = false;
       memcpy(bucket_cpy, matched_bucket, bucket_size);
-      keylref = OPLenRefCreate(ObtainOPHeap(rhh), key, keysize);
-      op_assert(keylref, "allocated pointer should not be NULL");
-      memcpy(matched_bucket, &keylref, sizeof(oplenref_t));
+      OPLenRefCreate((oplenref_t*)matched_bucket,
+                     key, keysize, key_inline_size);
       PRHHUpsertPushDown(rhh, hasher, bucket_cpy, probe,
                          matched_bucket, &resized);
       if (resized)
@@ -682,8 +677,9 @@ static inline bool
 PRHHSearchIdx(PascalRobinHoodHash* rhh, OPHash hasher,
               void* key, size_t keysize, uintptr_t* idx)
 {
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = sizeof(oplenref_t) + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uint64_t hashed_key;
   oplenref_t *recref;
@@ -696,16 +692,14 @@ PRHHSearchIdx(PascalRobinHoodHash* rhh, OPHash hasher,
     {
       *idx = hash_with_probe(rhh, hashed_key, probe);
       recref = (oplenref_t*)&buckets[*idx * bucket_size];
-      switch (*recref)
-        {
-        case 0: return false;
-        case ~0ULL: continue;
-        default: break;
-        }
-      recptr = OPLenRef2Ptr(rhh, *recref);
+      if (OPLenRefIsEmpty(*recref))
+        return false;
+      if (OPLenRefIsDeleted(*recref))
+        continue;
+      recptr = OPLenRef2Ptr(recref, key_inline_size);
       recsize = OPLenRef2Size(*recref);
       if (keysize == recsize &&
-          !memcmp(key, recptr, keysize))
+          memeq(key, recptr, keysize))
         return true;
     }
   return false;
@@ -714,12 +708,15 @@ PRHHSearchIdx(PascalRobinHoodHash* rhh, OPHash hasher,
 void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                     void* key, size_t keysize)
 {
-  const size_t bucket_size = sizeof(oplenref_t) + rhh->valsize;
+  const size_t key_inline_size = rhh->key_inline_size;
+  const size_t valsize = rhh->valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uintptr_t idx;
   if (PRHHSearchIdx(rhh, hasher, key, keysize, &idx))
     {
-      return &buckets[idx * bucket_size + sizeof(oplenref_t)];
+      return &buckets[idx * bucket_size +
+                      sizeof(oplenref_t) + key_inline_size];
     }
   return NULL;
 }
@@ -727,13 +724,9 @@ void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
 void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
                        void* key, size_t keysize)
 {
-  /*
-   * This works for load that is not super high, i.e. < 0.9.
-   * It slows down the growth for both E[psl] and Var[psl], but only
-   * slows down, not bounding it.
-   */
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = sizeof(oplenref_t) + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* buckets;
   uintptr_t idx, premod_idx, candidate_idx;
   uintptr_t mask;
@@ -768,88 +761,28 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   if (record_probe == rhh->longest_probes &&
       rhh->stats[record_probe] == 0)
     {
-      rhh->longest_probes--;
-    }
-
-  while (true)
-    {
-    next_iter:
-      if (record_probe == 0)
-        goto end_iter;
-      switch (rhh->capacity_ms4b)
+      for (int i = rhh->longest_probes; i >= 0; i--)
         {
-        case 8: premod_idx =  round_up_div(16*idx, 8); break;
-        case 9: premod_idx =  round_up_div(16*idx, 9); break;
-        case 10: premod_idx = round_up_div(16*idx, 10); break;
-        case 11: premod_idx = round_up_div(16*idx, 11); break;
-        case 12: premod_idx = round_up_div(16*idx, 12); break;
-        case 13: premod_idx = round_up_div(16*idx, 13); break;
-        case 14: premod_idx = round_up_div(16*idx, 14); break;
-        case 15: premod_idx = round_up_div(16*idx, 15); break;
-        default: op_assert(false, "Unknown capacity_ms4b %d\n",
-                           rhh->capacity_ms4b);
-        }
-      candidates = (((premod_idx + 1) & mask) * rhh->capacity_ms4b >> 4)
-        == idx ? 2 : 1;
-      for (int probe = rhh->longest_probes - 1;
-           probe > 0; probe--)
-        {
-          for (int candidate = 0; candidate < candidates; candidate++)
+          if (rhh->stats[i])
             {
-              candidate_idx =
-                ((premod_idx + candidate + (probe + 1)*(probe + 1)*2
-                  - probe*probe*2) & mask) * rhh->capacity_ms4b >> 4;
-              recref = (oplenref_t*)&buckets[candidate_idx * bucket_size];
-              if (*recref == 0 || *recref == ~0ULL)
-                continue;
-              recptr = OPLenRef2Ptr(rhh, *recref);
-              recsize = OPLenRef2Size(*recref);
-              hashed_rec = hasher(recptr, recsize);
-              if (hash_with_probe(rhh, hashed_rec, probe + 1)
-                  == candidate_idx &&
-                  hash_with_probe(rhh, hashed_rec, probe)
-                  == idx)
-                {
-                  if (probe + 1 < PROBE_STATS_SIZE)
-                    rhh->stats[probe + 1]--;
-                  if (probe < PROBE_STATS_SIZE)
-                    rhh->stats[probe]++;
-                  else
-                    OP_LOG_WARN(logger, "Large probe: %d\n", probe);
-                  if (probe + 1 == rhh->longest_probes &&
-                      rhh->stats[probe+1] == 0)
-                    {
-                      rhh->longest_probes--;
-                    }
-                  memcpy(bucket_tmp, &buckets[idx * bucket_size], bucket_size);
-                  memcpy(&buckets[idx * bucket_size],
-                         &buckets[candidate_idx * bucket_size],
-                         bucket_size);
-                  memcpy(&buckets[candidate_idx * bucket_size],
-                         bucket_tmp, bucket_size);
-                  idx = candidate_idx;
-                  record_probe--;
-                  goto next_iter;
-                }
+              rhh->longest_probes = i;
+              break;
             }
         }
-      goto end_iter;
     }
 
- end_iter:
   recref = (oplenref_t*)&buckets[idx * bucket_size];
-  recsize = OPLenRef2Size(*recref);
-  recptr = OPLenRef2Ptr(rhh, *recref);
-  OPDealloc(recptr);
-  *recref = PRHH_TOMBSTONE_KEY;
-  return &buckets[idx * bucket_size + sizeof(oplenref_t)];
+  OPLenRefDelete(recref, key_inline_size);
+  return &buckets[idx * bucket_size +
+                  sizeof(oplenref_t) + key_inline_size];
 }
 
 void PRHHIterate(PascalRobinHoodHash* rhh,
                  OPHashIterator iterator, void* context)
 {
+  const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
-  const size_t bucket_size = sizeof(oplenref_t) + valsize;
+  const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uint64_t capacity = PRHHCapacity(rhh);
   oplenref_t* recref;
@@ -859,12 +792,14 @@ void PRHHIterate(PascalRobinHoodHash* rhh,
   for (uint64_t idx = 0; idx < capacity; idx++)
     {
       recref = (oplenref_t*)&buckets[idx * bucket_size];
-      if (*recref != PRHH_EMPTY_KEY &&
-          *recref != PRHH_TOMBSTONE_KEY)
+      if (!OPLenRefIsEmpty(*recref) &&
+          !OPLenRefIsDeleted(*recref))
         {
-          recptr = OPLenRef2Ptr(rhh, *recref);
+          recptr = OPLenRef2Ptr(recref, key_inline_size);
           recsize = OPLenRef2Size(*recref);
-          iterator(recptr, &buckets[idx * bucket_size + sizeof(oplenref_t)],
+          iterator(recptr, &buckets[idx * bucket_size +
+                                    sizeof(oplenref_t) +
+                                    key_inline_size],
                    recsize, valsize, context);
         }
     }
