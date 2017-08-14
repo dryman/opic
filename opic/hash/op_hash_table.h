@@ -340,7 +340,8 @@ void HTIterate(OPHashTable* table, OPHashIterator iterator, void* context);
 /**
  * @relates OPHashTable
  * @brief Prints the accumulated count for each probing number.
- * @todo make this API easier to process by cilent, not just printing.
+ *
+ * Deprecated. Use HTProbeStat instead.
  */
 void HTPrintStat(OPHashTable* table);
 

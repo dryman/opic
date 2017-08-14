@@ -72,6 +72,20 @@ uint64_t OPDefaultHash(void* key, size_t size)
   return cityhash64((const uint8_t*)key, size);
 }
 
+/**
+ * @ingroup hash
+ * @brief Callback type for doing upsert operation with funnel.
+ *
+ * @param key The key upserting to hash table
+ * @param table_value The value in table (old value).
+ * @param funnel_value The value in funnel (new value).
+ * @param ctx User defined context.
+ * @param keysize Size of the key.
+ * @param valsize Both table_value and funnel_value has same size valsize.
+ * @param ctxsize Size of the context.
+ * @param is_duplicate True when this upsert operation is on a duplicate
+ * key (update case). False when this key is newly inserted.
+ */
 typedef void(*OPFunnelUpsertCB)(void* key,
                                 void* table_value,
                                 void* funnel_value,
@@ -79,13 +93,37 @@ typedef void(*OPFunnelUpsertCB)(void* key,
                                 size_t keysize, size_t valsize,
                                 size_t ctxsize, bool is_duplicate);
 
+/**
+ * @ingroup hash
+ * @brief Callback type for doing get operation with funnel.
+ *
+ * @param key The key upserting to hash table
+ * @param value The value in table.
+ * @param ctx User defined context.
+ * @param keysize Size of the key.
+ * @param valsize Size of the value.
+ * @param ctxsize Size of the context.
+ */
 typedef void(*OPFunnelGetCB)(void* key, void* value, void* ctx,
                              size_t keysize, size_t valsize,
                              size_t ctxsize);
 
+/**
+ * @ingroup hash
+ * @brief Callback type for doing delete operation with funnel.
+ *
+ * @param key The key upserting to hash table
+ * @param value The value in table.
+ * @param ctx User defined context.
+ * @param keysize Size of the key.
+ * @param valsize Size of the value.
+ * @param ctxsize Size of the context.
+ */
 typedef void(*OPFunnelDeleteCB)(void* key, void* value, void* ctx,
                                 size_t keysize, size_t valsize,
                                 size_t ctxsize);
+
+#ifndef DOXYGEN_SKIP
 
 typedef union FunnelCB
 {
@@ -93,6 +131,8 @@ typedef union FunnelCB
   OPFunnelGetCB getcb;
   OPFunnelDeleteCB deletecb;
 } FunnelCB __attribute__((__transparent_union__));
+
+#endif
 
 OP_END_DECLS
 
