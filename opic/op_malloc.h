@@ -42,7 +42,7 @@ OP_BEGIN_DECLS
 
 /**
  * @ingroup malloc
- * @brief Size of OPHeap represented in bits offset.
+ * @brief Size of OPHeap represented in bits.
  */
 #define OPHEAP_BITS 36
 
@@ -324,6 +324,7 @@ OPLenRef2Size(oplenref_t ref)
   return (size_t)(ref >> OPHEAP_BITS);
 }
 
+#ifndef DOXYGEN_SKIP
 /*
  * Internal use only.  Extracts opref_t part from oplenref_t. This
  * value could be 0 if the size portion of oplenref_t is smaller than
@@ -358,6 +359,7 @@ OPLenRefIsDeleted(oplenref_t ref)
 {
   return ref == ~0ULL;
 }
+#endif
 
 /**
  * @ingroup malloc

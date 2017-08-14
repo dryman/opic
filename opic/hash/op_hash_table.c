@@ -1,6 +1,6 @@
-/* robin_hood.c ---
+/* op_hash_table.c ---
  *
- * Filename: robin_hood.c
+ * Filename: op_hash_table.c
  * Description:
  * Author: Felix Chern
  * Maintainer:
@@ -55,13 +55,13 @@
 #include "opic/common/op_utils.h"
 #include "opic/common/op_log.h"
 #include "opic/op_malloc.h"
-#include "robin_hood.h"
+#include "op_hash_table.h"
 
 #define PROBE_STATS_SIZE 64
 #define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
 #define VISIT_IDX_CACHE 8
 
-OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
+OP_LOGGER_FACTORY(logger, "opic.hash.op_hash_table");
 
 enum upsert_result_t
   {
@@ -71,20 +71,20 @@ enum upsert_result_t
   };
 
 static inline enum upsert_result_t
-RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
-                uint64_t hashed_key,
-                void* key,
-                uint8_t** matched_bucket,
-                int* probe_state);
+HTUpsertNewKey(OPHashTable* table, OPHash hasher,
+               uint64_t hashed_key,
+               void* key,
+               uint8_t** matched_bucket,
+               int* probe_state);
 
 static inline void
-RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
-                  uint8_t* bucket_cpy, int probe,
-                  uint8_t* avoid_bucket, bool* resize);
+HTUpsertPushDown(OPHashTable* table, OPHash hasher,
+                 uint8_t* bucket_cpy, int probe,
+                 uint8_t* avoid_bucket, bool* resize);
 
-static bool RHHSizeUp(RobinHoodHash* rhh, OPHash hasher);
+static bool HTSizeUp(OPHashTable* table, OPHash hasher);
 
-struct RobinHoodHash
+struct OPHashTable
 {
   uint64_t objcnt;
   uint64_t objcnt_high;
@@ -99,9 +99,9 @@ struct RobinHoodHash
   opref_t bucket_ref;
 };
 
-struct RHHFunnel
+struct HTFunnel
 {
-  RobinHoodHash* restrict rhh;
+  OPHashTable* restrict table;
   OPHash hasher;
   FunnelCB callback;
   size_t slotsize;
@@ -112,11 +112,11 @@ struct RHHFunnel
 };
 
 static inline
-uint64_t RHHCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b);
+uint64_t HTCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b);
 
 bool
-RHHNew(OPHeap* heap, RobinHoodHash** rhh,
-       uint64_t num_objects, double load, size_t keysize, size_t valsize)
+HTNew(OPHeap* heap, OPHashTable** table,
+      uint64_t num_objects, double load, size_t keysize, size_t valsize)
 {
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
@@ -131,58 +131,58 @@ RHHNew(OPHeap* heap, RobinHoodHash** rhh,
   capacity_clz = __builtin_clzl(capacity);
   capacity_msb = 64 - capacity_clz;
   capacity_ms4b = round_up_div(capacity, 1UL << (capacity_msb - 4));
-  capacity = RHHCapacityInternal((uint8_t)capacity_clz, (uint8_t)capacity_ms4b);
+  capacity = HTCapacityInternal((uint8_t)capacity_clz, (uint8_t)capacity_ms4b);
 
   bucket_size = keysize + valsize + 1;
 
-  *rhh = OPCalloc(heap, 1, sizeof(RobinHoodHash));
-  if (!*rhh)
+  *table = OPCalloc(heap, 1, sizeof(OPHashTable));
+  if (!*table)
     return false;
   bucket_ptr = OPCalloc(heap, 1, bucket_size * capacity);
   if (!bucket_ptr)
     {
-      OPDealloc(rhh);
+      OPDealloc(table);
       return false;
     }
-  (*rhh)->bucket_ref = OPPtr2Ref(bucket_ptr);
-  (*rhh)->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
-  (*rhh)->capacity_clz = capacity_clz;
-  (*rhh)->capacity_ms4b = capacity_ms4b;
-  (*rhh)->objcnt_high = (uint64_t)(capacity * load);
-  (*rhh)->objcnt_low = capacity * 2 / 10;
-  (*rhh)->keysize = keysize;
-  (*rhh)->valsize = valsize;
+  (*table)->bucket_ref = OPPtr2Ref(bucket_ptr);
+  (*table)->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
+  (*table)->capacity_clz = capacity_clz;
+  (*table)->capacity_ms4b = capacity_ms4b;
+  (*table)->objcnt_high = (uint64_t)(capacity * load);
+  (*table)->objcnt_low = capacity * 2 / 10;
+  (*table)->keysize = keysize;
+  (*table)->valsize = valsize;
   return true;
 }
 
 void
-RHHDestroy(RobinHoodHash* rhh)
+HTDestroy(OPHashTable* table)
 {
-  OPDealloc(OPRef2Ptr(rhh, rhh->bucket_ref));
-  OPDealloc(rhh);
+  OPDealloc(OPRef2Ptr(table, table->bucket_ref));
+  OPDealloc(table);
 }
 
-uint64_t RHHObjcnt(RobinHoodHash* rhh)
+uint64_t HTObjcnt(OPHashTable* table)
 {
-  return rhh->objcnt;
+  return table->objcnt;
 }
 
-uint64_t RHHCapacity(RobinHoodHash* rhh)
+uint64_t HTCapacity(OPHashTable* table)
 {
-  return RHHCapacityInternal(rhh->capacity_clz, rhh->capacity_ms4b);
+  return HTCapacityInternal(table->capacity_clz, table->capacity_ms4b);
 }
 
-size_t RHHKeysize(RobinHoodHash* rhh)
+size_t HTKeySize(OPHashTable* table)
 {
-  return rhh->keysize;
+  return table->keysize;
 }
 
-size_t RHHValsize(RobinHoodHash* rhh)
+size_t HTValSize(OPHashTable* table)
 {
-  return rhh->valsize;
+  return table->valsize;
 }
 
-uint64_t RHHCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b)
+uint64_t HTCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b)
 {
   return (1UL << (64 - capacity_clz - 4)) * capacity_ms4b;
 }
@@ -213,9 +213,9 @@ fast_mod_scale(uint64_t probed_hash, uint64_t mask, uint64_t scale)
 }
 
 static inline uintptr_t
-hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
+hash_with_probe(OPHashTable* table, uint64_t key, int probe)
 {
-  uint64_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  uint64_t mask = (1ULL << (64 - table->capacity_clz)) - 1;
 
   // These probing methods are just for experiments.
   // They work on insertion and querying, but not deletion.
@@ -237,26 +237,26 @@ hash_with_probe(RobinHoodHash* rhh, uint64_t key, int probe)
   // uint64_t up32key = key >> 32;
   // uint64_t probed_hash = key + up32key * probe;
 
-  return fast_mod_scale(probed_hash, mask, rhh->capacity_ms4b);
+  return fast_mod_scale(probed_hash, mask, table->capacity_ms4b);
 }
 
 static inline int
-findprobe(RobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
+findprobe(OPHashTable* table, OPHash hasher, uintptr_t idx)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
-  uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint8_t* buckets = OPRef2Ptr(table, table->bucket_ref);
   uint64_t hashed_key, probing_key, probing_idx;
-  uint64_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  uint64_t mask = (1ULL << (64 - table->capacity_clz)) - 1;
 
   hashed_key = hasher(&buckets[idx*bucket_size + 1], keysize);
   probing_key = hashed_key;
 
-  for (int i = 0; i <= rhh->longest_probes; i++)
+  for (int i = 0; i <= table->longest_probes; i++)
     {
       probing_key = quadratic_partial(probing_key, i);
-      probing_idx = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b);
+      probing_idx = fast_mod_scale(probing_key, mask, table->capacity_ms4b);
       if (probing_idx == idx)
         return i;
     }
@@ -265,53 +265,53 @@ findprobe(RobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
 }
 
 static inline void
-IncreaseProbeStat(RobinHoodHash* rhh, int probe)
+IncreaseProbeStat(OPHashTable* table, int probe)
 {
-  rhh->objcnt++;
-  rhh->longest_probes = probe > rhh->longest_probes ?
-    probe : rhh->longest_probes;
-  rhh->stats[probe]++;
+  table->objcnt++;
+  table->longest_probes = probe > table->longest_probes ?
+    probe : table->longest_probes;
+  table->stats[probe]++;
 }
 
 static inline enum upsert_result_t
-RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
-                uint64_t hashed_key,
-                void* key,
-                uint8_t** matched_bucket, int* probe_state)
+HTUpsertNewKey(OPHashTable* table, OPHash hasher,
+               uint64_t hashed_key,
+               void* key,
+               uint8_t** matched_bucket, int* probe_state)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* restrict buckets;
   int probe, old_probe;
   uintptr_t idx, _idx;
 
-  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  buckets = OPRef2Ptr(table, table->bucket_ref);
   probe = 0;
 
   while (true)
     {
-      idx = hash_with_probe(rhh, hashed_key, probe);
+      idx = hash_with_probe(table, hashed_key, probe);
       if (probe > PROBE_STATS_SIZE)
         {
-          RHHSizeUp(rhh, hasher);
+          HTSizeUp(table, hasher);
           probe = 0;
-          buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+          buckets = OPRef2Ptr(table, table->bucket_ref);
           continue;
         }
       // empty bucket
       if (buckets[idx * bucket_size] == 0)
         {
-          IncreaseProbeStat(rhh, probe);
+          IncreaseProbeStat(table, probe);
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_EMPTY;
         }
       // deleted bucket
       else if (buckets[idx * bucket_size] == 2)
         {
-          for (int p = probe+1; p <= rhh->longest_probes; p++)
+          for (int p = probe+1; p <= table->longest_probes; p++)
             {
-              _idx = hash_with_probe(rhh, hashed_key, p);
+              _idx = hash_with_probe(table, hashed_key, p);
               // if is empty or deleted, skip and look for next one
               if (buckets[_idx * bucket_size] == 1)
                 continue;
@@ -321,7 +321,7 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
                   return UPSERT_DUP;
                 }
             }
-          IncreaseProbeStat(rhh, probe);
+          IncreaseProbeStat(table, probe);
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_EMPTY;
         }
@@ -330,13 +330,13 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_DUP;
         }
-      old_probe = findprobe(rhh, hasher, idx);
+      old_probe = findprobe(table, hasher, idx);
       if (probe > old_probe)
         {
-          rhh->longest_probes = probe > rhh->longest_probes ?
-            probe : rhh->longest_probes;
-          rhh->stats[old_probe]--;
-          rhh->stats[probe]++;
+          table->longest_probes = probe > table->longest_probes ?
+            probe : table->longest_probes;
+          table->stats[old_probe]--;
+          table->stats[probe]++;
           *matched_bucket = &buckets[idx * bucket_size];
           *probe_state = old_probe+1;
           return UPSERT_PUSHDOWN;
@@ -346,12 +346,12 @@ RHHUpsertNewKey(RobinHoodHash* rhh, OPHash hasher,
 }
 
 static inline void
-RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
-                  uint8_t* bucket_cpy, int probe, uint8_t* avoid_bucket,
-                  bool* resized)
+HTUpsertPushDown(OPHashTable* table, OPHash hasher,
+                 uint8_t* bucket_cpy, int probe, uint8_t* avoid_bucket,
+                 bool* resized)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* restrict buckets;
   int old_probe;
@@ -364,23 +364,23 @@ RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
   visit = 0;
   *resized = false;
   hashed_key = hasher(&bucket_cpy[1], keysize);
-  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  capacity = RHHCapacity(rhh);
+  buckets = OPRef2Ptr(table, table->bucket_ref);
+  capacity = HTCapacity(table);
   iter = 0;
 
   while (true)
     {
     next_iter:
       iter++;
-      idx = hash_with_probe(rhh, hashed_key, probe);
+      idx = hash_with_probe(table, hashed_key, probe);
 
       if (iter > capacity)
         {
-          RHHSizeUp(rhh, hasher);
-          capacity = RHHCapacity(rhh);
+          HTSizeUp(table, hasher);
+          capacity = HTCapacity(table);
           iter = 0;
           probe = 0;
-          buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+          buckets = OPRef2Ptr(table, table->bucket_ref);
           *resized = true;
           continue;
         }
@@ -420,18 +420,18 @@ RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
       // empty bucket or tombstone bucket
       if (buckets[idx * bucket_size] != 1)
         {
-          IncreaseProbeStat(rhh, probe);
+          IncreaseProbeStat(table, probe);
           memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
           return;
         }
 
-      old_probe = findprobe(rhh, hasher, idx);
+      old_probe = findprobe(table, hasher, idx);
       if (probe > old_probe)
         {
-          rhh->longest_probes = probe > rhh->longest_probes ?
-            probe : rhh->longest_probes;
-          rhh->stats[old_probe]--;
-          rhh->stats[probe]++;
+          table->longest_probes = probe > table->longest_probes ?
+            probe : table->longest_probes;
+          table->stats[old_probe]--;
+          table->stats[probe]++;
           memcpy(bucket_tmp, &buckets[idx * bucket_size], bucket_size);
           memcpy(&buckets[idx * bucket_size], bucket_cpy, bucket_size);
           memcpy(bucket_cpy, bucket_tmp, bucket_size);
@@ -444,64 +444,64 @@ RHHUpsertPushDown(RobinHoodHash* rhh, OPHash hasher,
 }
 
 static bool
-RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
+HTSizeUp(OPHashTable* table, OPHash hasher)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
-  const size_t large_data_threshold = rhh->large_data_threshold;
+  const size_t large_data_threshold = table->large_data_threshold;
   uint8_t* old_buckets;
   uint8_t* new_buckets;
   uint8_t new_capacity_ms4b, new_capacity_clz;
   uint64_t old_capacity, new_capacity;
   bool resized;
 
-  old_capacity = RHHCapacity(rhh);
-  old_buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  old_capacity = HTCapacity(table);
+  old_buckets = OPRef2Ptr(table, table->bucket_ref);
 
   if (old_capacity * bucket_size >= large_data_threshold)
     {
       // increase size by 20% ~ 33%
-      switch(rhh->capacity_ms4b)
+      switch(table->capacity_ms4b)
         {
         case 8:
           new_capacity_ms4b = 10;
-          new_capacity_clz = rhh->capacity_clz;
+          new_capacity_clz = table->capacity_clz;
           break;
         case 9:
         case 10:
           new_capacity_ms4b = 12;
-          new_capacity_clz = rhh->capacity_clz;
+          new_capacity_clz = table->capacity_clz;
           break;
         case 11:
         case 12:
           new_capacity_ms4b = 14;
-          new_capacity_clz = rhh->capacity_clz;
+          new_capacity_clz = table->capacity_clz;
           break;
         case 13:
         case 14:
           new_capacity_ms4b = 8;
-          new_capacity_clz = rhh->capacity_clz - 1;
+          new_capacity_clz = table->capacity_clz - 1;
           break;
         case 15:
           new_capacity_ms4b = 10;
-          new_capacity_clz = rhh->capacity_clz - 1;
+          new_capacity_clz = table->capacity_clz - 1;
           break;
         default: op_assert(false, "Unknown capacity_ms4b %d\n",
-                           rhh->capacity_ms4b);
+                           table->capacity_ms4b);
         }
     }
   else
     {
       new_capacity_ms4b = 8;
-      new_capacity_clz = rhh->capacity_ms4b == 8 ?
-        rhh->capacity_clz - 1 : rhh->capacity_clz - 2;
+      new_capacity_clz = table->capacity_ms4b == 8 ?
+        table->capacity_clz - 1 : table->capacity_clz - 2;
     }
-  new_capacity = RHHCapacityInternal(new_capacity_clz, new_capacity_ms4b);
+  new_capacity = HTCapacityInternal(new_capacity_clz, new_capacity_ms4b);
   OP_LOG_INFO(logger, "Resize from %" PRIu64 " to %" PRIu64,
               old_capacity, new_capacity);
 
-  new_buckets = OPCalloc(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
+  new_buckets = OPCalloc(ObtainOPHeap(table), 1, bucket_size * new_capacity);
   if (!new_buckets)
     {
       OP_LOG_ERROR(logger, "Cannot obtain new bucket for size %" PRIu64,
@@ -509,21 +509,21 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
       return false;
     }
 
-  rhh->objcnt = 0;
-  rhh->objcnt_high = new_capacity * 8 / 10;
-  rhh->objcnt_low = new_capacity * 2 / 10;
-  rhh->capacity_clz = new_capacity_clz;
-  rhh->capacity_ms4b = new_capacity_ms4b;
-  rhh->longest_probes = 0;
-  memset(rhh->stats, 0x00, sizeof(uint32_t) * PROBE_STATS_SIZE);
-  rhh->bucket_ref = OPPtr2Ref(new_buckets);
+  table->objcnt = 0;
+  table->objcnt_high = new_capacity * 8 / 10;
+  table->objcnt_low = new_capacity * 2 / 10;
+  table->capacity_clz = new_capacity_clz;
+  table->capacity_ms4b = new_capacity_ms4b;
+  table->longest_probes = 0;
+  memset(table->stats, 0x00, sizeof(uint32_t) * PROBE_STATS_SIZE);
+  table->bucket_ref = OPPtr2Ref(new_buckets);
 
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
       if (old_buckets[idx*bucket_size] == 1)
         {
-          RHHUpsertPushDown(rhh, hasher, &old_buckets[idx * bucket_size],
-                            0, NULL, &resized);
+          HTUpsertPushDown(table, hasher, &old_buckets[idx * bucket_size],
+                           0, NULL, &resized);
         }
     }
   OPDealloc(old_buckets);
@@ -531,10 +531,10 @@ RHHSizeUp(RobinHoodHash* rhh, OPHash hasher)
 }
 
 static bool
-RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
+HTSizeDown(OPHashTable* table, OPHash hasher)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* old_buckets;
   uint8_t* new_buckets;
@@ -542,36 +542,36 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
   uint64_t old_capacity, new_capacity;
   bool resized;
 
-  old_capacity = RHHCapacity(rhh);
-  old_buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  old_capacity = HTCapacity(table);
+  old_buckets = OPRef2Ptr(table, table->bucket_ref);
   op_assert(old_capacity > 16,
             "Can not resize smaller than 16, but got old_capacity %"
             PRIu64 "\n", old_capacity);
 
-  switch(rhh->capacity_ms4b)
+  switch(table->capacity_ms4b)
     {
     case 8:  // new load 0.45
     case 9:  // new load 0.50
     case 10: // new load 0.55
     case 11: // new load 0.60
       new_capacity_ms4b = 8;
-      new_capacity_clz = rhh->capacity_clz + 1;
+      new_capacity_clz = table->capacity_clz + 1;
       break;
     case 12: // new load 0.40
     case 13: // new load 0.43
     case 14: // new load 0.46
     case 15: // new load 0.50
       new_capacity_ms4b = 12;
-      new_capacity_clz = rhh->capacity_clz + 1;
+      new_capacity_clz = table->capacity_clz + 1;
       break;
     default: op_assert(false, "Unknown capacity_ms4b %d\n",
-                       rhh->capacity_ms4b);
+                       table->capacity_ms4b);
     }
 
-  new_capacity = RHHCapacityInternal(new_capacity_clz, new_capacity_ms4b);
+  new_capacity = HTCapacityInternal(new_capacity_clz, new_capacity_ms4b);
   OP_LOG_INFO(logger, "Resize from %" PRIu64 " to %" PRIu64,
               old_capacity, new_capacity);
-  new_buckets = OPCalloc(ObtainOPHeap(rhh), 1, bucket_size * new_capacity);
+  new_buckets = OPCalloc(ObtainOPHeap(table), 1, bucket_size * new_capacity);
   if (!new_buckets)
     {
       OP_LOG_ERROR(logger, "Cannot obtain new bucket for size %" PRIu64,
@@ -579,21 +579,21 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
       return false;
     }
 
-  rhh->objcnt = 0;
-  rhh->objcnt_high = new_capacity * 8 / 10;
-  rhh->objcnt_low = new_capacity * 2 / 10;
-  rhh->capacity_clz = new_capacity_clz;
-  rhh->capacity_ms4b = new_capacity_ms4b;
-  rhh->longest_probes = 0;
-  memset(rhh->stats, 0x00, sizeof(uint32_t) * PROBE_STATS_SIZE);
-  rhh->bucket_ref = OPPtr2Ref(new_buckets);
+  table->objcnt = 0;
+  table->objcnt_high = new_capacity * 8 / 10;
+  table->objcnt_low = new_capacity * 2 / 10;
+  table->capacity_clz = new_capacity_clz;
+  table->capacity_ms4b = new_capacity_ms4b;
+  table->longest_probes = 0;
+  memset(table->stats, 0x00, sizeof(uint32_t) * PROBE_STATS_SIZE);
+  table->bucket_ref = OPPtr2Ref(new_buckets);
 
   for (uint64_t idx = 0; idx < old_capacity; idx++)
     {
       if (old_buckets[idx*bucket_size] == 1)
         {
-          RHHUpsertPushDown(rhh, hasher, &old_buckets[idx * bucket_size],
-                            0, NULL, &resized);
+          HTUpsertPushDown(table, hasher, &old_buckets[idx * bucket_size],
+                           0, NULL, &resized);
         }
     }
   OPDealloc(old_buckets);
@@ -601,11 +601,11 @@ RHHSizeDown(RobinHoodHash* rhh, OPHash hasher)
 }
 
 static inline
-bool RHHPreHashInsertCustom(RobinHoodHash* rhh, OPHash hasher,
-                            uint64_t hashed_key, void* key, void* val)
+bool HTPreHashInsertCustom(OPHashTable* table, OPHash hasher,
+                           uint64_t hashed_key, void* key, void* val)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   enum upsert_result_t upsert_result;
   uint8_t* matched_bucket;
@@ -613,14 +613,14 @@ bool RHHPreHashInsertCustom(RobinHoodHash* rhh, OPHash hasher,
   uint8_t bucket_cpy[bucket_size];
   bool resized;
 
-  if (rhh->objcnt > rhh->objcnt_high)
+  if (table->objcnt > table->objcnt_high)
     {
-      if(!RHHSizeUp(rhh, hasher))
+      if(!HTSizeUp(table, hasher))
         return false;
     }
 
-  upsert_result = RHHUpsertNewKey(rhh, hasher, hashed_key, key,
-                                  &matched_bucket, &probe);
+  upsert_result = HTUpsertNewKey(table, hasher, hashed_key, key,
+                                 &matched_bucket, &probe);
 
   switch (upsert_result)
     {
@@ -634,24 +634,24 @@ bool RHHPreHashInsertCustom(RobinHoodHash* rhh, OPHash hasher,
       memcpy(bucket_cpy, matched_bucket, bucket_size);
       memcpy(&matched_bucket[1], key, keysize);
       memcpy(&matched_bucket[1 + keysize], val, valsize);
-      RHHUpsertPushDown(rhh, hasher, bucket_cpy, probe,
-                        matched_bucket, &resized);
+      HTUpsertPushDown(table, hasher, bucket_cpy, probe,
+                       matched_bucket, &resized);
     }
   return true;
 }
 
-bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val)
+bool HTInsertCustom(OPHashTable* table, OPHash hasher, void* key, void* val)
 {
   uint64_t hashed_key;
-  hashed_key = hasher(key, rhh->keysize);
-  return RHHPreHashInsertCustom(rhh, hasher, hashed_key, key, val);
+  hashed_key = hasher(key, table->keysize);
+  return HTPreHashInsertCustom(table, hasher, hashed_key, key, val);
 }
 
-bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
-                     void* key, void** val_ref, bool* is_duplicate)
+bool HTUpsertCustom(OPHashTable* table, OPHash hasher,
+                    void* key, void** val_ref, bool* is_duplicate)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   enum upsert_result_t upsert_result;
   uint64_t hashed_key;
@@ -660,15 +660,15 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
   uint8_t bucket_cpy[bucket_size];
   bool resized;
 
-  if (rhh->objcnt > rhh->objcnt_high)
+  if (table->objcnt > table->objcnt_high)
     {
-      if (!RHHSizeUp(rhh, hasher))
+      if (!HTSizeUp(table, hasher))
         return false;
     }
 
   hashed_key = hasher(key, keysize);
-  upsert_result = RHHUpsertNewKey(rhh, hasher, hashed_key, key,
-                                  &matched_bucket, &probe);
+  upsert_result = HTUpsertNewKey(table, hasher, hashed_key, key,
+                                 &matched_bucket, &probe);
   *val_ref = &matched_bucket[keysize + 1];
   switch (upsert_result)
     {
@@ -684,33 +684,33 @@ bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
       *is_duplicate = false;
       memcpy(bucket_cpy, matched_bucket, bucket_size);
       memcpy(&matched_bucket[1], key, keysize);
-      RHHUpsertPushDown(rhh, hasher, bucket_cpy, probe,
-                        matched_bucket, &resized);
+      HTUpsertPushDown(table, hasher, bucket_cpy, probe,
+                       matched_bucket, &resized);
       if (resized)
         {
-          *val_ref = RHHGetCustom(rhh, hasher, key);
+          *val_ref = HTGetCustom(table, hasher, key);
         }
     }
   return true;
 }
 
 static inline bool
-RHHPreHashSearchIdx(RobinHoodHash* rhh, uint64_t hashed_key,
-                    void* key, uintptr_t* idx)
+HTPreHashSearchIdx(OPHashTable* table, uint64_t hashed_key,
+                   void* key, uintptr_t* idx)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
-  uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint8_t* buckets = OPRef2Ptr(table, table->bucket_ref);
   uintptr_t idx_next;
-  uint64_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  uint64_t mask = (1ULL << (64 - table->capacity_clz)) - 1;
   uint64_t probing_key;
 
   probing_key = hashed_key;
-  *idx = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b);
+  *idx = fast_mod_scale(probing_key, mask, table->capacity_ms4b);
   probing_key = quadratic_partial(probing_key, 1);
-  idx_next = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b);
-  for (int probe = 2; probe <= rhh->longest_probes+2; probe++)
+  idx_next = fast_mod_scale(probing_key, mask, table->capacity_ms4b);
+  for (int probe = 2; probe <= table->longest_probes+2; probe++)
     {
       __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0);
       if (buckets[*idx * bucket_size] == 0)
@@ -722,87 +722,87 @@ RHHPreHashSearchIdx(RobinHoodHash* rhh, uint64_t hashed_key,
     next_iter:
       *idx = idx_next;
       probing_key = quadratic_partial(probing_key, probe);
-      idx_next = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b);
+      idx_next = fast_mod_scale(probing_key, mask, table->capacity_ms4b);
     }
   return false;
 }
 
 static inline bool
-RHHSearchIdx(RobinHoodHash* rhh, OPHash hasher, void* key, uintptr_t* idx)
+HTSearchIdx(OPHashTable* table, OPHash hasher, void* key, uintptr_t* idx)
 {
-  const size_t keysize = rhh->keysize;
+  const size_t keysize = table->keysize;
   uint64_t hashed_key;
   hashed_key = hasher(key, keysize);
-  return RHHPreHashSearchIdx(rhh, hashed_key, key, idx);
+  return HTPreHashSearchIdx(table, hashed_key, key, idx);
 }
 
-void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
+void* HTGetCustom(OPHashTable* table, OPHash hasher, void* key)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
-  uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  uint8_t* buckets = OPRef2Ptr(table, table->bucket_ref);
   uintptr_t idx;
-  if (RHHSearchIdx(rhh, hasher, key, &idx))
+  if (HTSearchIdx(table, hasher, key, &idx))
     {
       return &buckets[idx*bucket_size + keysize + 1];
     }
   return NULL;
 }
 
-int RHHGetProbeCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
+int HTGetProbeCustom(OPHashTable* table, OPHash hasher, void* key)
 {
   uintptr_t idx;
-  if (RHHSearchIdx(rhh, hasher, key, &idx))
+  if (HTSearchIdx(table, hasher, key, &idx))
     {
-      return findprobe(rhh, hasher, idx);
+      return findprobe(table, hasher, idx);
     }
   return -1;
 }
 
 static inline void*
-RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
-                       uint64_t hashed_key, void* key)
+HTPreHashDeleteCustom(OPHashTable* table, OPHash hasher,
+                      uint64_t hashed_key, void* key)
 {
   /*
    * This works for load that is not super high, i.e. < 0.9.
    * It slows down the growth for both E[psl] and Var[psl], but only
    * slows down, not bounding it.
    */
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   uint8_t* restrict buckets;
   uintptr_t idx;
   int record_probe;
 
-  if (rhh->objcnt < rhh->objcnt_low &&
-      rhh->objcnt > 16)
+  if (table->objcnt < table->objcnt_low &&
+      table->objcnt > 16)
     {
-      if (!RHHSizeDown(rhh, hasher))
+      if (!HTSizeDown(table, hasher))
         return NULL;
     }
 
-  if (!RHHPreHashSearchIdx(rhh, hashed_key, key, &idx))
+  if (!HTPreHashSearchIdx(table, hashed_key, key, &idx))
     return NULL;
 
-  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  buckets = OPRef2Ptr(table, table->bucket_ref);
 
-  rhh->objcnt--;
-  record_probe = findprobe(rhh, hasher, idx);
+  table->objcnt--;
+  record_probe = findprobe(table, hasher, idx);
   if (record_probe < PROBE_STATS_SIZE)
-    rhh->stats[record_probe]--;
+    table->stats[record_probe]--;
   else
     OP_LOG_WARN(logger, "Large probe: %d\n", record_probe);
 
-  if (record_probe == rhh->longest_probes &&
-      rhh->stats[record_probe] == 0)
+  if (record_probe == table->longest_probes &&
+      table->stats[record_probe] == 0)
     {
-      for (int i = rhh->longest_probes; i >= 0; i--)
+      for (int i = table->longest_probes; i >= 0; i--)
         {
-          if (rhh->stats[i])
+          if (table->stats[i])
             {
-              rhh->longest_probes = i;
+              table->longest_probes = i;
               break;
             }
         }
@@ -818,20 +818,20 @@ RHHPreHashDeleteCustom(RobinHoodHash* rhh, OPHash hasher,
   return &buckets[idx * bucket_size + 1 + keysize];
 }
 
-void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
+void* HTDeleteCustom(OPHashTable* table, OPHash hasher, void* key)
 {
   uint64_t hashed_key;
-  hashed_key = hasher(key, rhh->keysize);
-  return RHHPreHashDeleteCustom(rhh, hasher, hashed_key, key);
+  hashed_key = hasher(key, table->keysize);
+  return HTPreHashDeleteCustom(table, hasher, hashed_key, key);
 }
 
-void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
+void HTIterate(OPHashTable* table, OPHashIterator iterator, void* context)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
+  const size_t keysize = table->keysize;
+  const size_t valsize = table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
-  uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  uint64_t capacity = RHHCapacity(rhh);
+  uint8_t* buckets = OPRef2Ptr(table, table->bucket_ref);
+  uint64_t capacity = HTCapacity(table);
 
   for (uint64_t idx = 0; idx < capacity; idx++)
     {
@@ -844,36 +844,36 @@ void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context)
     }
 }
 
-void RHHPrintStat(RobinHoodHash* rhh)
+void HTPrintStat(OPHashTable* table)
 {
   for (int i = 0; i < PROBE_STATS_SIZE; i++)
-    if (rhh->stats[i])
-      printf("probe %02d: %d\n", i, rhh->stats[i]);
+    if (table->stats[i])
+      printf("probe %02d: %d\n", i, table->stats[i]);
 }
 
-uint32_t RHHMaxProbe(RobinHoodHash* rhh)
+uint32_t HTMaxProbe(OPHashTable* table)
 {
-  return rhh->longest_probes;
+  return table->longest_probes;
 }
 
-uint32_t RHHProbeStat(RobinHoodHash* rhh, uint32_t idx)
+uint32_t HTProbeStat(OPHashTable* table, uint32_t idx)
 {
   if (idx < PROBE_STATS_SIZE)
-    return rhh->stats[idx];
+    return table->stats[idx];
   return 0;
 }
 
-RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh, OPHash hasher,
-                              FunnelCB callback,
-                              size_t slotsize, size_t partition_size)
+HTFunnel* HTFunnelNewCustom(OPHashTable* table, OPHash hasher,
+                            FunnelCB callback,
+                            size_t slotsize, size_t partition_size)
 {
-  RHHFunnel* funnel;
+  HTFunnel* funnel;
   size_t bucketsize;
   int tube_num;
 
-  funnel = malloc(sizeof(RHHFunnel));
-  bucketsize = rhh->keysize + rhh->valsize + 1;
-  funnel->rhh = rhh;
+  funnel = malloc(sizeof(HTFunnel));
+  bucketsize = table->keysize + table->valsize + 1;
+  funnel->table = table;
   funnel->hasher = hasher;
   funnel->callback = callback;
   funnel->slotsize = slotsize;
@@ -881,9 +881,9 @@ RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh, OPHash hasher,
   funnel->capacity_clz = 0;
   funnel->tubes = NULL;
   funnel->flowheads = NULL;
-  if (funnel->partition_clz > rhh->capacity_clz)
+  if (funnel->partition_clz > table->capacity_clz)
     {
-      funnel->capacity_clz = rhh->capacity_clz;
+      funnel->capacity_clz = table->capacity_clz;
       tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
       funnel->tubes = malloc(tube_num * slotsize);
       funnel->flowheads = malloc(tube_num * sizeof(ptrdiff_t*));
@@ -893,7 +893,7 @@ RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh, OPHash hasher,
   return funnel;
 }
 
-void RHHFunnelDestroy(RHHFunnel* funnel)
+void HTFunnelDestroy(HTFunnel* funnel)
 {
   if (!funnel)
     return;
@@ -905,16 +905,16 @@ void RHHFunnelDestroy(RHHFunnel* funnel)
   free(funnel);
 }
 
-void RHHFunnelPreHashInsert(RHHFunnel* funnel,
-                            uint64_t hashed_key,
-                            void* key, void* value)
+void HTFunnelPreHashInsert(HTFunnel* funnel,
+                           uint64_t hashed_key,
+                           void* key, void* value)
 {
-  const size_t keysize = funnel->rhh->keysize;
-  const size_t valsize = funnel->rhh->valsize;
+  const size_t keysize = funnel->table->keysize;
+  const size_t valsize = funnel->table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
   const size_t trip_bundle_size = sizeof(hashed_key) + keysize + valsize;
 
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   int tube_num, old_tube_num, row_idx, probe;
   uint64_t mask;
   ptrdiff_t flowhead, flowbase, tubeidx;
@@ -925,18 +925,18 @@ void RHHFunnelPreHashInsert(RHHFunnel* funnel,
   enum upsert_result_t upsert_result;
   uint8_t bucket_cpy[bucket_size];
 
-  rhh = funnel->rhh;
+  table = funnel->table;
 
-  if (funnel->capacity_clz != rhh->capacity_clz)
+  if (funnel->capacity_clz != table->capacity_clz)
     {
       if (funnel->capacity_clz == 0)
         {
           // If the capacity of the hash table is smaller than
           // partitions, simply insert the items into the hash table.
           // Otherwise, initialize the funnels.
-          if (funnel->partition_clz > rhh->capacity_clz)
+          if (funnel->partition_clz > table->capacity_clz)
             {
-              funnel->capacity_clz = rhh->capacity_clz;
+              funnel->capacity_clz = table->capacity_clz;
               tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
               funnel->tubes = malloc(tube_num * funnel->slotsize);
               funnel->flowheads = malloc(tube_num * sizeof(ptrdiff_t*));
@@ -945,8 +945,8 @@ void RHHFunnelPreHashInsert(RHHFunnel* funnel,
             }
           else
             {
-              RHHPreHashInsertCustom(rhh, funnel->hasher,
-                                     hashed_key, key, value);
+              HTPreHashInsertCustom(table, funnel->hasher,
+                                    hashed_key, key, value);
               return;
             }
         }
@@ -956,7 +956,7 @@ void RHHFunnelPreHashInsert(RHHFunnel* funnel,
           old_tubes = funnel->tubes;
           old_flowheads = funnel->flowheads;
 
-          funnel->capacity_clz = rhh->capacity_clz;
+          funnel->capacity_clz = table->capacity_clz;
           tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
           funnel->tubes = malloc(tube_num * funnel->slotsize);
           funnel->flowheads = malloc(tube_num * sizeof(ptrdiff_t*));
@@ -975,9 +975,9 @@ void RHHFunnelPreHashInsert(RHHFunnel* funnel,
                   tubeidx += keysize;
                   tube_val = &old_tubes[tubeidx];
                   tubeidx += valsize;
-                  RHHFunnelPreHashInsert(funnel,
-                                         *tube_hashed_key,
-                                         tube_key, tube_val);
+                  HTFunnelPreHashInsert(funnel,
+                                        *tube_hashed_key,
+                                        tube_key, tube_val);
                 }
             }
           free(old_flowheads);
@@ -1003,11 +1003,11 @@ void RHHFunnelPreHashInsert(RHHFunnel* funnel,
           tube_val = &funnel->tubes[tubeidx];
           tubeidx += valsize;
 
-          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
-                                          *tube_hashed_key,
-                                          tube_key,
-                                          &matched_bucket,
-                                          &probe);
+          upsert_result = HTUpsertNewKey(table, funnel->hasher,
+                                         *tube_hashed_key,
+                                         tube_key,
+                                         &matched_bucket,
+                                         &probe);
           switch (upsert_result)
             {
             case UPSERT_EMPTY:
@@ -1020,8 +1020,8 @@ void RHHFunnelPreHashInsert(RHHFunnel* funnel,
               memcpy(bucket_cpy, matched_bucket, bucket_size);
               memcpy(&matched_bucket[1], tube_key, keysize);
               memcpy(&matched_bucket[1 + keysize], tube_val, valsize);
-              RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
-                                matched_bucket, &resized);
+              HTUpsertPushDown(table, funnel->hasher, bucket_cpy, probe,
+                               matched_bucket, &resized);
             }
         }
       funnel->flowheads[row_idx] = flowbase;
@@ -1038,21 +1038,21 @@ void RHHFunnelPreHashInsert(RHHFunnel* funnel,
   funnel->flowheads[row_idx] = tubeidx;
 }
 
-void RHHFunnelInsert(RHHFunnel* funnel,
-                     void* key, void* value)
+void HTFunnelInsert(HTFunnel* funnel,
+                    void* key, void* value)
 {
   uint64_t hashed_key;
-  hashed_key = funnel->hasher(key, funnel->rhh->keysize);
-  RHHFunnelPreHashInsert(funnel, hashed_key, key, value);
+  hashed_key = funnel->hasher(key, funnel->table->keysize);
+  HTFunnelPreHashInsert(funnel, hashed_key, key, value);
 }
 
-void RHHFunnelInsertFlush(RHHFunnel* funnel)
+void HTFunnelInsertFlush(HTFunnel* funnel)
 {
-  const size_t keysize = funnel->rhh->keysize;
-  const size_t valsize = funnel->rhh->valsize;
+  const size_t keysize = funnel->table->keysize;
+  const size_t valsize = funnel->table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
 
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   int tube_num, row_idx, probe;
   ptrdiff_t flowhead, tubeidx;
   uint8_t *tube_key, *tube_val, *matched_bucket;
@@ -1061,10 +1061,10 @@ void RHHFunnelInsertFlush(RHHFunnel* funnel)
   enum upsert_result_t upsert_result;
   uint8_t bucket_cpy[bucket_size];
 
-  if (!funnel->tubes || !funnel->rhh)
+  if (!funnel->tubes || !funnel->table)
     return;
 
-  rhh = funnel->rhh;
+  table = funnel->table;
   tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
 
   for (row_idx = 0; row_idx < tube_num; row_idx++)
@@ -1080,11 +1080,11 @@ void RHHFunnelInsertFlush(RHHFunnel* funnel)
           tube_val = &funnel->tubes[tubeidx];
           tubeidx += valsize;
 
-          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
-                                          *tube_hashed_key,
-                                          tube_key,
-                                          &matched_bucket,
-                                          &probe);
+          upsert_result = HTUpsertNewKey(table, funnel->hasher,
+                                         *tube_hashed_key,
+                                         tube_key,
+                                         &matched_bucket,
+                                         &probe);
           switch (upsert_result)
             {
             case UPSERT_EMPTY:
@@ -1097,25 +1097,25 @@ void RHHFunnelInsertFlush(RHHFunnel* funnel)
               memcpy(bucket_cpy, matched_bucket, bucket_size);
               memcpy(&matched_bucket[1], tube_key, keysize);
               memcpy(&matched_bucket[1 + keysize], tube_val, valsize);
-              RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
-                                matched_bucket, &resized);
+              HTUpsertPushDown(table, funnel->hasher, bucket_cpy, probe,
+                               matched_bucket, &resized);
             }
         }
       funnel->flowheads[row_idx] = row_idx * funnel->slotsize;
     }
 }
 
-void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
-                            uint64_t hashed_key,
-                            void* key, void* value,
-                            void* context, size_t ctxsize_st)
+void HTFunnelPreHashUpsert(HTFunnel* funnel,
+                           uint64_t hashed_key,
+                           void* key, void* value,
+                           void* context, size_t ctxsize_st)
 {
-  const size_t keysize = funnel->rhh->keysize;
-  const size_t valsize = funnel->rhh->valsize;
+  const size_t keysize = funnel->table->keysize;
+  const size_t valsize = funnel->table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
 
   size_t trip_bundle_size;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   OPFunnelUpsertCB upsertcb;
   int tube_num, old_tube_num, row_idx, probe;
   uint64_t mask;
@@ -1129,20 +1129,20 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
   enum upsert_result_t upsert_result;
   uint8_t bucket_cpy[bucket_size];
 
-  rhh = funnel->rhh;
+  table = funnel->table;
   upsertcb = funnel->callback.upsertcb;
   ctxsize = (uint32_t)ctxsize_st;
 
-  if (funnel->capacity_clz != rhh->capacity_clz)
+  if (funnel->capacity_clz != table->capacity_clz)
     {
       if (funnel->capacity_clz == 0)
         {
           // If the capacity of the hash table is smaller than
           // partitions, simply insert the items into the hash table.
           // Otherwise, initialize the funnels.
-          if (funnel->partition_clz > rhh->capacity_clz)
+          if (funnel->partition_clz > table->capacity_clz)
             {
-              funnel->capacity_clz = rhh->capacity_clz;
+              funnel->capacity_clz = table->capacity_clz;
               tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
               funnel->tubes = malloc(tube_num * funnel->slotsize);
               funnel->flowheads = malloc(tube_num * sizeof(ptrdiff_t*));
@@ -1151,12 +1151,12 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
             }
           else
             {
-              RHHInsertCustom(rhh, funnel->hasher, key, value);
-              upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
-                                              hashed_key,
-                                              key,
-                                              &matched_bucket,
-                                              &probe);
+              HTInsertCustom(table, funnel->hasher, key, value);
+              upsert_result = HTUpsertNewKey(table, funnel->hasher,
+                                             hashed_key,
+                                             key,
+                                             &matched_bucket,
+                                             &probe);
               switch (upsert_result)
                 {
                 case UPSERT_EMPTY:
@@ -1182,15 +1182,15 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
                 case UPSERT_PUSHDOWN:
                   memcpy(bucket_cpy, matched_bucket, bucket_size);
                   memcpy(&matched_bucket[1], key, keysize);
-                  RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
-                                    matched_bucket, &resized);
+                  HTUpsertPushDown(table, funnel->hasher, bucket_cpy, probe,
+                                   matched_bucket, &resized);
                   // if resized, the matched bucket no longer point to correct
                   // address of the inserted bucket, we need to search for it
                   // again.
                   if (resized)
                     {
                       // reference to value
-                      matched_bucket = RHHGetCustom(rhh, funnel->hasher, key);
+                      matched_bucket = HTGetCustom(table, funnel->hasher, key);
                       // change it to regular matched bucket
                       matched_bucket -= 1 + keysize;
                     }
@@ -1211,7 +1211,7 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
           old_tubes = funnel->tubes;
           old_flowheads = funnel->flowheads;
 
-          funnel->capacity_clz = rhh->capacity_clz;
+          funnel->capacity_clz = table->capacity_clz;
           tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
           funnel->tubes = malloc(tube_num * funnel->slotsize);
           funnel->flowheads = malloc(tube_num * sizeof(ptrdiff_t*));
@@ -1234,11 +1234,11 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
                   tubeidx += valsize;
                   tube_ctx = &funnel->tubes[tubeidx];
                   tubeidx += *tube_ctxsize;
-                  upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
-                                                  *tube_hashed_key,
-                                                  tube_key,
-                                                  &matched_bucket,
-                                                  &probe);
+                  upsert_result = HTUpsertNewKey(table, funnel->hasher,
+                                                 *tube_hashed_key,
+                                                 tube_key,
+                                                 &matched_bucket,
+                                                 &probe);
                   switch (upsert_result)
                     {
                     case UPSERT_EMPTY:
@@ -1264,13 +1264,13 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
                     case UPSERT_PUSHDOWN:
                       memcpy(bucket_cpy, matched_bucket, bucket_size);
                       memcpy(&matched_bucket[1], tube_key, keysize);
-                      RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
-                                        matched_bucket, &resized);
+                      HTUpsertPushDown(table, funnel->hasher, bucket_cpy, probe,
+                                       matched_bucket, &resized);
                       if (resized)
                         {
                           // reference to value
-                          matched_bucket = RHHGetCustom(rhh, funnel->hasher,
-                                                        tube_key);
+                          matched_bucket = HTGetCustom(table, funnel->hasher,
+                                                       tube_key);
                           // change it to regular matched bucket
                           matched_bucket -= 1 + keysize;
                         }
@@ -1313,11 +1313,11 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
           tubeidx += valsize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
-                                          *tube_hashed_key,
-                                          tube_key,
-                                          &matched_bucket,
-                                          &probe);
+          upsert_result = HTUpsertNewKey(table, funnel->hasher,
+                                         *tube_hashed_key,
+                                         tube_key,
+                                         &matched_bucket,
+                                         &probe);
           switch (upsert_result)
             {
             case UPSERT_EMPTY:
@@ -1343,14 +1343,14 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
             case UPSERT_PUSHDOWN:
               memcpy(bucket_cpy, matched_bucket, bucket_size);
               memcpy(&matched_bucket[1], tube_key, keysize);
-              RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
-                                matched_bucket, &resized);
+              HTUpsertPushDown(table, funnel->hasher, bucket_cpy, probe,
+                               matched_bucket, &resized);
               // if resized, the matched bucket no longer point to correct
               // address of the inserted bucket, we need to search for it again.
               if (resized)
                 {
                   // reference to value
-                  matched_bucket = RHHGetCustom(rhh, funnel->hasher, tube_key);
+                  matched_bucket = HTGetCustom(table, funnel->hasher, tube_key);
                   // change it to regular matched bucket
                   matched_bucket -= 1 + keysize;
                 }
@@ -1381,21 +1381,21 @@ void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
   funnel->flowheads[row_idx] = tubeidx;
 }
 
-void RHHFunnelUpsert(RHHFunnel* funnel,
-                     void* key, void* value, void* context, size_t ctxsize)
+void HTFunnelUpsert(HTFunnel* funnel,
+                    void* key, void* value, void* context, size_t ctxsize)
 {
   uint64_t hashed_key;
-  hashed_key = funnel->hasher(key, funnel->rhh->keysize);
-  RHHFunnelPreHashUpsert(funnel, hashed_key, key, value, context, ctxsize);
+  hashed_key = funnel->hasher(key, funnel->table->keysize);
+  HTFunnelPreHashUpsert(funnel, hashed_key, key, value, context, ctxsize);
 }
 
-void RHHFunnelUpsertFlush(RHHFunnel* funnel)
+void HTFunnelUpsertFlush(HTFunnel* funnel)
 {
-  const size_t keysize = funnel->rhh->keysize;
-  const size_t valsize = funnel->rhh->valsize;
+  const size_t keysize = funnel->table->keysize;
+  const size_t valsize = funnel->table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
 
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   OPFunnelUpsertCB upsertcb;
   int tube_num, row_idx, probe;
   ptrdiff_t flowhead, tubeidx;
@@ -1406,10 +1406,10 @@ void RHHFunnelUpsertFlush(RHHFunnel* funnel)
   enum upsert_result_t upsert_result;
   uint8_t bucket_cpy[bucket_size];
 
-  if (!funnel->tubes || !funnel->rhh)
+  if (!funnel->tubes || !funnel->table)
     return;
 
-  rhh = funnel->rhh;
+  table = funnel->table;
   upsertcb = funnel->callback.upsertcb;
   tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
 
@@ -1430,11 +1430,11 @@ void RHHFunnelUpsertFlush(RHHFunnel* funnel)
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
 
-          upsert_result = RHHUpsertNewKey(rhh, funnel->hasher,
-                                          *tube_hashed_key,
-                                          tube_key,
-                                          &matched_bucket,
-                                          &probe);
+          upsert_result = HTUpsertNewKey(table, funnel->hasher,
+                                         *tube_hashed_key,
+                                         tube_key,
+                                         &matched_bucket,
+                                         &probe);
           switch (upsert_result)
             {
             case UPSERT_EMPTY:
@@ -1460,14 +1460,14 @@ void RHHFunnelUpsertFlush(RHHFunnel* funnel)
             case UPSERT_PUSHDOWN:
               memcpy(bucket_cpy, matched_bucket, bucket_size);
               memcpy(&matched_bucket[1], tube_key, keysize);
-              RHHUpsertPushDown(rhh, funnel->hasher, bucket_cpy, probe,
-                                matched_bucket, &resized);
+              HTUpsertPushDown(table, funnel->hasher, bucket_cpy, probe,
+                               matched_bucket, &resized);
               // if resized, the matched bucket no longer point to correct
               // address of the inserted bucket, we need to search for it again.
               if (resized)
                 {
                   // reference to value
-                  matched_bucket = RHHGetCustom(rhh, funnel->hasher, tube_key);
+                  matched_bucket = HTGetCustom(table, funnel->hasher, tube_key);
                   // change it to regular matched bucket
                   matched_bucket -= 1 + keysize;
                 }
@@ -1484,21 +1484,21 @@ void RHHFunnelUpsertFlush(RHHFunnel* funnel)
     }
 }
 
-void RHHFunnelGet(RHHFunnel* funnel, void* key, void* context, size_t ctxsize)
+void HTFunnelGet(HTFunnel* funnel, void* key, void* context, size_t ctxsize)
 {
   uint64_t hashed_key;
-  hashed_key = funnel->hasher(key, funnel->rhh->keysize);
-  RHHFunnelPreHashGet(funnel, hashed_key, key, context, ctxsize);
+  hashed_key = funnel->hasher(key, funnel->table->keysize);
+  HTFunnelPreHashGet(funnel, hashed_key, key, context, ctxsize);
 }
 
-void RHHFunnelPreHashGet(RHHFunnel* funnel, uint64_t hashed_key,
-                         void* key, void* context, size_t ctxsize_st)
+void HTFunnelPreHashGet(HTFunnel* funnel, uint64_t hashed_key,
+                        void* key, void* context, size_t ctxsize_st)
 {
-  const size_t keysize = funnel->rhh->keysize;
-  const size_t valsize = funnel->rhh->valsize;
+  const size_t keysize = funnel->table->keysize;
+  const size_t valsize = funnel->table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
 
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   OPFunnelGetCB getcb;
   int row_idx;
   uint64_t mask;
@@ -1511,17 +1511,17 @@ void RHHFunnelPreHashGet(RHHFunnel* funnel, uint64_t hashed_key,
   uint64_t* tube_hashed_key;
   uint8_t* restrict buckets;
 
-  rhh = funnel->rhh;
-  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  table = funnel->table;
+  buckets = OPRef2Ptr(table, table->bucket_ref);
   getcb = funnel->callback.getcb;
 
   // hash table is too small for using funnel
   if (!funnel->tubes)
     {
-      if (RHHPreHashSearchIdx(rhh,
-                              hashed_key,
-                              key,
-                              &bucket_idx))
+      if (HTPreHashSearchIdx(table,
+                             hashed_key,
+                             key,
+                             &bucket_idx))
         {
           if (getcb)
             getcb(&buckets[bucket_idx * bucket_size + 1],
@@ -1557,10 +1557,10 @@ void RHHFunnelPreHashGet(RHHFunnel* funnel, uint64_t hashed_key,
           tubeidx += keysize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          if (RHHPreHashSearchIdx(rhh,
-                                  *tube_hashed_key,
-                                  tube_key,
-                                  &bucket_idx))
+          if (HTPreHashSearchIdx(table,
+                                 *tube_hashed_key,
+                                 tube_key,
+                                 &bucket_idx))
             {
               if (getcb)
                 getcb(&buckets[bucket_idx * bucket_size + 1],
@@ -1590,13 +1590,13 @@ void RHHFunnelPreHashGet(RHHFunnel* funnel, uint64_t hashed_key,
   funnel->flowheads[row_idx] = tubeidx;
 }
 
-void RHHFunnelGetFlush(RHHFunnel* funnel)
+void HTFunnelGetFlush(HTFunnel* funnel)
 {
-  const size_t keysize = funnel->rhh->keysize;
-  const size_t valsize = funnel->rhh->valsize;
+  const size_t keysize = funnel->table->keysize;
+  const size_t valsize = funnel->table->valsize;
   const size_t bucket_size = keysize + valsize + 1;
 
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   OPFunnelGetCB getcb;
   int tube_num, row_idx;
   ptrdiff_t flowhead, tubeidx;
@@ -1606,11 +1606,11 @@ void RHHFunnelGetFlush(RHHFunnel* funnel)
   uint64_t* tube_hashed_key;
   uint8_t* restrict buckets;
 
-  if (!funnel->tubes || !funnel->rhh)
+  if (!funnel->tubes || !funnel->table)
     return;
 
-  rhh = funnel->rhh;
-  buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
+  table = funnel->table;
+  buckets = OPRef2Ptr(table, table->bucket_ref);
   getcb = funnel->callback.getcb;
   tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
 
@@ -1628,10 +1628,10 @@ void RHHFunnelGetFlush(RHHFunnel* funnel)
           tubeidx += keysize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          if (RHHPreHashSearchIdx(rhh,
-                                  *tube_hashed_key,
-                                  tube_key,
-                                  &bucket_idx))
+          if (HTPreHashSearchIdx(table,
+                                 *tube_hashed_key,
+                                 tube_key,
+                                 &bucket_idx))
             {
               if (getcb)
                 getcb(&buckets[bucket_idx * bucket_size + 1],
@@ -1649,21 +1649,21 @@ void RHHFunnelGetFlush(RHHFunnel* funnel)
     }
 }
 
-void RHHFunnelDelete(RHHFunnel* funnel, void* key,
-                     void* context, size_t ctxsize)
+void HTFunnelDelete(HTFunnel* funnel, void* key,
+                    void* context, size_t ctxsize)
 {
   uint64_t hashed_key;
-  hashed_key = funnel->hasher(key, funnel->rhh->keysize);
-  RHHFunnelPreHashDelete(funnel, hashed_key, key, context, ctxsize);
+  hashed_key = funnel->hasher(key, funnel->table->keysize);
+  HTFunnelPreHashDelete(funnel, hashed_key, key, context, ctxsize);
 }
 
-void RHHFunnelPreHashDelete(RHHFunnel* funnel, uint64_t hashed_key,
-                            void* key, void* context, size_t ctxsize_st)
+void HTFunnelPreHashDelete(HTFunnel* funnel, uint64_t hashed_key,
+                           void* key, void* context, size_t ctxsize_st)
 {
-  const size_t keysize = funnel->rhh->keysize;
-  const size_t valsize = funnel->rhh->valsize;
+  const size_t keysize = funnel->table->keysize;
+  const size_t valsize = funnel->table->valsize;
 
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   OPFunnelDeleteCB deletecb;
   int row_idx;
   uint64_t mask;
@@ -1674,15 +1674,15 @@ void RHHFunnelPreHashDelete(RHHFunnel* funnel, uint64_t hashed_key,
   uint32_t ctxsize;
   uint64_t* tube_hashed_key;
 
-  rhh = funnel->rhh;
+  table = funnel->table;
   deletecb = funnel->callback.deletecb;
 
   // hash table is too small for using funnel
   if (!funnel->tubes)
     {
-      deleted_val = RHHPreHashDeleteCustom(rhh,
-                                           funnel->hasher,
-                                           hashed_key, key);
+      deleted_val = HTPreHashDeleteCustom(table,
+                                          funnel->hasher,
+                                          hashed_key, key);
       if (deleted_val)
         {
           deleted_key = deleted_val - keysize;
@@ -1719,9 +1719,9 @@ void RHHFunnelPreHashDelete(RHHFunnel* funnel, uint64_t hashed_key,
           tubeidx += keysize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          deleted_val = RHHPreHashDeleteCustom(rhh,
-                                               funnel->hasher,
-                                               *tube_hashed_key, tube_key);
+          deleted_val = HTPreHashDeleteCustom(table,
+                                              funnel->hasher,
+                                              *tube_hashed_key, tube_key);
           if (deleted_val)
             {
               deleted_key = deleted_val - keysize;
@@ -1752,12 +1752,12 @@ void RHHFunnelPreHashDelete(RHHFunnel* funnel, uint64_t hashed_key,
   funnel->flowheads[row_idx] = tubeidx;
 }
 
-void RHHFunnelDeleteFlush(RHHFunnel* funnel)
+void HTFunnelDeleteFlush(HTFunnel* funnel)
 {
-  const size_t keysize = funnel->rhh->keysize;
-  const size_t valsize = funnel->rhh->valsize;
+  const size_t keysize = funnel->table->keysize;
+  const size_t valsize = funnel->table->valsize;
 
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   OPFunnelDeleteCB deletecb;
   int tube_num, row_idx;
   ptrdiff_t flowhead, tubeidx;
@@ -1765,10 +1765,10 @@ void RHHFunnelDeleteFlush(RHHFunnel* funnel)
   uint32_t* tube_ctxsize;
   uint64_t* tube_hashed_key;
 
-  if (!funnel->tubes || !funnel->rhh)
+  if (!funnel->tubes || !funnel->table)
     return;
 
-  rhh = funnel->rhh;
+  table = funnel->table;
   deletecb = funnel->callback.deletecb;
   tube_num = 1 << (funnel->partition_clz - funnel->capacity_clz);
 
@@ -1786,9 +1786,9 @@ void RHHFunnelDeleteFlush(RHHFunnel* funnel)
           tubeidx += keysize;
           tube_ctx = &funnel->tubes[tubeidx];
           tubeidx += *tube_ctxsize;
-          deleted_val = RHHPreHashDeleteCustom(rhh,
-                                               funnel->hasher,
-                                               *tube_hashed_key, tube_key);
+          deleted_val = HTPreHashDeleteCustom(table,
+                                              funnel->hasher,
+                                              *tube_hashed_key, tube_key);
           if (deleted_val)
             {
               deleted_key = deleted_val - keysize;
@@ -1807,4 +1807,4 @@ void RHHFunnelDeleteFlush(RHHFunnel* funnel)
     }
 }
 
-/* robin_hood.c ends here */
+/* op_hash_table.c ends here */

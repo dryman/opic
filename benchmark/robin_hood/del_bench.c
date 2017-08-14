@@ -56,7 +56,7 @@
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
 #include "opic/hash/op_hash.h"
-#include "opic/hash/robin_hood.h"
+#include "opic/hash/op_hash_table.h"
 
 #include "murmurhash3.h"
 #include "spookyhash-c/spookyhash.h"
@@ -153,21 +153,21 @@ int main(int argc, char* argv[])
   OPHeapNew(&heap);
   if (use_rhh)
     {
-      RobinHoodHash* rhh;
-      RHHNew(heap, &rhh, num, load, 8, 8);
+      OPHashTable* rhh;
+      HTNew(heap, &rhh, num, load, 8, 8);
 
       printf("iteration %d\n", 0);
       sprintf(fname, "%s_%02d", fname_base, 0);
       fd = fopen(fname, "w+");
       /* for (uint64_t j = 0; j < num; j++) */
       /*   { */
-      /*     op_assert(RHHInsertCustom(rhh, hasher, &j, &j), */
+      /*     op_assert(HTInsertCustom(rhh, hasher, &j, &j), */
       /*               "insert must succeed\n"); */
       /*   } */
       /* fprintf(fd, "%s\n", fname); */
-      /* for (uint32_t k = 0; k <= RHHMaxProbe(rhh); k++) */
+      /* for (uint32_t k = 0; k <= HTMaxProbe(rhh); k++) */
       /*   { */
-      /*     fprintf(fd, "%u\n", RHHProbeStat(rhh, k)); */
+      /*     fprintf(fd, "%u\n", HTProbeStat(rhh, k)); */
       /*   } */
       /* fclose(fd); */
       for (int j = 0; j < 4; j++)
@@ -182,16 +182,16 @@ int main(int argc, char* argv[])
                   for (int m = 0; m < 64; m++)
                     {
                       uuid1[0] = 0x21 + m;
-                      op_assert(RHHInsertCustom(rhh, hasher, uuid1, uuid1),
+                      op_assert(HTInsertCustom(rhh, hasher, uuid1, uuid1),
                                 "insert must succeed\n");
                     }
                 }
             }
         }
       fprintf(fd, "%s\n", fname);
-      for (uint32_t k = 0; k <= RHHMaxProbe(rhh); k++)
+      for (uint32_t k = 0; k <= HTMaxProbe(rhh); k++)
         {
-          fprintf(fd, "%u\n", RHHProbeStat(rhh, k));
+          fprintf(fd, "%u\n", HTProbeStat(rhh, k));
         }
       fclose(fd);
 
@@ -203,15 +203,15 @@ int main(int argc, char* argv[])
       /*     for (uint64_t j = i * num; j < (i+1) * num; j++) */
       /*       { */
       /*         uint64_t k = j - num; */
-      /*         op_assert(RHHDeleteCustom(rhh, hasher, &k), */
+      /*         op_assert(HTDeleteCustom(rhh, hasher, &k), */
       /*                   "del item cannot be null\n"); */
-      /*         op_assert(RHHInsertCustom(rhh, hasher, &j, &j), */
+      /*         op_assert(HTInsertCustom(rhh, hasher, &j, &j), */
       /*                   "insert mush succeed\n"); */
       /*       } */
       /*     fprintf(fd, "%s\n", fname); */
-      /*     for (uint32_t k = 0; k <= RHHMaxProbe(rhh); k++) */
+      /*     for (uint32_t k = 0; k <= HTMaxProbe(rhh); k++) */
       /*       { */
-      /*         fprintf(fd, "%u\n", RHHProbeStat(rhh, k)); */
+      /*         fprintf(fd, "%u\n", HTProbeStat(rhh, k)); */
       /*       } */
       /*     fclose(fd); */
       /*   } */
@@ -238,22 +238,22 @@ int main(int argc, char* argv[])
                         {
                           uuid1[0] = 0x21 + m;
                           uuid2[0] = 0x21 + m;
-                          op_assert(RHHDeleteCustom(rhh, hasher, uuid2),
+                          op_assert(HTDeleteCustom(rhh, hasher, uuid2),
                                     "del item cannot be null\n");
-                          op_assert(RHHInsertCustom(rhh, hasher, uuid1, uuid1),
+                          op_assert(HTInsertCustom(rhh, hasher, uuid1, uuid1),
                                     "insert must succeed\n");
                         }
                     }
                 }
             }
           fprintf(fd, "%s\n", fname);
-          for (uint32_t k = 0; k <= RHHMaxProbe(rhh); k++)
+          for (uint32_t k = 0; k <= HTMaxProbe(rhh); k++)
             {
-              fprintf(fd, "%u\n", RHHProbeStat(rhh, k));
+              fprintf(fd, "%u\n", HTProbeStat(rhh, k));
             }
           fclose(fd);
         }
-      RHHDestroy(rhh);
+      HTDestroy(rhh);
     }
   else
     {

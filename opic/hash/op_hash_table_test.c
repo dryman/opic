@@ -54,7 +54,7 @@
 #include <cmocka.h>
 
 #include "opic/common/op_log.h"
-#include "robin_hood.h"
+#include "op_hash_table.h"
 
 OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood_test");
 
@@ -88,14 +88,14 @@ void CheckObjects(void* key, void* val,
 }
 
 static void
-test_RHHNew(void** context)
+test_HTNew(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.95, sizeof(int), 0));
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -103,24 +103,24 @@ static void
 test_BasicInsert(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
 
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, 20,
+  assert_true(HTNew(heap, &table, 20,
                      0.80, sizeof(int), 0));
-  OP_LOG_DEBUG(logger, "RHH addr %p", rhh);
+  OP_LOG_DEBUG(logger, "HT addr %p", table);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHInsert(rhh, &i, NULL);
+      HTInsert(table, &i, NULL);
     }
-  RHHPrintStat(rhh);
-  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  HTPrintStat(table);
+  assert_int_equal(TEST_OBJECTS, HTObjcnt(table));
   ResetObjcnt();
-  RHHIterate(rhh, CountObjects, NULL);
+  HTIterate(table, CountObjects, NULL);
   assert_int_equal(TEST_OBJECTS, objcnt);
   ResetObjmap();
-  RHHIterate(rhh, CheckObjects, NULL);
+  HTIterate(table, CheckObjects, NULL);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       assert_int_equal(1, objmap[i]);
@@ -129,10 +129,10 @@ test_BasicInsert(void** context)
   // test mismatch objects
   for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
     {
-      assert_null(RHHGet(rhh, &i));
+      assert_null(HTGet(table, &i));
     }
 
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -140,32 +140,32 @@ static void
 test_BasicDelete(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   int i;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.95, sizeof(int), 0));
   for (i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHInsert(rhh, &i, NULL);
+      HTInsert(table, &i, NULL);
     }
-  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  assert_int_equal(TEST_OBJECTS, HTObjcnt(table));
 
   for (i = 0; i < TEST_OBJECTS; i++)
     {
-      assert_non_null(RHHGet(rhh, &i));
+      assert_non_null(HTGet(table, &i));
     }
 
   for (i = 0; i < TEST_OBJECTS; i++)
     {
-      assert_non_null(RHHDelete(rhh, &i));
+      assert_non_null(HTDelete(table, &i));
     }
-  assert_int_equal(0, RHHObjcnt(rhh));
+  assert_int_equal(0, HTObjcnt(table));
   ResetObjcnt();
-  RHHIterate(rhh, CountObjects, NULL);
+  HTIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -173,29 +173,29 @@ static void
 test_DistributionForUpdate(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   int key;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.70, sizeof(int), 0));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHInsert(rhh, &i, NULL);
+      HTInsert(table, &i, NULL);
     }
-  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  assert_int_equal(TEST_OBJECTS, HTObjcnt(table));
   // TODO Change API to test the highest probe
-  RHHPrintStat(rhh);
+  HTPrintStat(table);
 
   for (int i = TEST_OBJECTS; i < TEST_OBJECTS*10; i++)
     {
       key = i - TEST_OBJECTS;
-      RHHDelete(rhh, &key);
-      RHHInsert(rhh, &i, NULL);
+      HTDelete(table, &key);
+      HTInsert(table, &i, NULL);
     }
-  RHHPrintStat(rhh);
-  RHHDestroy(rhh);
+  HTPrintStat(table);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -203,28 +203,28 @@ static void
 test_Upsert(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   int* val;
   bool is_duplicate;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, 20,
+  assert_true(HTNew(heap, &table, 20,
                      0.7, sizeof(int), sizeof(int)));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      assert_true(RHHUpsert(rhh, &i, (void**)&val, &is_duplicate));
+      assert_true(HTUpsert(table, &i, (void**)&val, &is_duplicate));
       assert_false(is_duplicate);
       *val = i;
     }
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      assert_true(RHHUpsert(rhh, &i, (void**)&val, &is_duplicate));
+      assert_true(HTUpsert(table, &i, (void**)&val, &is_duplicate));
       assert_true(is_duplicate);
       assert_int_equal(i, *val);
     }
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -232,29 +232,29 @@ static void
 test_BasicInsertSmall(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
 
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, 20,
+  assert_true(HTNew(heap, &table, 20,
                      0.80, sizeof(int), 0));
-  OP_LOG_DEBUG(logger, "RHH addr %p", rhh);
+  OP_LOG_DEBUG(logger, "HT addr %p", table);
   for (int i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
-      RHHInsert(rhh, &i, NULL);
+      HTInsert(table, &i, NULL);
     }
-  RHHPrintStat(rhh);
-  assert_int_equal(SMALL_TEST_OBJECTS, RHHObjcnt(rhh));
+  HTPrintStat(table);
+  assert_int_equal(SMALL_TEST_OBJECTS, HTObjcnt(table));
   ResetObjcnt();
-  RHHIterate(rhh, CountObjects, NULL);
+  HTIterate(table, CountObjects, NULL);
   assert_int_equal(SMALL_TEST_OBJECTS, objcnt);
 
   // test mismatch objects
   for (int i = SMALL_TEST_OBJECTS; i < SMALL_TEST_OBJECTS*2; i++)
     {
-      assert_null(RHHGet(rhh, &i));
+      assert_null(HTGet(table, &i));
     }
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -262,32 +262,32 @@ static void
 test_BasicDeleteSmall(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   int i;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, SMALL_TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, SMALL_TEST_OBJECTS,
                      0.95, sizeof(int), 0));
   for (i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
-      RHHInsert(rhh, &i, NULL);
+      HTInsert(table, &i, NULL);
     }
-  assert_int_equal(SMALL_TEST_OBJECTS, RHHObjcnt(rhh));
+  assert_int_equal(SMALL_TEST_OBJECTS, HTObjcnt(table));
 
   for (i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
-      assert_non_null(RHHGet(rhh, &i));
+      assert_non_null(HTGet(table, &i));
     }
 
   for (i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
-      assert_non_null(RHHDelete(rhh, &i));
+      assert_non_null(HTDelete(table, &i));
     }
-  assert_int_equal(0, RHHObjcnt(rhh));
+  assert_int_equal(0, HTObjcnt(table));
   ResetObjcnt();
-  RHHIterate(rhh, CountObjects, NULL);
+  HTIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -295,29 +295,29 @@ static void
 test_DistributionForUpdateSmall(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   int key;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, SMALL_TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, SMALL_TEST_OBJECTS,
                      0.70, sizeof(int), 0));
 
   for (int i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
-      RHHInsert(rhh, &i, NULL);
+      HTInsert(table, &i, NULL);
     }
-  assert_int_equal(SMALL_TEST_OBJECTS, RHHObjcnt(rhh));
+  assert_int_equal(SMALL_TEST_OBJECTS, HTObjcnt(table));
   // TODO Change API to test the highest probe
-  RHHPrintStat(rhh);
+  HTPrintStat(table);
 
   for (int i = SMALL_TEST_OBJECTS; i < SMALL_TEST_OBJECTS*10; i++)
     {
       key = i - SMALL_TEST_OBJECTS;
-      RHHDelete(rhh, &key);
-      RHHInsert(rhh, &i, NULL);
+      HTDelete(table, &key);
+      HTInsert(table, &i, NULL);
     }
-  RHHPrintStat(rhh);
-  RHHDestroy(rhh);
+  HTPrintStat(table);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -325,24 +325,24 @@ static void
 test_UpsertSmall(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
+  OPHashTable* table;
   int* val;
   bool is_duplicate;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, 20,
+  assert_true(HTNew(heap, &table, 20,
                      0.7, sizeof(int), sizeof(int)));
 
   for (int i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
-      assert_true(RHHUpsert(rhh, &i, (void**)&val, &is_duplicate));
+      assert_true(HTUpsert(table, &i, (void**)&val, &is_duplicate));
       assert_false(is_duplicate);
       *val = i;
     }
 
   for (int i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
-      assert_true(RHHUpsert(rhh, &i, (void**)&val, &is_duplicate));
+      assert_true(HTUpsert(table, &i, (void**)&val, &is_duplicate));
       assert_true(is_duplicate);
       assert_int_equal(i, *val);
     }
@@ -352,32 +352,32 @@ static void
 test_FunnelInsert(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
-  RHHFunnel* funnel;
+  OPHashTable* table;
+  HTFunnel* funnel;
 
   OP_LOG_INFO(logger, "Starting funnel insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.80, sizeof(int), 0));
-  funnel = RHHFunnelNew(rhh, NULL, 2048, 2048);
+  funnel = HTFunnelNew(table, NULL, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHFunnelInsert(funnel, &i, NULL);
+      HTFunnelInsert(funnel, &i, NULL);
     }
-  RHHFunnelInsertFlush(funnel);
-  RHHFunnelDestroy(funnel);
-  RHHPrintStat(rhh);
-  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  HTFunnelInsertFlush(funnel);
+  HTFunnelDestroy(funnel);
+  HTPrintStat(table);
+  assert_int_equal(TEST_OBJECTS, HTObjcnt(table));
   ResetObjcnt();
-  RHHIterate(rhh, CountObjects, NULL);
+  HTIterate(table, CountObjects, NULL);
   assert_int_equal(TEST_OBJECTS, objcnt);
   ResetObjmap();
-  RHHIterate(rhh, CheckObjects, NULL);
+  HTIterate(table, CheckObjects, NULL);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       assert_int_equal(1, objmap[i]);
     }
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -415,41 +415,41 @@ static void
 test_FunnelUpsert(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
-  RHHFunnel* funnel;
+  OPHashTable* table;
+  HTFunnel* funnel;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.8, sizeof(int), sizeof(int)));
-  funnel = RHHFunnelNew(rhh, upsert_empty_bucket, 2048, 2048);
+  funnel = HTFunnelNew(table, upsert_empty_bucket, 2048, 2048);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHFunnelUpsert(funnel, &i, &i, &i, sizeof(int));
+      HTFunnelUpsert(funnel, &i, &i, &i, sizeof(int));
     }
-  RHHFunnelUpsertFlush(funnel);
-  RHHFunnelDestroy(funnel);
+  HTFunnelUpsertFlush(funnel);
+  HTFunnelDestroy(funnel);
 
-  RHHPrintStat(rhh);
-  assert_int_equal(TEST_OBJECTS, RHHObjcnt(rhh));
+  HTPrintStat(table);
+  assert_int_equal(TEST_OBJECTS, HTObjcnt(table));
   ResetObjcnt();
-  RHHIterate(rhh, CountObjects, NULL);
+  HTIterate(table, CountObjects, NULL);
   assert_int_equal(TEST_OBJECTS, objcnt);
   ResetObjmap();
-  RHHIterate(rhh, CheckObjects, NULL);
+  HTIterate(table, CheckObjects, NULL);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       assert_int_equal(1, objmap[i]);
     }
 
-  funnel = RHHFunnelNew(rhh, upsert_dup_bucket, 2048, 2048);
+  funnel = HTFunnelNew(table, upsert_dup_bucket, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHFunnelUpsert(funnel, &i, &i, NULL, 0);
+      HTFunnelUpsert(funnel, &i, &i, NULL, 0);
     }
-  RHHFunnelUpsertFlush(funnel);
-  RHHFunnelDestroy(funnel);
-  RHHDestroy(rhh);
+  HTFunnelUpsertFlush(funnel);
+  HTFunnelDestroy(funnel);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -481,36 +481,36 @@ static void
 test_FunnelGet(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
-  RHHFunnel* funnel;
+  OPHashTable* table;
+  HTFunnel* funnel;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.8, sizeof(int), sizeof(int)));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHInsert(rhh, &i, &i);
+      HTInsert(table, &i, &i);
     }
 
   ResetObjcnt();
-  funnel = RHHFunnelNew(rhh, funnel_count_objects, 2048, 2048);
+  funnel = HTFunnelNew(table, funnel_count_objects, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHFunnelGet(funnel, &i, &i, sizeof(int));
+      HTFunnelGet(funnel, &i, &i, sizeof(int));
     }
-  RHHFunnelGetFlush(funnel);
-  RHHFunnelDestroy(funnel);
+  HTFunnelGetFlush(funnel);
+  HTFunnelDestroy(funnel);
   assert_int_equal(TEST_OBJECTS, objcnt);
 
   ResetObjmap();
-  funnel = RHHFunnelNew(rhh, funnel_check_objects, 2048, 2048);
+  funnel = HTFunnelNew(table, funnel_check_objects, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHFunnelGet(funnel, &i, NULL, 0);
+      HTFunnelGet(funnel, &i, NULL, 0);
     }
-  RHHFunnelGetFlush(funnel);
-  RHHFunnelDestroy(funnel);
+  HTFunnelGetFlush(funnel);
+  HTFunnelDestroy(funnel);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       assert_int_equal(1, objmap[i]);
@@ -518,29 +518,29 @@ test_FunnelGet(void** context)
 
   // test mismatch object case
   ResetObjcnt();
-  funnel = RHHFunnelNew(rhh, funnel_count_objects, 2048, 2048);
+  funnel = HTFunnelNew(table, funnel_count_objects, 2048, 2048);
   for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
     {
-      RHHFunnelGet(funnel, &i, &i, sizeof(int));
+      HTFunnelGet(funnel, &i, &i, sizeof(int));
     }
-  RHHFunnelGetFlush(funnel);
-  RHHFunnelDestroy(funnel);
+  HTFunnelGetFlush(funnel);
+  HTFunnelDestroy(funnel);
   assert_int_equal(0, objcnt);
 
   ResetObjmap();
-  funnel = RHHFunnelNew(rhh, funnel_check_objects, 2048, 2048);
+  funnel = HTFunnelNew(table, funnel_check_objects, 2048, 2048);
   for (int i = TEST_OBJECTS; i < TEST_OBJECTS*2; i++)
     {
-      RHHFunnelGet(funnel, &i, NULL, 0);
+      HTFunnelGet(funnel, &i, NULL, 0);
     }
-  RHHFunnelGetFlush(funnel);
-  RHHFunnelDestroy(funnel);
+  HTFunnelGetFlush(funnel);
+  HTFunnelDestroy(funnel);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       assert_int_equal(0, objmap[i]);
     }
 
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -548,45 +548,45 @@ static void
 test_FunnelDelete(void** context)
 {
   OPHeap* heap;
-  RobinHoodHash* rhh;
-  RHHFunnel* funnel;
+  OPHashTable* table;
+  HTFunnel* funnel;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(RHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.8, sizeof(int), sizeof(int)));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHInsert(rhh, &i, &i);
+      HTInsert(table, &i, &i);
     }
 
   ResetObjmap();
-  funnel = RHHFunnelNew(rhh, funnel_check_objects, 2048, 2048);
+  funnel = HTFunnelNew(table, funnel_check_objects, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
-      RHHFunnelDelete(funnel, &i, NULL, 0);
+      HTFunnelDelete(funnel, &i, NULL, 0);
     }
-  RHHFunnelDeleteFlush(funnel);
-  RHHFunnelDestroy(funnel);
+  HTFunnelDeleteFlush(funnel);
+  HTFunnelDestroy(funnel);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       assert_int_equal(1, objmap[i]);
     }
-  assert_int_equal(0, RHHObjcnt(rhh));
+  assert_int_equal(0, HTObjcnt(table));
   ResetObjcnt();
-  RHHIterate(rhh, CountObjects, NULL);
+  HTIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
 
-  RHHDestroy(rhh);
+  HTDestroy(table);
   OPHeapDestroy(heap);
 }
 
 int
 main (void)
 {
-  const struct CMUnitTest rhh_tests[] =
+  const struct CMUnitTest table_tests[] =
     {
-      cmocka_unit_test(test_RHHNew),
+      cmocka_unit_test(test_HTNew),
       cmocka_unit_test(test_BasicInsert),
       cmocka_unit_test(test_BasicDelete),
       cmocka_unit_test(test_DistributionForUpdate),
@@ -601,7 +601,7 @@ main (void)
       cmocka_unit_test(test_FunnelDelete),
     };
 
-  return cmocka_run_group_tests(rhh_tests, NULL, NULL);
+  return cmocka_run_group_tests(table_tests, NULL, NULL);
 }
 
 /* robin_hood_test.c ends here */
