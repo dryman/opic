@@ -23,8 +23,8 @@
 
 /* Code: */
 
-#ifndef OPIC_HASH_ROBIN_HOOD_H
-#define OPIC_HASH_ROBIN_HOOD_H 1
+#ifndef OPIC_HASH_HASH_TABLE_H
+#define OPIC_HASH_HASH_TABLE_H 1
 
 #include <stdbool.h>
 #include "opic/common/op_macros.h"
@@ -35,40 +35,43 @@ OP_BEGIN_DECLS
 
 /**
  * @ingroup hash
- * @struct RobinHoodHash　
- * @brief RobinHoodHash is an opaque object that manage associations of
- * fixed length key-value pairs.
+ * @struct OPHashTable
+ * @brief An opaque object that manage associations of fixed length
+ * key-value pairs.
  *
  * The size of key and value is configured at the construction time of
- * RobinHoodHash, and can not be changed later. This design is similar to
- * fixed length fields `CHAR(30)` in SQL which improve both space and runtime
- * efficiencies.
+ * OPHashTable, and can not be changed later. This design is similar
+ * to fixed length fields `CHAR(30)` in SQL which improve both space
+ * and runtime efficiencies.
  *
- * Note that user can spcify size of value to 0 to make RobinHoodHash
+ * Note that user can spcify size of value to 0 to make OPHashTable
  * as a hash set. Similarly, make value size `sizeof(opref_t)` and
  * store a opref_t referencing another container (binary serach tree
- * or whatever), can turn RobinHoodHash into a hash-multiset.
+ * or whatever), can turn OPHashTable into a hash-multiset.
  *
  * This object is not thread safe.
  *
- * @todo There is a wide space character "　" appended after
- * "RobinHoodHash" in this document. Somehow doxygen (1.8.13) cannot
- * process "RobinHoodHash" as a struct name. Any character edit to the
- * string works, except the form "RobinHoodHash". As a workaround, I use
- * a wide space character to finish up the document first. The real struct
- * in code does not use the wide space character.
  */
-typedef struct RobinHoodHash RobinHoodHash;
-
-typedef struct RHHFunnel RHHFunnel;
+typedef struct OPHashTable OPHashTable;
 
 /**
- * @relates RobinHoodHash　
- * @brief Constructor for RobinHoodHash.
+ * @ingroup hash
+ * @struct HTFunnel
+ * @brief An opaque object for doing massive update or quries on
+ * OPHashTable.
+ *
+ * This object is not thread safe.
+ *
+ */
+typedef struct HTFunnel HTFunnel;
+
+/**
+ * @relates OPHashTable
+ * @brief Constructor for OPHashTable.
  *
  * @param heap OPHeap instance.
- * @param rhh_ref reference to the RobinHoodHash pointer for assigining
- * RobinHoodHash instance.
+ * @param table_ref reference to the OPHashTable pointer for assigining
+ * OPHashTable instance.
  * @param num_objects number of objects we decided to put in.
  * @param load (0.0-1.0) how full the hash table could be
  * before expansion.
@@ -77,23 +80,23 @@ typedef struct RHHFunnel RHHFunnel;
  * can be zero and the hash table would work like a hash set.
  * @return true when the allocation succeeded, false otherwise.
  */
-bool RHHNew(OPHeap* heap, RobinHoodHash** rhh_ref, uint64_t num_objects,
-            double load, size_t keysize, size_t valsize);
+bool HTNew(OPHeap* heap, OPHashTable** table_ref, uint64_t num_objects,
+           double load, size_t keysize, size_t valsize);
 
 /**
- * @relates RobinHoodHash　
- * @brief Destructor for RobinHoodHash.
+ * @relates OPHashTable
+ * @brief Destructor for OPHashTable.
  *
- * @param rhh the RobinHoodHash instance to destory.
+ * @param table the OPHashTable instance to destory.
  */
-void RHHDestroy(RobinHoodHash* rhh);
+void HTDestroy(OPHashTable* table);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Associates the specified key with the specified value in
- * RobinHoodHash with specified hash function.
+ * OPHashTable with specified hash function.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param hasher hash function.
  * @param key pointer to the key.
  * @param val pointer to the value.
@@ -107,14 +110,14 @@ void RHHDestroy(RobinHoodHash* rhh);
  * the hash table will resized with a larger capacity. If the resize failed,
  * false is returned.
  */
-bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
+bool HTInsertCustom(OPHashTable* table, OPHash hasher, void* key, void* val);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Update or insert depends on whether the key already exists in
  * the hash table using custom hash function.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param hasher hash function.
  * @param key pointer to the key.
  * @param val_ref reference of value pointer.
@@ -128,11 +131,11 @@ bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
  * int key;
  * int* value;
  * bool is_duplicate;
- * RobinHoodHash *rhh;
+ * OPHashTable *table;
  * // create a robin hood hash where key and value are both integers.
- * RHHNew(heap, &rhh, 30, 0.8, sizeof(int), sizeof(int));
+ * HTNew(heap, &table, 30, 0.8, sizeof(int), sizeof(int));
  * key = 5;
- * RHHUpsert(rhh, OPDefaultHash, &key, (void**)&val, &is_duplicate);
+ * HTUpsert(table, OPDefaultHash, &key, (void**)&val, &is_duplicate);
  * // different logic depends on is_duplicate.
  * // User can use this interface to create a hash multimap.
  * if (is_duplicate)
@@ -145,44 +148,44 @@ bool RHHInsertCustom(RobinHoodHash* rhh, OPHash hasher, void* key, void* val);
  * the hash table will resized with a larger capacity. If the resize failed,
  * false is returned.
  */
-bool RHHUpsertCustom(RobinHoodHash* rhh, OPHash hasher,
-                     void* key, void** val_ref, bool* is_duplicate);
+bool HTUpsertCustom(OPHashTable* table, OPHash hasher,
+                    void* key, void** val_ref, bool* is_duplicate);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Obtain the value associated with the specified key and hash
  * function. Returns NULL if the key was not found.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param hasher hash function.
  * @param key pointer to the key.
  * @return pointer to the value if found, else NULL.
  *
- * If the value size were set to 0, RHHGetCustom would still return a pointer
+ * If the value size were set to 0, HTGetCustom would still return a pointer
  * to where it would store the value. User can still use the returned value to
  * exam if the key were present in the hash table.
  */
-void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
+void* HTGetCustom(OPHashTable* table, OPHash hasher, void* key);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Deletes the key-value entry in hash table with specified hasher.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param hasher hash function.
  * @param key pointer to the key.
  * @return pointer to the value if it found, else NULL.
  *
  * The hash table may shrink if too many entries were deleted.
  */
-void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
+void* HTDeleteCustom(OPHashTable* table, OPHash hasher, void* key);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Associates the specified key with the specified value in
- * RobinHoodHash using the default hash function.
+ * OPHashTable using the default hash function.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param key pointer to the key.
  * @param val pointer to the value.
  * @return true if the operation succeeded, false otherwise.
@@ -196,17 +199,17 @@ void* RHHDeleteCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
  * false is returned.
  */
 static inline bool
-RHHInsert(RobinHoodHash* rhh, void* key, void* val)
+HTInsert(OPHashTable* table, void* key, void* val)
 {
-  return RHHInsertCustom(rhh, OPDefaultHash, key, val);
+  return HTInsertCustom(table, OPDefaultHash, key, val);
 }
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Update or insert depends on whether the key already exists in
  * the hash table.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param key pointer to the key.
  * @param val_ref reference of value pointer.
  * @param is_duplicate reference of duplication boolean variable.
@@ -219,11 +222,11 @@ RHHInsert(RobinHoodHash* rhh, void* key, void* val)
  * int key;
  * int* value;
  * bool is_duplicate;
- * RobinHoodHash *rhh;
+ * OPHashTable *table;
  * // create a robin hood hash where key and value are both integers.
- * RHHNew(heap, &rhh, 30, 0.8, sizeof(int), sizeof(int));
+ * HTNew(heap, &table, 30, 0.8, sizeof(int), sizeof(int));
  * key = 5;
- * RHHUpsert(rhh, &key, (void**)&val, &is_duplicate);
+ * HTUpsert(table, &key, (void**)&val, &is_duplicate);
  * // different logic depends on is_duplicate.
  * // User can use this interface to create a hash multimap.
  * if (is_duplicate)
@@ -237,77 +240,77 @@ RHHInsert(RobinHoodHash* rhh, void* key, void* val)
  * false is returned.
  */
 static inline bool
-RHHUpsert(RobinHoodHash* rhh, void* key, void** val_ref, bool* is_duplicate)
+HTUpsert(OPHashTable* table, void* key, void** val_ref, bool* is_duplicate)
 {
-  return RHHUpsertCustom(rhh, OPDefaultHash, key, val_ref, is_duplicate);
+  return HTUpsertCustom(table, OPDefaultHash, key, val_ref, is_duplicate);
 }
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Obtain the value associated with the specified key using
  * the default hash function. Returns NULL if the key was not found.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param key pointer to the key.
  * @return pointer to the value if found, else NULL.
  *
- * If the value size were set to 0, RHHGetCustom would still return a pointer
+ * If the value size were set to 0, HTGetCustom would still return a pointer
  * to where it would store the value. User can still use the returned value to
  * exam if the key were present in the hash table.
  */
 static inline void*
-RHHGet(RobinHoodHash* rhh, void* key)
+HTGet(OPHashTable* table, void* key)
 {
-  return RHHGetCustom(rhh, OPDefaultHash, key);
+  return HTGetCustom(table, OPDefaultHash, key);
 }
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Deletes the key-value entry in hash table using the default
  * hash function.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param key pointer to the key.
  * @return pointer to the value if it found, else NULL.
  *
  * The hash table may shrink if too many entries were deleted.
  */
 static inline void*
-RHHDelete(RobinHoodHash* rhh, void* key)
+HTDelete(OPHashTable* table, void* key)
 {
-  return RHHDeleteCustom(rhh, OPDefaultHash, key);
+  return HTDeleteCustom(table, OPDefaultHash, key);
 }
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Obtain the number of objects stored in this hash table.
  */
-uint64_t RHHObjcnt(RobinHoodHash* rhh);
+uint64_t HTObjcnt(OPHashTable* table);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Obtain the number of objects can be stored in this hash table.
  */
-uint64_t RHHCapacity(RobinHoodHash* rhh);
+uint64_t HTCapacity(OPHashTable* table);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Obtain the size of the key configured for this hash table.
  */
-size_t RHHKeysize(RobinHoodHash* rhh);
+size_t HTKeysize(OPHashTable* table);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Obtain the size of the value configured for this hash table.
  */
-size_t RHHValsize(RobinHoodHash* rhh);
+size_t HTValsize(OPHashTable* table);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Iterates over all key-value pairs in this hash table with
  * user specified context.
  *
- * @param rhh RobinHoodHash instance.
+ * @param table OPHashTable instance.
  * @param iterator function pointer to user defined iterator function.
  * @param context user defined context.
  *
@@ -327,85 +330,86 @@ size_t RHHValsize(RobinHoodHash* rhh);
  * // User defined context
  * struct MyStruct my_s;
  *
- * // RHHIterate takes in a RobinHoodHash object, a fuction pointer
+ * // HTIterate takes in a OPHashTable object, a fuction pointer
  * // OPHashIterator and a user defined context for iteration.
- * RHHIterate(rhh, &my_iterator, &my_s);
+ * HTIterate(table, &my_iterator, &my_s);
  * @endcode
  */
-void RHHIterate(RobinHoodHash* rhh, OPHashIterator iterator, void* context);
+void HTIterate(OPHashTable* table, OPHashIterator iterator, void* context);
 
 /**
- * @relates RobinHoodHash　
+ * @relates OPHashTable
  * @brief Prints the accumulated count for each probing number.
  * @todo make this API easier to process by cilent, not just printing.
  */
-void RHHPrintStat(RobinHoodHash* rhh);
+void HTPrintStat(OPHashTable* table);
 
-uint32_t RHHMaxProbe(RobinHoodHash* rhh);
+uint32_t HTMaxProbe(OPHashTable* table);
 
-uint32_t RHHProbeStat(RobinHoodHash* rhh, uint32_t idx);
+uint32_t HTProbeStat(OPHashTable* table, uint32_t idx);
 
-int RHHGetProbeCustom(RobinHoodHash* rhh, OPHash hasher, void* key);
-
-static inline
-int RHHGetProbe(RobinHoodHash* rhh, void* key)
-{
-  return RHHGetProbeCustom(rhh, OPDefaultHash, key);
-}
-
-RHHFunnel* RHHFunnelNewCustom(RobinHoodHash* rhh,
-                              OPHash hasher,
-                              FunnelCB callback,
-                              size_t slotsize,
-                              size_t partition_size);
+int HTGetProbeCustom(OPHashTable* table, OPHash hasher, void* key);
 
 static inline
-RHHFunnel* RHHFunnelNew(RobinHoodHash* rhh,
-                        FunnelCB callback,
-                        size_t slotsize,
-                        size_t partition_size)
+int HTGetProbe(OPHashTable* table, void* key)
 {
-  return RHHFunnelNewCustom(rhh, OPDefaultHash, callback,
-                            slotsize, partition_size);
+  return HTGetProbeCustom(table, OPDefaultHash, key);
 }
 
-void RHHFunnelDestroy(RHHFunnel* funnel);
+HTFunnel* HTFunnelNewCustom(OPHashTable* table,
+                            OPHash hasher,
+                            FunnelCB callback,
+                            size_t slotsize,
+                            size_t partition_size);
 
-void RHHFunnelPreHashInsert(RHHFunnel* funnel,
-                            uint64_t hashed_key,
-                            void* key, void* value);
+static inline
+HTFunnel* HTFunnelNew(OPHashTable* table,
+                      FunnelCB callback,
+                      size_t slotsize,
+                      size_t partition_size)
+{
+  return HTFunnelNewCustom(table, OPDefaultHash, callback,
+                           slotsize, partition_size);
+}
 
-void RHHFunnelInsert(RHHFunnel* funnel, void* key, void* value);
+void HTFunnelDestroy(HTFunnel* funnel);
 
-void RHHFunnelInsertFlush(RHHFunnel* funnel);
+void HTFunnelPreHashInsert(HTFunnel* funnel,
+                           uint64_t hashed_key,
+                           void* key, void* value);
 
-void RHHFunnelPreHashUpsert(RHHFunnel* funnel,
-                            uint64_t hashed_key,
-                            void* key, void* value,
-                            void* context, size_t ctxsize);
+void HTFunnelInsert(HTFunnel* funnel, void* key, void* value);
 
-void RHHFunnelUpsert(RHHFunnel* funnel,
-                     void* key, void* value,
-                     void* context, size_t ctxsize);
+void HTFunnelInsertFlush(HTFunnel* funnel);
 
-void RHHFunnelUpsertFlush(RHHFunnel* funnel);
+void HTFunnelPreHashUpsert(HTFunnel* funnel,
+                           uint64_t hashed_key,
+                           void* key, void* value,
+                           void* context, size_t ctxsize);
 
-void RHHFunnelPreHashGet(RHHFunnel* funnel, uint64_t hashed_key,
-                         void* key, void* context, size_t ctxsize);
+void HTFunnelUpsert(HTFunnel* funnel,
+                    void* key, void* value,
+                    void* context, size_t ctxsize);
 
-void RHHFunnelGet(RHHFunnel* funnel, void* key, void* context, size_t ctxsize);
+void HTFunnelUpsertFlush(HTFunnel* funnel);
 
-void RHHFunnelGetFlush(RHHFunnel* funnel);
+void HTFunnelPreHashGet(HTFunnel* funnel, uint64_t hashed_key,
+                        void* key, void* context, size_t ctxsize);
 
-void RHHFunnelPreHashDelete(RHHFunnel* funnel, uint64_t hashed_key,
-                            void* key, void* context, size_t ctxsize);
+void HTFunnelGet(HTFunnel* funnel, void* key, void* context, size_t ctxsize);
 
-void RHHFunnelDelete(RHHFunnel* funnel, void* key,
-                     void* context, size_t ctxsize);
+void HTFunnelGetFlush(HTFunnel* funnel);
 
-void RHHFunnelDeleteFlush(RHHFunnel* funnel);
+void HTFunnelPreHashDelete(HTFunnel* funnel, uint64_t hashed_key,
+                           void* key, void* context, size_t ctxsize);
+
+void HTFunnelDelete(HTFunnel* funnel, void* key,
+                    void* context, size_t ctxsize);
+
+void HTFunnelDeleteFlush(HTFunnel* funnel);
 
 OP_END_DECLS
 
 #endif
-/* robin_hood.h ends here */
+
+/* hash_table.h ends here */

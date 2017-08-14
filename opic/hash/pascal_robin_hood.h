@@ -2,7 +2,7 @@
  * @file pascal_robin_hood.h
  * @brief A general hashmap/hashset/hashmultimap implementation
  * with support of multi-length keys.
- * @authorr: Felix Chern
+ * @author: Felix Chern
  * @date Sat May 13 15:25:00 2017 (-0700)
  * @copyright 2017 Felix Chern
  */

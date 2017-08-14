@@ -54,8 +54,8 @@
 #define OP_BEGIN_DECLS   extern "C" {
 #define OP_END_DECLS }
 #else
-#define OP_BEGIN_DECLS
-#define OP_END_DECLS
+#define OP_BEGIN_DECLS ;
+#define OP_END_DECLS ;
 #endif
 /* clang */
 #ifndef __has_builtin

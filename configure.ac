@@ -1,4 +1,4 @@
-AC_INIT([OPIC],[0.6.0])
+AC_INIT([OPIC],[0.7.0])
 
 AC_CONFIG_SRCDIR([README.md])
 AC_CONFIG_AUX_DIR([build-aux])
