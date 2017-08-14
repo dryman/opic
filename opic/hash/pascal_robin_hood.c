@@ -189,18 +189,37 @@ IncreaseProbeStat(PascalRobinHoodHash* rhh, int probe)
     OP_LOG_WARN(logger, "Large probe: %d\n", probe);
 }
 
+static inline uint64_t
+quadratic_exact(uint64_t hashed_key, int probe)
+{
+  return hashed_key + probe * (probe + 1);
+}
+
+static inline uint64_t
+quadratic_partial(uint64_t probing_key, int probe)
+{
+  return probing_key + probe * 2;
+}
+
+// Fast mod and scale
+// This is mod next power of two, times a number between 8 and 15
+// then devide by 16. This gives us fast division on non power of
+// two table size.
+// Both linear probing and quadratic probing needs to double the
+// probe sequence because the scaling part of this algorithm has
+// some probability to trim off the last bit in the probed hash.
+static inline uint64_t
+fast_mod_scale(uint64_t probed_hash, uint64_t mask, uint64_t scale)
+{
+  return (probed_hash & mask) * scale >> 4;
+}
+
 static inline uintptr_t
 hash_with_probe(PascalRobinHoodHash* rhh, uint64_t key, int probe)
 {
   uintptr_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
-  // linear probing
-  // uint64_t probed_hash = key + probe * 2;
-
-  // quadratic probing
-  uint64_t probed_hash = key + probe * probe * 2;
-
-  // Fast mod and scale
+  uint64_t probed_hash = quadratic_exact(key, probe);
   return (probed_hash & mask) * rhh->capacity_ms4b >> 4;
 }
 
@@ -211,7 +230,8 @@ findprobe(PascalRobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  uint64_t hashed_key;
+  uint64_t mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
+  uint64_t hashed_key, probing_key, probing_idx;
   oplenref_t *keyref;
   void* keyptr;
   size_t keysize;
@@ -220,12 +240,15 @@ findprobe(PascalRobinHoodHash* rhh, OPHash hasher, uintptr_t idx)
   keyptr = OPLenRef2Ptr(keyref, key_inline_size);
   keysize = OPLenRef2Size(*keyref);
   hashed_key = hasher(keyptr, keysize);
+  probing_key = hashed_key;
   for (int i = 0; i <= rhh->longest_probes; i++)
     {
-      if (hash_with_probe(rhh, hashed_key, i) == idx)
+      probing_key = quadratic_partial(probing_key, i);
+      probing_idx = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b);
+      if (probing_idx == idx)
         return i;
     }
-  op_assert(false, "Didn't find any match probe!\n");
+  OP_LOG_ERROR(logger, "Didn't find any match probe!\n");
   return -1;
 }
 
@@ -294,9 +317,7 @@ PRHHUpsertNewKey(PascalRobinHoodHash* rhh, OPHash hasher,
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_DUP;
         }
-      OP_LOG_INFO(logger, "first findprobe");
       old_probe = findprobe(rhh, hasher, idx);
-      OP_LOG_INFO(logger, "finished first findprobe");
       if (probe > old_probe)
         {
           rhh->longest_probes = probe > rhh->longest_probes ?
@@ -685,26 +706,37 @@ PRHHSearchIdx(PascalRobinHoodHash* rhh, OPHash hasher,
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* const buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  uint64_t hashed_key;
+  uint64_t hashed_key, mask, probing_key;
+  uintptr_t idx_next;
   oplenref_t *recref;
   void* recptr;
   size_t recsize;
 
   hashed_key = hasher(key, keysize);
+  mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
-  for (int probe = 0; probe <= rhh->longest_probes; probe++)
+  probing_key = hashed_key;
+  *idx = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b);
+  probing_key = quadratic_partial(probing_key, 1);
+  idx_next = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b);
+
+  for (int probe = 2; probe <= rhh->longest_probes + 2; probe++)
     {
-      *idx = hash_with_probe(rhh, hashed_key, probe);
+      __builtin_prefetch(&buckets[idx_next * bucket_size], 0, 0);
       recref = (oplenref_t*)&buckets[*idx * bucket_size];
       if (OPLenRefIsEmpty(*recref))
         return false;
       if (OPLenRefIsDeleted(*recref))
-        continue;
+        goto next_iter;
       recptr = OPLenRef2Ptr(recref, key_inline_size);
       recsize = OPLenRef2Size(*recref);
       if (keysize == recsize &&
           memeq(key, recptr, keysize))
         return true;
+    next_iter:
+      *idx = idx_next;
+      probing_key = quadratic_partial(probing_key, probe);
+      idx_next = fast_mod_scale(probing_key, mask, rhh->capacity_ms4b);
     }
   return false;
 }
