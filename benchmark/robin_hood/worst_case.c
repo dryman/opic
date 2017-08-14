@@ -56,7 +56,7 @@
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
 #include "opic/hash/op_hash.h"
-#include "opic/hash/robin_hood.h"
+#include "opic/hash/op_hash_table.h"
 
 #include "murmurhash3.h"
 #include "spookyhash-c/spookyhash.h"
@@ -65,7 +65,7 @@
 
 static uint64_t val_sum = 0;
 static GenericTable* table;
-static RobinHoodHash* rhh;
+static OPHashTable* rhh;
 static OPHash hasher;
 
 typedef uint64_t (*HashFunc)(void* key, void* context, OPHash hasher);
@@ -103,10 +103,10 @@ uint64_t farm(void* key, size_t size)
   return farmhash64(key, size);
 }
 
-uint64_t RHHPutWrap(void* key, void* context, OPHash hash_impl)
+uint64_t HTPutWrap(void* key, void* context, OPHash hash_impl)
 {
   static uint64_t val = 0;
-  RHHInsertCustom(context, hash_impl, key, &val);
+  HTInsertCustom(context, hash_impl, key, &val);
   val++;
   return 0;
 }
@@ -119,10 +119,10 @@ uint64_t QPInsertWrap(void* key, void* context, OPHash hash_impl)
   return 0;
 }
 
-int RHHProbeWrap(const void* akey, const void* bkey)
+int HTProbeWrap(const void* akey, const void* bkey)
 {
-  return RHHGetProbeCustom(rhh, hasher, (void*)akey) -
-    RHHGetProbeCustom(rhh, hasher, (void*)bkey);
+  return HTGetProbeCustom(rhh, hasher, (void*)akey) -
+    HTGetProbeCustom(rhh, hasher, (void*)bkey);
 }
 
 int TableProbeWrap(const void* akey, const void* bkey)
@@ -232,11 +232,11 @@ int main(int argc, char* argv[])
 
   if (use_rhh)
     {
-      RHHNew(heap, &rhh, num, load, k_len, 8);
-      key_func(num_power, RHHPutWrap, rhh, hasher);
+      HTNew(heap, &rhh, num, load, k_len, 8);
+      key_func(num_power, HTPutWrap, rhh, hasher);
       allkeys_iter = allkeys;
-      RHHIterate(rhh, RecordHashKey, &allkeys_iter);
-      qsort(allkeys, num, k_len, RHHProbeWrap);
+      HTIterate(rhh, RecordHashKey, &allkeys_iter);
+      qsort(allkeys, num, k_len, HTProbeWrap);
 
       for (int i = 0; i < repeat; i++)
         {
@@ -246,7 +246,7 @@ int main(int argc, char* argv[])
                key < allkeys + k_len * num;
                key += k_len)
             {
-              uint64_t* intval = RHHGetCustom(rhh, hasher, key);
+              uint64_t* intval = HTGetCustom(rhh, hasher, key);
               val_sum += *intval;
             }
           gettimeofday(&q_end, NULL);
@@ -258,7 +258,7 @@ int main(int argc, char* argv[])
            key += k_len)
         {
           items++;
-          probe_sum += RHHGetProbeCustom(rhh, hasher, key);
+          probe_sum += HTGetProbeCustom(rhh, hasher, key);
         }
       printf("probe mean: %f\n", (float)probe_sum/(float)items);
     }

@@ -56,7 +56,7 @@
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
 #include "opic/hash/op_hash.h"
-#include "opic/hash/robin_hood.h"
+#include "opic/hash/op_hash_table.h"
 
 #include "murmurhash3.h"
 #include "spookyhash-c/spookyhash.h"
@@ -119,14 +119,14 @@ uint64_t farm(void* key, size_t size)
 uint64_t RHHPutWrap(void* key, void* context, OPHash hash_impl)
 {
   static uint64_t val = 0;
-  RHHInsertCustom(context, hash_impl, key, &val);
+  HTInsertCustom(context, hash_impl, key, &val);
   val++;
   return 0;
 }
 
 uint64_t RHHGetWrap(void* key, void* context, OPHash hash_impl)
 {
-  return *(uint64_t*)RHHGetCustom(context, hash_impl, key);
+  return *(uint64_t*)HTGetCustom(context, hash_impl, key);
 }
 
 
@@ -195,12 +195,12 @@ int main(int argc, char* argv[])
   char* stat_header = "RHH";
   FILE* stat_stream = NULL;
 
-  RHHNew_t rhh_new = (RHHNew_t)RHHNew;
-  RHHDestroy_t rhh_destroy = (RHHDestroy_t)RHHDestroy;
+  RHHNew_t rhh_new = (RHHNew_t)HTNew;
+  RHHDestroy_t rhh_destroy = (RHHDestroy_t)HTDestroy;
   HashFunc rhh_put = RHHPutWrap;
   HashFunc rhh_get = RHHGetWrap;
-  RHHMaxProbe_t rhh_maxprobe = (RHHMaxProbe_t)RHHMaxProbe;
-  RHHProbeStat_t rhh_probestat = (RHHProbeStat_t)RHHProbeStat;
+  RHHMaxProbe_t rhh_maxprobe = (RHHMaxProbe_t)HTMaxProbe;
+  RHHProbeStat_t rhh_probestat = (RHHProbeStat_t)HTProbeStat;
   OPHash hasher = city;
 
   num_power = 20;

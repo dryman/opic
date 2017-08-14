@@ -57,7 +57,7 @@
 #include "opic/common/op_assert.h"
 #include "opic/op_malloc.h"
 #include "opic/hash/op_hash.h"
-#include "opic/hash/robin_hood.h"
+#include "opic/hash/op_hash_table.h"
 
 #include "murmurhash3.h"
 #include "spookyhash-c/spookyhash.h"
@@ -70,11 +70,11 @@ typedef uint64_t (*HashFunc)(void* key, void* context, OPHash hasher);
 typedef void (*RunKey)(int size, HashFunc hash_func,
                        void* context, OPHash hasher);
 
-typedef bool (*RHHNew_t)(OPHeap* heap, void* rhh,
+typedef bool (*HTNew_t)(OPHeap* heap, void* rhh,
                          uint64_t num_objects, double load,
                          size_t keysize, size_t valsize);
-typedef void (*RHHDestroy_t)(void* rhh);
-typedef void (*RHHPrintStat_t)(void* rhh);
+typedef void (*HTDestroy_t)(void* rhh);
+typedef void (*HTPrintStat_t)(void* rhh);
 
 static void run_short_keys(int size, HashFunc hash_func,
                            void* context, OPHash hasher);
@@ -109,30 +109,30 @@ uint64_t farm(void* key, size_t size)
   return farmhash64(key, size);
 }
 
-uint64_t RHHInsertWrap(void* key, void* context, OPHash hash_impl)
+uint64_t HTInsertWrap(void* key, void* context, OPHash hash_impl)
 {
   static uint64_t val = 0;
-  RHHInsertCustom(context, hash_impl, key, &val);
+  HTInsertCustom(context, hash_impl, key, &val);
   val++;
   return 0;
 }
 
-uint64_t RHHGetWrap(void* key, void* context, OPHash hash_impl)
+uint64_t HTGetWrap(void* key, void* context, OPHash hash_impl)
 {
-  return *(uint64_t*)RHHGetCustom(context, hash_impl, key);
+  return *(uint64_t*)HTGetCustom(context, hash_impl, key);
 }
 
-uint64_t RHHFunnelInsertWrap(void* key, void* context, OPHash hash_impl)
+uint64_t HTFunnelInsertWrap(void* key, void* context, OPHash hash_impl)
 {
   static uint64_t val = 0;
-  RHHFunnelInsert(context, key, &val);
+  HTFunnelInsert(context, key, &val);
   val++;
   return 0;
 }
 
-uint64_t RHHFunnelGetWrap(void* key, void* context, OPHash hash_impl)
+uint64_t HTFunnelGetWrap(void* key, void* context, OPHash hash_impl)
 {
-  RHHFunnelGet(context, key, NULL, 0);
+  HTFunnelGet(context, key, NULL, 0);
   return 0;
 }
 
@@ -170,7 +170,7 @@ void help(char* program)
      "             For now only robin_hood hash supports long_int benchmark\n"
      "  -i impl    impl = rhh, funnel_rhh\n"
      "  -l load    load number for rhh range from 0.0 to 1.0.\n"
-     "  -p         print probing stats of RHH\n"
+     "  -p         print probing stats of HT\n"
      "  -h         print help.\n"
      ,program);
   exit(1);
@@ -191,13 +191,13 @@ int main(int argc, char* argv[])
   uint64_t num;
   double load = 0.8;
   bool print_stat = false;
-  RHHFunnel* funnel;
+  HTFunnel* funnel;
 
-  RHHNew_t rhh_new = (RHHNew_t)RHHNew;
-  RHHDestroy_t rhh_destroy = (RHHDestroy_t)RHHDestroy;
-  HashFunc rhh_put = RHHFunnelInsertWrap;
-  HashFunc rhh_get = RHHFunnelGetWrap;
-  RHHPrintStat_t rhh_printstat = (RHHPrintStat_t)RHHPrintStat;
+  HTNew_t rhh_new = (HTNew_t)HTNew;
+  HTDestroy_t rhh_destroy = (HTDestroy_t)HTDestroy;
+  HashFunc rhh_put = HTFunnelInsertWrap;
+  HashFunc rhh_get = HTFunnelGetWrap;
+  HTPrintStat_t rhh_printstat = (HTPrintStat_t)HTPrintStat;
   OPHash hasher = city;
   size_t funnel_slotsize = 1ULL << 12;
   size_t funnel_partition_size = 1ULL << 12;
@@ -252,11 +252,11 @@ int main(int argc, char* argv[])
           /* else if (!strcmp("rhh_b_k_v", optarg)) */
           /*   { */
           /*     printf("Using rhh_b_k_v\n"); */
-          /*     rhh_new = (RHHNew_t)RHH_b_k_v_New; */
-          /*     rhh_destroy = (RHHDestroy_t)RHH_b_k_v_Destroy; */
-          /*     rhh_put = RHH_b_k_v_PutWrap; */
-          /*     rhh_get = RHH_b_k_v_GetWrap; */
-          /*     rhh_printstat = (RHHPrintStat_t)RHH_b_k_v_PrintStat; */
+          /*     rhh_new = (HTNew_t)HT_b_k_v_New; */
+          /*     rhh_destroy = (HTDestroy_t)HT_b_k_v_Destroy; */
+          /*     rhh_put = HT_b_k_v_PutWrap; */
+          /*     rhh_get = HT_b_k_v_GetWrap; */
+          /*     rhh_printstat = (HTPrintStat_t)HT_b_k_v_PrintStat; */
           /*   } */
           /* else */
           /*   help(argv[0]); */
@@ -307,25 +307,25 @@ int main(int argc, char* argv[])
     {
       printf("attempt %d\n", i + 1);
       op_assert(rhh_new(heap, &rhh, num,
-                        load, k_len, 8), "Create RobinHoodHash\n");
+                        load, k_len, 8), "Create OPHashTable\n");
 
-      funnel = RHHFunnelNewCustom(rhh, hasher, NULL,
+      funnel = HTFunnelNewCustom(rhh, hasher, NULL,
                                   funnel_slotsize, funnel_partition_size);
       gettimeofday(&i_start, NULL);
       key_func(num_power, rhh_put, funnel, hasher);
-      RHHFunnelInsertFlush(funnel);
+      HTFunnelInsertFlush(funnel);
       gettimeofday(&i_end, NULL);
-      RHHFunnelDestroy(funnel);
+      HTFunnelDestroy(funnel);
 
       printf("insert finished\n");
 
-      funnel = RHHFunnelNewCustom(rhh, hasher, funnel_sum_val,
+      funnel = HTFunnelNewCustom(rhh, hasher, funnel_sum_val,
                                   funnel_slotsize, funnel_partition_size);
       gettimeofday(&q_start, NULL);
       key_func(num_power, rhh_get, funnel, hasher);
-      RHHFunnelGetFlush(funnel);
+      HTFunnelGetFlush(funnel);
       gettimeofday(&q_end, NULL);
-      RHHFunnelDestroy(funnel);
+      HTFunnelDestroy(funnel);
 
       print_timediff("Funnel Insert time: ", i_start, i_end);
       print_timediff("Funnel Query time: ", q_start, q_end);
