@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>OPIC: FunnelCB Union Reference</title>
+<title>OPIC: OPXHashTable Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -59,35 +59,25 @@ $(function() {
 
 </div><!-- top -->
 <div class="header">
-  <div class="summary">
-<a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
-<div class="title">FunnelCB Union Reference</div>  </div>
+<div class="title">OPXHashTable Struct Reference<div class="ingroups"><a class="el" href="group__hash.html">Hash</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
-<table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
-Data Fields</h2></td></tr>
-<tr class="memitem:a48d2a17d461d88f84259680f4d839b5c"><td class="memItemLeft" align="right" valign="top"><a id="a48d2a17d461d88f84259680f4d839b5c"></a>
-<a class="el" href="group__hash.html#ga734549f8a65c6c07e9594667ec052636">OPFunnelUpsertCB</a>&#160;</td><td class="memItemRight" valign="bottom"><b>upsertcb</b></td></tr>
-<tr class="separator:a48d2a17d461d88f84259680f4d839b5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a13b93094afb721e68efcd9e9e1e74832"><td class="memItemLeft" align="right" valign="top"><a id="a13b93094afb721e68efcd9e9e1e74832"></a>
-OPFunnelGetCB&#160;</td><td class="memItemRight" valign="bottom"><b>getcb</b></td></tr>
-<tr class="separator:a13b93094afb721e68efcd9e9e1e74832"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ace9f39c5557ab5881ebf972f66b69178"><td class="memItemLeft" align="right" valign="top"><a id="ace9f39c5557ab5881ebf972f66b69178"></a>
-OPFunnelDeleteCB&#160;</td><td class="memItemRight" valign="bottom"><b>deletecb</b></td></tr>
-<tr class="separator:ace9f39c5557ab5881ebf972f66b69178"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table>
+
+<p>OPHashTable is an opaque object that manage associations of fixed length key-value pairs.  
+ <a href="struct_o_p_x_hash_table.html#details">More...</a></p>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock">
-<p class="definition">Definition at line <a class="el" href="op__hash_8h_source.html#l00104">104</a> of file <a class="el" href="op__hash_8h_source.html">op_hash.h</a>.</p>
-</div><hr/>The documentation for this union was generated from the following file:<ul>
-<li>opic/hash/<a class="el" href="op__hash_8h_source.html">op_hash.h</a></li>
+<div class="textblock"><p>OPHashTable is an opaque object that manage associations of fixed length key-value pairs. </p>
+<p>The size of key and value is configured at the construction time of OPHashTable, and can not be changed later. This design is similar to fixed length fields <code>CHAR(30)</code> in SQL which improve both space and runtime efficiencies.</p>
+<p>Note that user can spcify size of value to 0 to make OPHashTable as a hash set. Similarly, make value size <code>sizeof(opref_t)</code> and store a opref_t referencing another container (binary serach tree or whatever), can turn OPHashTable into a hash-multiset.</p>
+<p>This object is not thread safe. </p>
+</div><hr/>The documentation for this struct was generated from the following file:<ul>
+<li>opic/ophash/<a class="el" href="robin__hood_8h_source.html">robin_hood.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Aug 14 2017 06:00:37 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sun Aug 13 2017 22:14:29 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>OPIC: opic/hash/robin_hood.h File Reference</title>
+<title>OPIC: opic/hash/op_hash_table.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -66,14 +66,14 @@ $(function() {
   <div class="summary">
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
-<div class="title">robin_hood.h File Reference</div>  </div>
+<div class="title">op_hash_table.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
 <p>A general hashmap/hashset/hashmultimap implemantation using robin hood hashing.  
 <a href="#details">More...</a></p>
 
-<p><a href="robin__hood_8h_source.html">Go to the source code of this file.</a></p>
+<p><a href="op__hash__table_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -90,10 +90,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>HTGetProbeCustom</b> (
 static int&#160;</td><td class="memItemRight" valign="bottom"><b>HTGetProbe</b> (<a class="el" href="struct_o_p_hash_table.html">OPHashTable</a> *table, void *key)</td></tr>
 <tr class="separator:a9cc37dcfc4106e5847c415866d0f54f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a85c70d414454c7a6610d0a2b2e354d7f"><td class="memItemLeft" align="right" valign="top"><a id="a85c70d414454c7a6610d0a2b2e354d7f"></a>
-<a class="el" href="struct_h_t_funnel.html">HTFunnel</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>HTFunnelNewCustom</b> (<a class="el" href="struct_o_p_hash_table.html">OPHashTable</a> *table, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, <a class="el" href="union_funnel_c_b.html">FunnelCB</a> callback, size_t slotsize, size_t partition_size)</td></tr>
+<a class="el" href="struct_h_t_funnel.html">HTFunnel</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>HTFunnelNewCustom</b> (<a class="el" href="struct_o_p_hash_table.html">OPHashTable</a> *table, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, FunnelCB callback, size_t slotsize, size_t partition_size)</td></tr>
 <tr class="separator:a85c70d414454c7a6610d0a2b2e354d7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8929763fe2e69ba08ed0aca0b24ac595"><td class="memItemLeft" align="right" valign="top"><a id="a8929763fe2e69ba08ed0aca0b24ac595"></a>
-static <a class="el" href="struct_h_t_funnel.html">HTFunnel</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>HTFunnelNew</b> (<a class="el" href="struct_o_p_hash_table.html">OPHashTable</a> *table, <a class="el" href="union_funnel_c_b.html">FunnelCB</a> callback, size_t slotsize, size_t partition_size)</td></tr>
+static <a class="el" href="struct_h_t_funnel.html">HTFunnel</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>HTFunnelNew</b> (<a class="el" href="struct_o_p_hash_table.html">OPHashTable</a> *table, FunnelCB callback, size_t slotsize, size_t partition_size)</td></tr>
 <tr class="separator:a8929763fe2e69ba08ed0aca0b24ac595"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a543bf9b3965e6f3bb8f6ac81a1ed67af"><td class="memItemLeft" align="right" valign="top"><a id="a543bf9b3965e6f3bb8f6ac81a1ed67af"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>HTFunnelDestroy</b> (<a class="el" href="struct_h_t_funnel.html">HTFunnel</a> *funnel)</td></tr>
@@ -141,11 +141,11 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>HTFunnelDeleteFlush</
 <dl class="section date"><dt>Date</dt><dd>Sun Apr 2 07:09:50 2017 (-0700) </dd></dl>
 <dl class="section copyright"><dt>Copyright</dt><dd>2017 Felix Chern </dd></dl>
 
-<p class="definition">Definition in file <a class="el" href="robin__hood_8h_source.html">robin_hood.h</a>.</p>
+<p class="definition">Definition in file <a class="el" href="op__hash__table_8h_source.html">op_hash_table.h</a>.</p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 13 2017 23:49:49 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Aug 14 2017 08:33:27 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

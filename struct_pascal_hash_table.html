@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>OPIC: PascalRobinHoodHash　 Struct Reference</title>
+<title>OPIC: PascalHashTable Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -62,78 +62,77 @@ $(function() {
   <div class="summary">
 <a href="#related">Related Functions</a>  </div>
   <div class="headertitle">
-<div class="title">PascalRobinHoodHash　 Struct Reference<div class="ingroups"><a class="el" href="group__hash.html">Hash</a></div></div>  </div>
+<div class="title">PascalHashTable Struct Reference<div class="ingroups"><a class="el" href="group__hash.html">Hash</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
 <p>An opaque object that manages associations of key-value pairs.  
- <a href="struct_pascal_robin_hood_hash　.html#details">More...</a></p>
+ <a href="struct_pascal_hash_table.html#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="related"></a>
 Related Functions</h2></td></tr>
 <tr><td class="ititle" colspan="2"><p>(Note that these are not member functions.) </p>
 </td></tr>
-<tr class="memitem:ad2f661638a1325099128c304aecfc030"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#ad2f661638a1325099128c304aecfc030">PRHHNew</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, PascalRobinHoodHash **rhh_ref, uint64_t num_objects, double load, size_t key_inline_size, size_t valsize)</td></tr>
-<tr class="memdesc:ad2f661638a1325099128c304aecfc030"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor for PascalRobinHoodHash.  <a href="#ad2f661638a1325099128c304aecfc030">More...</a><br /></td></tr>
-<tr class="separator:ad2f661638a1325099128c304aecfc030"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af1bac8cf6f23857a273d70a6cf308471"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#af1bac8cf6f23857a273d70a6cf308471">PRHHDestroy</a> (PascalRobinHoodHash *rhh)</td></tr>
-<tr class="memdesc:af1bac8cf6f23857a273d70a6cf308471"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor for PascalRobinHoodHash.  <a href="#af1bac8cf6f23857a273d70a6cf308471">More...</a><br /></td></tr>
-<tr class="separator:af1bac8cf6f23857a273d70a6cf308471"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9f1bf2da422cd73477fbed787fec33f5"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#a9f1bf2da422cd73477fbed787fec33f5">PRHHInsertCustom</a> (PascalRobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, size_t keysize, void *val)</td></tr>
-<tr class="memdesc:a9f1bf2da422cd73477fbed787fec33f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates the specified key and value with custom hash function.  <a href="#a9f1bf2da422cd73477fbed787fec33f5">More...</a><br /></td></tr>
-<tr class="separator:a9f1bf2da422cd73477fbed787fec33f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac4c3109f1138d196ffe72e4b7436e1c6"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#ac4c3109f1138d196ffe72e4b7436e1c6">PRHHUpsertCustom</a> (PascalRobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, size_t keysize, void **val_ref, bool *is_duplicate)</td></tr>
-<tr class="memdesc:ac4c3109f1138d196ffe72e4b7436e1c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update or insert depends on whether the key already exists in the hash table using custom hash function.  <a href="#ac4c3109f1138d196ffe72e4b7436e1c6">More...</a><br /></td></tr>
-<tr class="separator:ac4c3109f1138d196ffe72e4b7436e1c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abc72e80a01cc3e2a88e42ef210719969"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#abc72e80a01cc3e2a88e42ef210719969">PRHHGetCustom</a> (PascalRobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, size_t keysize)</td></tr>
-<tr class="memdesc:abc72e80a01cc3e2a88e42ef210719969"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the value associated with the key and hash function. Returns NULL if the key was not found.  <a href="#abc72e80a01cc3e2a88e42ef210719969">More...</a><br /></td></tr>
-<tr class="separator:abc72e80a01cc3e2a88e42ef210719969"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a82b8466151a17771ab3875ab481ba2f4"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#a82b8466151a17771ab3875ab481ba2f4">PRHHDeleteCustom</a> (PascalRobinHoodHash *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, size_t keysize)</td></tr>
-<tr class="memdesc:a82b8466151a17771ab3875ab481ba2f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deletes the key-value entry with specified hash function.  <a href="#a82b8466151a17771ab3875ab481ba2f4">More...</a><br /></td></tr>
-<tr class="separator:a82b8466151a17771ab3875ab481ba2f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aeb6e2a8ac92f638c0782a24937d46dd0"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#aeb6e2a8ac92f638c0782a24937d46dd0">PRHHInsert</a> (PascalRobinHoodHash *rhh, void *key, size_t keysize, void *val)</td></tr>
-<tr class="memdesc:aeb6e2a8ac92f638c0782a24937d46dd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates the specified key and value using default hash function.  <a href="#aeb6e2a8ac92f638c0782a24937d46dd0">More...</a><br /></td></tr>
-<tr class="separator:aeb6e2a8ac92f638c0782a24937d46dd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab0b494f2b6bc0010f5b007a9d949957a"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#ab0b494f2b6bc0010f5b007a9d949957a">PRHHUpsert</a> (PascalRobinHoodHash *rhh, void *key, size_t keysize, void **val_ref, bool *is_duplicate)</td></tr>
-<tr class="memdesc:ab0b494f2b6bc0010f5b007a9d949957a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update or insert depends on whether the key already exists in the hash table.  <a href="#ab0b494f2b6bc0010f5b007a9d949957a">More...</a><br /></td></tr>
-<tr class="separator:ab0b494f2b6bc0010f5b007a9d949957a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac6f7299975b5442e40d581ddcf4410a0"><td class="memItemLeft" align="right" valign="top">static void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#ac6f7299975b5442e40d581ddcf4410a0">PRHHGet</a> (PascalRobinHoodHash *rhh, void *key, size_t keysize)</td></tr>
-<tr class="memdesc:ac6f7299975b5442e40d581ddcf4410a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the value associated with the key using default hash function. Returns NULL if the key was not found.  <a href="#ac6f7299975b5442e40d581ddcf4410a0">More...</a><br /></td></tr>
-<tr class="separator:ac6f7299975b5442e40d581ddcf4410a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae328a67e4516879d38af8ec71eff0d95"><td class="memItemLeft" align="right" valign="top">static void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#ae328a67e4516879d38af8ec71eff0d95">PRHHDelete</a> (PascalRobinHoodHash *rhh, void *key, size_t keysize)</td></tr>
-<tr class="memdesc:ae328a67e4516879d38af8ec71eff0d95"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deletes the key-value entry using default hash function.  <a href="#ae328a67e4516879d38af8ec71eff0d95">More...</a><br /></td></tr>
-<tr class="separator:ae328a67e4516879d38af8ec71eff0d95"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd442af946e5c4e442328c44b6cd44af"><td class="memItemLeft" align="right" valign="top"><a id="abd442af946e5c4e442328c44b6cd44af"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#abd442af946e5c4e442328c44b6cd44af">PRHHObjcnt</a> (PascalRobinHoodHash *rhh)</td></tr>
-<tr class="memdesc:abd442af946e5c4e442328c44b6cd44af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the number of objects stored in this hash table. <br /></td></tr>
-<tr class="separator:abd442af946e5c4e442328c44b6cd44af"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2929e102473f4d8f7ffd3296fc971972"><td class="memItemLeft" align="right" valign="top"><a id="a2929e102473f4d8f7ffd3296fc971972"></a>
-uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#a2929e102473f4d8f7ffd3296fc971972">PRHHCapacity</a> (PascalRobinHoodHash *rhh)</td></tr>
-<tr class="memdesc:a2929e102473f4d8f7ffd3296fc971972"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the number of objects can be stored in this hash table. <br /></td></tr>
-<tr class="separator:a2929e102473f4d8f7ffd3296fc971972"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a73b49df9c2bc58d9814906dc1dc4382e"><td class="memItemLeft" align="right" valign="top"><a id="a73b49df9c2bc58d9814906dc1dc4382e"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#a73b49df9c2bc58d9814906dc1dc4382e">PRHHKeyInlineSize</a> (PascalRobinHoodHash *rhh)</td></tr>
-<tr class="memdesc:a73b49df9c2bc58d9814906dc1dc4382e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the size of the key that can be stored inline in the hash table. If the size of the key is larger than this size, the key would not be inline but allocated somewhere in the <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. <br /></td></tr>
-<tr class="separator:a73b49df9c2bc58d9814906dc1dc4382e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab9647fbc8b16ed3037a1fcd3dd4ff29c"><td class="memItemLeft" align="right" valign="top"><a id="ab9647fbc8b16ed3037a1fcd3dd4ff29c"></a>
-size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#ab9647fbc8b16ed3037a1fcd3dd4ff29c">PRHHValsize</a> (PascalRobinHoodHash *rhh)</td></tr>
-<tr class="memdesc:ab9647fbc8b16ed3037a1fcd3dd4ff29c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the size of the value configured for this hash table. <br /></td></tr>
-<tr class="separator:ab9647fbc8b16ed3037a1fcd3dd4ff29c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd2f4d3b962e971ce11cd10d9dd6967f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#abd2f4d3b962e971ce11cd10d9dd6967f">PRHHIterate</a> (PascalRobinHoodHash *rhh, <a class="el" href="group__hash.html#ga0d5e125f496f03099590b179c3e893b6">OPHashIterator</a> iterator, void *context)</td></tr>
-<tr class="memdesc:abd2f4d3b962e971ce11cd10d9dd6967f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterates over all key-value pairs in this hash table with user specified context.  <a href="#abd2f4d3b962e971ce11cd10d9dd6967f">More...</a><br /></td></tr>
-<tr class="separator:abd2f4d3b962e971ce11cd10d9dd6967f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af6a63d5ca0a222d7dc8c5c97570236d6"><td class="memItemLeft" align="right" valign="top"><a id="af6a63d5ca0a222d7dc8c5c97570236d6"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html#af6a63d5ca0a222d7dc8c5c97570236d6">PRHHPrintStat</a> (PascalRobinHoodHash *rhh)</td></tr>
-<tr class="memdesc:af6a63d5ca0a222d7dc8c5c97570236d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints the accumulated count for each probing number. <br /></td></tr>
-<tr class="separator:af6a63d5ca0a222d7dc8c5c97570236d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a32ef6eca381b8aac400594046230ba50"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a32ef6eca381b8aac400594046230ba50">PHNew</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, <a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> **rhh_ref, uint64_t num_objects, double load, size_t key_inline_size, size_t valsize)</td></tr>
+<tr class="memdesc:a32ef6eca381b8aac400594046230ba50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor for <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a>.  <a href="#a32ef6eca381b8aac400594046230ba50">More...</a><br /></td></tr>
+<tr class="separator:a32ef6eca381b8aac400594046230ba50"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a815a6559c92eac1a870ea2cf12c8d966"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a815a6559c92eac1a870ea2cf12c8d966">PHDestroy</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
+<tr class="memdesc:a815a6559c92eac1a870ea2cf12c8d966"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor for <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a>.  <a href="#a815a6559c92eac1a870ea2cf12c8d966">More...</a><br /></td></tr>
+<tr class="separator:a815a6559c92eac1a870ea2cf12c8d966"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88955d5f461da126751a4f6abe625042"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a88955d5f461da126751a4f6abe625042">PHInsertCustom</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, size_t keysize, void *val)</td></tr>
+<tr class="memdesc:a88955d5f461da126751a4f6abe625042"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates the specified key and value with custom hash function.  <a href="#a88955d5f461da126751a4f6abe625042">More...</a><br /></td></tr>
+<tr class="separator:a88955d5f461da126751a4f6abe625042"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1dec582cb97112a6432858eab45ada61"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a1dec582cb97112a6432858eab45ada61">PHUpsertCustom</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, size_t keysize, void **val_ref, bool *is_duplicate)</td></tr>
+<tr class="memdesc:a1dec582cb97112a6432858eab45ada61"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update or insert depends on whether the key already exists in the hash table using custom hash function.  <a href="#a1dec582cb97112a6432858eab45ada61">More...</a><br /></td></tr>
+<tr class="separator:a1dec582cb97112a6432858eab45ada61"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c5c506535b3f52d7aa2ca8a88c0a655"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a6c5c506535b3f52d7aa2ca8a88c0a655">PHGetCustom</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, size_t keysize)</td></tr>
+<tr class="memdesc:a6c5c506535b3f52d7aa2ca8a88c0a655"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the value associated with the key and hash function. Returns NULL if the key was not found.  <a href="#a6c5c506535b3f52d7aa2ca8a88c0a655">More...</a><br /></td></tr>
+<tr class="separator:a6c5c506535b3f52d7aa2ca8a88c0a655"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aede9499616b6ce9e0098c843bd3ca2f0"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#aede9499616b6ce9e0098c843bd3ca2f0">PHDeleteCustom</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, <a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a> hasher, void *key, size_t keysize)</td></tr>
+<tr class="memdesc:aede9499616b6ce9e0098c843bd3ca2f0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deletes the key-value entry with specified hash function.  <a href="#aede9499616b6ce9e0098c843bd3ca2f0">More...</a><br /></td></tr>
+<tr class="separator:aede9499616b6ce9e0098c843bd3ca2f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae8bf975700ce7bebfd8da6de86a12d7b"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#ae8bf975700ce7bebfd8da6de86a12d7b">PHInsert</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, void *key, size_t keysize, void *val)</td></tr>
+<tr class="memdesc:ae8bf975700ce7bebfd8da6de86a12d7b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates the specified key and value using default hash function.  <a href="#ae8bf975700ce7bebfd8da6de86a12d7b">More...</a><br /></td></tr>
+<tr class="separator:ae8bf975700ce7bebfd8da6de86a12d7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1049083cfa548fd3ad8df268b8abad8f"><td class="memItemLeft" align="right" valign="top">static bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a1049083cfa548fd3ad8df268b8abad8f">PHUpsert</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, void *key, size_t keysize, void **val_ref, bool *is_duplicate)</td></tr>
+<tr class="memdesc:a1049083cfa548fd3ad8df268b8abad8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update or insert depends on whether the key already exists in the hash table.  <a href="#a1049083cfa548fd3ad8df268b8abad8f">More...</a><br /></td></tr>
+<tr class="separator:a1049083cfa548fd3ad8df268b8abad8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a998e0529c0363f1a2282a32a985793da"><td class="memItemLeft" align="right" valign="top">static void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a998e0529c0363f1a2282a32a985793da">PHGet</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, void *key, size_t keysize)</td></tr>
+<tr class="memdesc:a998e0529c0363f1a2282a32a985793da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the value associated with the key using default hash function. Returns NULL if the key was not found.  <a href="#a998e0529c0363f1a2282a32a985793da">More...</a><br /></td></tr>
+<tr class="separator:a998e0529c0363f1a2282a32a985793da"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9cf6bbd1bf68d68e46394478e19888b"><td class="memItemLeft" align="right" valign="top">static void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#ac9cf6bbd1bf68d68e46394478e19888b">PHDelete</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, void *key, size_t keysize)</td></tr>
+<tr class="memdesc:ac9cf6bbd1bf68d68e46394478e19888b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deletes the key-value entry using default hash function.  <a href="#ac9cf6bbd1bf68d68e46394478e19888b">More...</a><br /></td></tr>
+<tr class="separator:ac9cf6bbd1bf68d68e46394478e19888b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af33b8678e2456d2c71e291b7fbadf9e7"><td class="memItemLeft" align="right" valign="top"><a id="af33b8678e2456d2c71e291b7fbadf9e7"></a>
+uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#af33b8678e2456d2c71e291b7fbadf9e7">PHObjcnt</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
+<tr class="memdesc:af33b8678e2456d2c71e291b7fbadf9e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the number of objects stored in this hash table. <br /></td></tr>
+<tr class="separator:af33b8678e2456d2c71e291b7fbadf9e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a44b9907f3bc458d537d4565a7c5bcf07"><td class="memItemLeft" align="right" valign="top"><a id="a44b9907f3bc458d537d4565a7c5bcf07"></a>
+uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a44b9907f3bc458d537d4565a7c5bcf07">PHCapacity</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
+<tr class="memdesc:a44b9907f3bc458d537d4565a7c5bcf07"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the number of objects can be stored in this hash table. <br /></td></tr>
+<tr class="separator:a44b9907f3bc458d537d4565a7c5bcf07"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8efeb48e3d0cee60468595a22a5e9488"><td class="memItemLeft" align="right" valign="top"><a id="a8efeb48e3d0cee60468595a22a5e9488"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a8efeb48e3d0cee60468595a22a5e9488">PHKeyInlineSize</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
+<tr class="memdesc:a8efeb48e3d0cee60468595a22a5e9488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the size of the key that can be stored inline in the hash table. If the size of the key is larger than this size, the key would not be inline but allocated somewhere in the <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. <br /></td></tr>
+<tr class="separator:a8efeb48e3d0cee60468595a22a5e9488"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a114da62ecd749108f5c737b14fff0f6f"><td class="memItemLeft" align="right" valign="top"><a id="a114da62ecd749108f5c737b14fff0f6f"></a>
+size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a114da62ecd749108f5c737b14fff0f6f">PHValSize</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
+<tr class="memdesc:a114da62ecd749108f5c737b14fff0f6f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the size of the value configured for this hash table. <br /></td></tr>
+<tr class="separator:a114da62ecd749108f5c737b14fff0f6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af50170fb57040d215d3d2a44b3d40cad"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#af50170fb57040d215d3d2a44b3d40cad">PHIterate</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh, <a class="el" href="group__hash.html#ga0d5e125f496f03099590b179c3e893b6">OPHashIterator</a> iterator, void *context)</td></tr>
+<tr class="memdesc:af50170fb57040d215d3d2a44b3d40cad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterates over all key-value pairs in this hash table with user specified context.  <a href="#af50170fb57040d215d3d2a44b3d40cad">More...</a><br /></td></tr>
+<tr class="separator:af50170fb57040d215d3d2a44b3d40cad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2fa9e9668a9233a89251b7d58680fc5c"><td class="memItemLeft" align="right" valign="top"><a id="a2fa9e9668a9233a89251b7d58680fc5c"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a2fa9e9668a9233a89251b7d58680fc5c">PHPrintStat</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
+<tr class="memdesc:a2fa9e9668a9233a89251b7d58680fc5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints the accumulated count for each probing number. <br /></td></tr>
+<tr class="separator:a2fa9e9668a9233a89251b7d58680fc5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>An opaque object that manages associations of key-value pairs. </p>
-<p>PascalRobinHoodHash uses pointers to manage keys that has different sizes. This doesn't make PascalRobinHoodHash harder to serialize, but does create some overhead: allocations and deallocations are invoked during insert and delete. Pointers may also make cache efficiancy worse compare to RobinHoodHash　.</p>
 <p>This object is not thread safe. </p>
 </div><h2 class="groupheader">Friends And Related Function Documentation</h2>
-<a id="ad2f661638a1325099128c304aecfc030"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad2f661638a1325099128c304aecfc030">&#9670;&nbsp;</a></span>PRHHNew()</h2>
+<a id="a32ef6eca381b8aac400594046230ba50"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a32ef6eca381b8aac400594046230ba50">&#9670;&nbsp;</a></span>PHNew()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -142,7 +141,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool PRHHNew </td>
+          <td class="memname">bool PHNew </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="struct_o_p_heap.html">OPHeap</a> *&#160;</td>
           <td class="paramname"><em>heap</em>, </td>
@@ -150,7 +149,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">PascalRobinHoodHash **&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> **&#160;</td>
           <td class="paramname"><em>rhh_ref</em>, </td>
         </tr>
         <tr>
@@ -190,11 +189,11 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 </table>
 </div><div class="memdoc">
 
-<p>Constructor for PascalRobinHoodHash. </p>
+<p>Constructor for <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
-    <tr><td class="paramname">rhh_ref</td><td>reference to the PascalRobinHoodHash pointer for assignging PascalRobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">rhh_ref</td><td>reference to the <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> pointer for assignging <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
     <tr><td class="paramname">num_objects</td><td>number of object we decided to put in. </td></tr>
     <tr><td class="paramname">load</td><td>(0.0-1.0) how full the table could be before expansion. </td></tr>
     <tr><td class="paramname">key_inline_size</td><td>Size to store the key inline. If the key size is larger than this value, the key would be copied to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> and get referenced by a pointer. If key_inline_size is set to 0, pointer is always used. </td></tr>
@@ -206,8 +205,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 
 </div>
 </div>
-<a id="af1bac8cf6f23857a273d70a6cf308471"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af1bac8cf6f23857a273d70a6cf308471">&#9670;&nbsp;</a></span>PRHHDestroy()</h2>
+<a id="a815a6559c92eac1a870ea2cf12c8d966"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a815a6559c92eac1a870ea2cf12c8d966">&#9670;&nbsp;</a></span>PHDestroy()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -216,9 +215,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void PRHHDestroy </td>
+          <td class="memname">void PHDestroy </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em></td><td>)</td>
           <td></td>
         </tr>
@@ -230,10 +229,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 </table>
 </div><div class="memdoc">
 
-<p>Destructor for PascalRobinHoodHash. </p>
+<p>Destructor for <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">rhh</td><td>PascalRobinHoodHash instance to destroy.</td></tr>
+    <tr><td class="paramname">rhh</td><td><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance to destroy.</td></tr>
   </table>
   </dd>
 </dl>
@@ -241,8 +240,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 
 </div>
 </div>
-<a id="a9f1bf2da422cd73477fbed787fec33f5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9f1bf2da422cd73477fbed787fec33f5">&#9670;&nbsp;</a></span>PRHHInsertCustom()</h2>
+<a id="a88955d5f461da126751a4f6abe625042"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a88955d5f461da126751a4f6abe625042">&#9670;&nbsp;</a></span>PHInsertCustom()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -251,9 +250,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool PRHHInsertCustom </td>
+          <td class="memname">bool PHInsertCustom </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -296,7 +295,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>Associates the specified key and value with custom hash function. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">rhh</td><td>PascalRobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">rhh</td><td><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
     <tr><td class="paramname">hasher</td><td>hash function. </td></tr>
     <tr><td class="paramname">key</td><td>pointer the the key </td></tr>
     <tr><td class="paramname">keysize</td><td>length of key data, measured in bytes. </td></tr>
@@ -310,8 +309,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 
 </div>
 </div>
-<a id="ac4c3109f1138d196ffe72e4b7436e1c6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac4c3109f1138d196ffe72e4b7436e1c6">&#9670;&nbsp;</a></span>PRHHUpsertCustom()</h2>
+<a id="a1dec582cb97112a6432858eab45ada61"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1dec582cb97112a6432858eab45ada61">&#9670;&nbsp;</a></span>PHUpsertCustom()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -320,9 +319,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool PRHHUpsertCustom </td>
+          <td class="memname">bool PHUpsertCustom </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -386,8 +385,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 
 </div>
 </div>
-<a id="abc72e80a01cc3e2a88e42ef210719969"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abc72e80a01cc3e2a88e42ef210719969">&#9670;&nbsp;</a></span>PRHHGetCustom()</h2>
+<a id="a6c5c506535b3f52d7aa2ca8a88c0a655"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6c5c506535b3f52d7aa2ca8a88c0a655">&#9670;&nbsp;</a></span>PHGetCustom()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -396,9 +395,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void * PRHHGetCustom </td>
+          <td class="memname">void * PHGetCustom </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -435,7 +434,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>Obtain the value associated with the key and hash function. Returns NULL if the key was not found. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">rhh</td><td>PascalRobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">rhh</td><td><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
     <tr><td class="paramname">hasher</td><td>hash function. </td></tr>
     <tr><td class="paramname">key</td><td>pointer to the key. </td></tr>
     <tr><td class="paramname">keysize</td><td>length of the key data. measured in bytes. </td></tr>
@@ -443,12 +442,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, NULL otherwise.</dd></dl>
-<p>If the value size were set to 0, PRHHGetCustom would still return a pointer to where it would store the value. User can still use the returned value to exam if the key were present in the hash table. </p>
+<p>If the value size were set to 0, PHGetCustom would still return a pointer to where it would store the value. User can still use the returned value to exam if the key were present in the hash table. </p>
 
 </div>
 </div>
-<a id="a82b8466151a17771ab3875ab481ba2f4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a82b8466151a17771ab3875ab481ba2f4">&#9670;&nbsp;</a></span>PRHHDeleteCustom()</h2>
+<a id="aede9499616b6ce9e0098c843bd3ca2f0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aede9499616b6ce9e0098c843bd3ca2f0">&#9670;&nbsp;</a></span>PHDeleteCustom()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -457,9 +456,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void * PRHHDeleteCustom </td>
+          <td class="memname">void * PHDeleteCustom </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -496,7 +495,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>Deletes the key-value entry with specified hash function. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">rhh</td><td>PascalRobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">rhh</td><td><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
     <tr><td class="paramname">hasher</td><td>hash function. </td></tr>
     <tr><td class="paramname">key</td><td>pointer to the key. </td></tr>
     <tr><td class="paramname">keysize</td><td>length of the key data, measured in bytes. </td></tr>
@@ -508,8 +507,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 
 </div>
 </div>
-<a id="aeb6e2a8ac92f638c0782a24937d46dd0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aeb6e2a8ac92f638c0782a24937d46dd0">&#9670;&nbsp;</a></span>PRHHInsert()</h2>
+<a id="ae8bf975700ce7bebfd8da6de86a12d7b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae8bf975700ce7bebfd8da6de86a12d7b">&#9670;&nbsp;</a></span>PHInsert()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -518,9 +517,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">static bool PRHHInsert </td>
+          <td class="memname">static bool PHInsert </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -557,7 +556,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>Associates the specified key and value using default hash function. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">rhh</td><td>PascalRobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">rhh</td><td><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
     <tr><td class="paramname">key</td><td>pointer the the key </td></tr>
     <tr><td class="paramname">keysize</td><td>length of key data, measured in bytes. </td></tr>
     <tr><td class="paramname">val</td><td>pointer to the value. </td></tr>
@@ -568,12 +567,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>The content pointed by key and val will be copied into the hash table. If the value size were 0, only the key get copied. When there's a key collision, the coresponding value get replaced.</p>
 <p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8h_source.html#l00186">186</a> of file <a class="el" href="pascal__robin__hood_8h_source.html">pascal_robin_hood.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00180">180</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
 
 </div>
 </div>
-<a id="ab0b494f2b6bc0010f5b007a9d949957a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab0b494f2b6bc0010f5b007a9d949957a">&#9670;&nbsp;</a></span>PRHHUpsert()</h2>
+<a id="a1049083cfa548fd3ad8df268b8abad8f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1049083cfa548fd3ad8df268b8abad8f">&#9670;&nbsp;</a></span>PHUpsert()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -582,9 +581,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">static bool PRHHUpsert </td>
+          <td class="memname">static bool PHUpsert </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -639,12 +638,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>This method does not insert the value automatically, instead it provides the pointer to the address where value can be inserted or overriden.</p>
 <p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8h_source.html#l00211">211</a> of file <a class="el" href="pascal__robin__hood_8h_source.html">pascal_robin_hood.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00205">205</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
 
 </div>
 </div>
-<a id="ac6f7299975b5442e40d581ddcf4410a0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac6f7299975b5442e40d581ddcf4410a0">&#9670;&nbsp;</a></span>PRHHGet()</h2>
+<a id="a998e0529c0363f1a2282a32a985793da"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a998e0529c0363f1a2282a32a985793da">&#9670;&nbsp;</a></span>PHGet()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -653,9 +652,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">static void * PRHHGet </td>
+          <td class="memname">static void * PHGet </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -686,21 +685,21 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>Obtain the value associated with the key using default hash function. Returns NULL if the key was not found. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">rhh</td><td>PascalRobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">rhh</td><td><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
     <tr><td class="paramname">key</td><td>pointer to the key. </td></tr>
     <tr><td class="paramname">keysize</td><td>length of the key data. measured in bytes. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, NULL otherwise.</dd></dl>
-<p>If the value size were set to 0, PRHHGetCustom would still return a pointer to where it would store the value. User can still use the returned value to exam if the key were present in the hash table. </p>
+<p>If the value size were set to 0, PHGetCustom would still return a pointer to where it would store the value. User can still use the returned value to exam if the key were present in the hash table. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8h_source.html#l00233">233</a> of file <a class="el" href="pascal__robin__hood_8h_source.html">pascal_robin_hood.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00227">227</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
 
 </div>
 </div>
-<a id="ae328a67e4516879d38af8ec71eff0d95"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae328a67e4516879d38af8ec71eff0d95">&#9670;&nbsp;</a></span>PRHHDelete()</h2>
+<a id="ac9cf6bbd1bf68d68e46394478e19888b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9cf6bbd1bf68d68e46394478e19888b">&#9670;&nbsp;</a></span>PHDelete()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -709,9 +708,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">static void * PRHHDelete </td>
+          <td class="memname">static void * PHDelete </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -742,7 +741,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>Deletes the key-value entry using default hash function. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">rhh</td><td>PascalRobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">rhh</td><td><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
     <tr><td class="paramname">key</td><td>pointer to the key. </td></tr>
     <tr><td class="paramname">keysize</td><td>length of the key data, measured in bytes. </td></tr>
   </table>
@@ -751,12 +750,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, NULL otherwise.</dd></dl>
 <p>The key would get deallocated after deletion. Table will resize when many entries are deleted. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__robin__hood_8h_source.html#l00251">251</a> of file <a class="el" href="pascal__robin__hood_8h_source.html">pascal_robin_hood.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00245">245</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
 
 </div>
 </div>
-<a id="abd2f4d3b962e971ce11cd10d9dd6967f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abd2f4d3b962e971ce11cd10d9dd6967f">&#9670;&nbsp;</a></span>PRHHIterate()</h2>
+<a id="af50170fb57040d215d3d2a44b3d40cad"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af50170fb57040d215d3d2a44b3d40cad">&#9670;&nbsp;</a></span>PHIterate()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -765,9 +764,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void PRHHIterate </td>
+          <td class="memname">void PHIterate </td>
           <td>(</td>
-          <td class="paramtype">PascalRobinHoodHash *&#160;</td>
+          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td>
           <td class="paramname"><em>rhh</em>, </td>
         </tr>
         <tr>
@@ -798,22 +797,22 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>Iterates over all key-value pairs in this hash table with user specified context. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">rhh</td><td>PascalRobinHoodHash instance. </td></tr>
+    <tr><td class="paramname">rhh</td><td><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
     <tr><td class="paramname">iterator</td><td>function pointer to user defined iterator function. </td></tr>
     <tr><td class="paramname">context</td><td>user defined context.</td></tr>
   </table>
   </dd>
 </dl>
-<div class="fragment"><div class="line"><span class="comment">// Function interface matches OPHashIterator</span></div><div class="line"><span class="keywordtype">void</span> my_iterator(<span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value,</div><div class="line">                 <span class="keywordtype">size_t</span> keysize, <span class="keywordtype">size_t</span> valsize,</div><div class="line">                 <span class="keywordtype">void</span>* context)</div><div class="line">{</div><div class="line">  <span class="comment">// Obtain the object we passed in.</span></div><div class="line">  <span class="keyword">struct </span>MyStruct* my_s = (<span class="keyword">struct </span>MyStruct*) context;</div><div class="line"></div><div class="line">  <span class="comment">// assumes both key and value were null terminated string</span></div><div class="line">  printf(<span class="stringliteral">&quot;key: %s, value: %s\n&quot;</span>, key, value);</div><div class="line">}</div><div class="line"></div><div class="line"><span class="comment">// User defined context</span></div><div class="line"><span class="keyword">struct </span>MyStruct my_s;</div><div class="line"></div><div class="line"><span class="comment">// PRHHIterate takes in a PascalRobinHoodHash object, a fuction pointer</span></div><div class="line"><span class="comment">// OPHashIterator and a user defined context for iteration.</span></div><div class="line"><a class="code" href="struct_pascal_robin_hood_hash　.html#abd2f4d3b962e971ce11cd10d9dd6967f">PRHHIterate</a>(rhh, &amp;my_iterator, &amp;my_s);</div></div><!-- fragment --> 
+<div class="fragment"><div class="line"><span class="comment">// Function interface matches OPHashIterator</span></div><div class="line"><span class="keywordtype">void</span> my_iterator(<span class="keywordtype">void</span>* key, <span class="keywordtype">void</span>* value,</div><div class="line">                 <span class="keywordtype">size_t</span> keysize, <span class="keywordtype">size_t</span> valsize,</div><div class="line">                 <span class="keywordtype">void</span>* context)</div><div class="line">{</div><div class="line">  <span class="comment">// Obtain the object we passed in.</span></div><div class="line">  <span class="keyword">struct </span>MyStruct* my_s = (<span class="keyword">struct </span>MyStruct*) context;</div><div class="line"></div><div class="line">  <span class="comment">// assumes both key and value were null terminated string</span></div><div class="line">  printf(<span class="stringliteral">&quot;key: %s, value: %s\n&quot;</span>, key, value);</div><div class="line">}</div><div class="line"></div><div class="line"><span class="comment">// User defined context</span></div><div class="line"><span class="keyword">struct </span>MyStruct my_s;</div><div class="line"></div><div class="line"><span class="comment">// PHIterate takes in a PascalHashTable object, a fuction pointer</span></div><div class="line"><span class="comment">// OPHashIterator and a user defined context for iteration.</span></div><div class="line"><a class="code" href="struct_pascal_hash_table.html#af50170fb57040d215d3d2a44b3d40cad">PHIterate</a>(rhh, &amp;my_iterator, &amp;my_s);</div></div><!-- fragment --> 
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>opic/hash/<a class="el" href="pascal__robin__hood_8h_source.html">pascal_robin_hood.h</a></li>
+<li>opic/hash/<a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Aug 13 2017 23:49:49 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Aug 14 2017 08:33:27 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

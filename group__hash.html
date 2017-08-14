@@ -70,11 +70,14 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Data Structures</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_robin_hood_hash　.html">PascalRobinHoodHash　</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">An opaque object that manages associations of key-value pairs.  <a href="struct_pascal_robin_hood_hash　.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_o_p_hash_table.html">OPHashTable</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">An opaque object that manage associations of fixed length key-value pairs.  <a href="struct_o_p_hash_table.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_robin_hood_hash　.html">RobinHoodHash　</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RobinHoodHash is an opaque object that manage associations of fixed length key-value pairs.  <a href="struct_robin_hood_hash　.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_h_t_funnel.html">HTFunnel</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">An opaque object for doing massive update or quries on <a class="el" href="struct_o_p_hash_table.html" title="An opaque object that manage associations of fixed length key-value pairs. ">OPHashTable</a>.  <a href="struct_h_t_funnel.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">An opaque object that manages associations of key-value pairs.  <a href="struct_pascal_hash_table.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
@@ -82,6 +85,15 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ga0d5e125f496f03099590b179c3e893b6"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hash.html#ga0d5e125f496f03099590b179c3e893b6">OPHashIterator</a>) (void *key, void *value, size_t keysize, size_t valsize, void *context)</td></tr>
 <tr class="memdesc:ga0d5e125f496f03099590b179c3e893b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">HashTable iterator interface.  <a href="#ga0d5e125f496f03099590b179c3e893b6">More...</a><br /></td></tr>
 <tr class="separator:ga0d5e125f496f03099590b179c3e893b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga734549f8a65c6c07e9594667ec052636"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hash.html#ga734549f8a65c6c07e9594667ec052636">OPFunnelUpsertCB</a>) (void *key, void *table_value, void *funnel_value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize, bool is_duplicate)</td></tr>
+<tr class="memdesc:ga734549f8a65c6c07e9594667ec052636"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback type for doing upsert operation with funnel.  <a href="#ga734549f8a65c6c07e9594667ec052636">More...</a><br /></td></tr>
+<tr class="separator:ga734549f8a65c6c07e9594667ec052636"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaebf5804ce3b55d064315a431f3364fbf"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hash.html#gaebf5804ce3b55d064315a431f3364fbf">OPFunnelGetCB</a>) (void *key, void *value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize)</td></tr>
+<tr class="memdesc:gaebf5804ce3b55d064315a431f3364fbf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback type for doing get operation with funnel.  <a href="#gaebf5804ce3b55d064315a431f3364fbf">More...</a><br /></td></tr>
+<tr class="separator:gaebf5804ce3b55d064315a431f3364fbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaab58ba3b1ae9ff2883658386bd0cb719"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hash.html#gaab58ba3b1ae9ff2883658386bd0cb719">OPFunnelDeleteCB</a>) (void *key, void *value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize)</td></tr>
+<tr class="memdesc:gaab58ba3b1ae9ff2883658386bd0cb719"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback type for doing delete operation with funnel.  <a href="#gaab58ba3b1ae9ff2883658386bd0cb719">More...</a><br /></td></tr>
+<tr class="separator:gaab58ba3b1ae9ff2883658386bd0cb719"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga677a811a212f37504245763418cae6d8"><td class="memItemLeft" align="right" valign="top">typedef uint64_t(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__hash.html#ga677a811a212f37504245763418cae6d8">OPHash</a>) (void *key, size_t size)</td></tr>
 <tr class="memdesc:ga677a811a212f37504245763418cae6d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hash function interface.  <a href="#ga677a811a212f37504245763418cae6d8">More...</a><br /></td></tr>
 <tr class="separator:ga677a811a212f37504245763418cae6d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -119,9 +131,104 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="struct_robin_hood_hash　.html#a68d4c3cdaeae86c87356aaf94e53e54c" title="Iterates over all key-value pairs in this hash table with user specified context. ...">RHHIterate</a> for example usage. </dd></dl>
+<dl class="section see"><dt>See also</dt><dd>RHHIterate for example usage. </dd></dl>
 
 <p class="definition">Definition at line <a class="el" href="op__hash_8h_source.html#l00059">59</a> of file <a class="el" href="op__hash_8h_source.html">op_hash.h</a>.</p>
+
+</div>
+</div>
+<a id="ga734549f8a65c6c07e9594667ec052636"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga734549f8a65c6c07e9594667ec052636">&#9670;&nbsp;</a></span>OPFunnelUpsertCB</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* OPFunnelUpsertCB) (void *key, void *table_value, void *funnel_value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize, bool is_duplicate)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;<a class="el" href="op__hash_8h.html">opic/hash/op_hash.h</a>&gt;</code></p>
+
+<p>Callback type for doing upsert operation with funnel. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">key</td><td>The key upserting to hash table </td></tr>
+    <tr><td class="paramname">table_value</td><td>The value in table (old value). </td></tr>
+    <tr><td class="paramname">funnel_value</td><td>The value in funnel (new value). </td></tr>
+    <tr><td class="paramname">ctx</td><td>User defined context. </td></tr>
+    <tr><td class="paramname">keysize</td><td>Size of the key. </td></tr>
+    <tr><td class="paramname">valsize</td><td>Both table_value and funnel_value has same size valsize. </td></tr>
+    <tr><td class="paramname">ctxsize</td><td>Size of the context. </td></tr>
+    <tr><td class="paramname">is_duplicate</td><td>True when this upsert operation is on a duplicate key (update case). False when this key is newly inserted. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="op__hash_8h_source.html#l00089">89</a> of file <a class="el" href="op__hash_8h_source.html">op_hash.h</a>.</p>
+
+</div>
+</div>
+<a id="gaebf5804ce3b55d064315a431f3364fbf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaebf5804ce3b55d064315a431f3364fbf">&#9670;&nbsp;</a></span>OPFunnelGetCB</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* OPFunnelGetCB) (void *key, void *value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;<a class="el" href="op__hash_8h.html">opic/hash/op_hash.h</a>&gt;</code></p>
+
+<p>Callback type for doing get operation with funnel. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">key</td><td>The key upserting to hash table </td></tr>
+    <tr><td class="paramname">value</td><td>The value in table. </td></tr>
+    <tr><td class="paramname">ctx</td><td>User defined context. </td></tr>
+    <tr><td class="paramname">keysize</td><td>Size of the key. </td></tr>
+    <tr><td class="paramname">valsize</td><td>Size of the value. </td></tr>
+    <tr><td class="paramname">ctxsize</td><td>Size of the context. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="op__hash_8h_source.html#l00107">107</a> of file <a class="el" href="op__hash_8h_source.html">op_hash.h</a>.</p>
+
+</div>
+</div>
+<a id="gaab58ba3b1ae9ff2883658386bd0cb719"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaab58ba3b1ae9ff2883658386bd0cb719">&#9670;&nbsp;</a></span>OPFunnelDeleteCB</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* OPFunnelDeleteCB) (void *key, void *value, void *ctx, size_t keysize, size_t valsize, size_t ctxsize)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><code>#include &lt;<a class="el" href="op__hash_8h.html">opic/hash/op_hash.h</a>&gt;</code></p>
+
+<p>Callback type for doing delete operation with funnel. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">key</td><td>The key upserting to hash table </td></tr>
+    <tr><td class="paramname">value</td><td>The value in table. </td></tr>
+    <tr><td class="paramname">ctx</td><td>User defined context. </td></tr>
+    <tr><td class="paramname">keysize</td><td>Size of the key. </td></tr>
+    <tr><td class="paramname">valsize</td><td>Size of the value. </td></tr>
+    <tr><td class="paramname">ctxsize</td><td>Size of the context. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="op__hash_8h_source.html#l00122">122</a> of file <a class="el" href="op__hash_8h_source.html">op_hash.h</a>.</p>
 
 </div>
 </div>
@@ -199,7 +306,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Jul 2 2017 09:58:55 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Aug 14 2017 08:33:27 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

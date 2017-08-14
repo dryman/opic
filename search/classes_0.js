@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['funnelcb',['FunnelCB',['../union_funnel_c_b.html',1,'']]]
+  ['htfunnel',['HTFunnel',['../struct_h_t_funnel.html',1,'']]]
 ];
