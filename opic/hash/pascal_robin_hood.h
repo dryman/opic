@@ -58,12 +58,17 @@ typedef struct PascalRobinHoodHash PascalRobinHoodHash;
  * assignging PascalRobinHoodHash instance.
  * @param num_objects number of object we decided to put in.
  * @param load (0.0-1.0) how full the table could be before expansion.
+ * @param key_inline_size Size to store the key inline. If the key size
+ *   is larger than this value, the key would be copied to OPHeap and get
+ *   referenced by a pointer. If key_inline_size is set to 0, pointer
+ *   is always used.
  * @param valsize length of the value measured in bytes. This value
  * can be zero for hashset.
  * @return true when the allocation succeeded, false otherwise.
  */
 bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
-             uint64_t num_objects, double load, size_t valsize);
+             uint64_t num_objects, double load,
+             size_t key_inline_size, size_t valsize);
 
 /**
  * @relates PascalRobinHoodHash　
@@ -72,7 +77,7 @@ bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
  * @param rhh PascalRobinHoodHash instance to destroy.
  *
  * All the keys managed by this instance will get dealloc as well.
- * User need to manage the values by themselves.
+ * User need to manage the value deallocation prior calling this method.
  */
 void PRHHDestroy(PascalRobinHoodHash* rhh);
 
@@ -262,9 +267,17 @@ uint64_t PRHHCapacity(PascalRobinHoodHash* rhh);
 
 /**
  * @relates PascalRobinHoodHash　
+ * @brief Obtain the size of the key that can be stored inline in the
+ * hash table. If the size of the key is larger than this size, the key
+ * would not be inline but allocated somewhere in the OPHeap.
+ */
+size_t PRHHKeyInlineSize(PascalRobinHoodHash* rhh);
+
+/**
+ * @relates PascalRobinHoodHash　
  * @brief Obtain the size of the value configured for this hash table.
  */
-size_t RHHValsize(PascalRobinHoodHash* rhh);
+size_t PRHHValsize(PascalRobinHoodHash* rhh);
 
 /**
  * @relates PascalRobinHoodHash　

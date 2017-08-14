@@ -752,10 +752,6 @@ void* RHHGetCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
 
 int RHHGetProbeCustom(RobinHoodHash* rhh, OPHash hasher, void* key)
 {
-  const size_t keysize = rhh->keysize;
-  const size_t valsize = rhh->valsize;
-  const size_t bucket_size = keysize + valsize + 1;
-  uint8_t* buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   uintptr_t idx;
   if (RHHSearchIdx(rhh, hasher, key, &idx))
     {
