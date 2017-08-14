@@ -115,7 +115,7 @@ bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh,
   capacity_ms4b = round_up_div(capacity, 1UL << (capacity_msb - 4));
   capacity = (uint64_t)capacity_ms4b << (capacity_msb - 4);
 
-  bucket_size = sizeof(oplenref_t) + valsize;
+  bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
 
   *rhh = OPCalloc(heap, 1, sizeof(PascalRobinHoodHash));
   if (!*rhh)
@@ -276,7 +276,7 @@ PRHHUpsertNewKey(PascalRobinHoodHash* rhh, OPHash hasher,
               _recptr = OPLenRef2Ptr(_recref, key_inline_size);
               _recsize = OPLenRef2Size(*_recref);
               if (_recsize == keysize &&
-                  !memeq(key, _recptr, keysize))
+                  memeq(key, _recptr, keysize))
                 {
                   *matched_bucket = &buckets[_idx * bucket_size];
                   return UPSERT_DUP;
@@ -289,12 +289,14 @@ PRHHUpsertNewKey(PascalRobinHoodHash* rhh, OPHash hasher,
       recptr = OPLenRef2Ptr(recref, key_inline_size);
       recsize = OPLenRef2Size(*recref);
       if (keysize == recsize &&
-          !memeq(key, recptr, keysize))
+          memeq(key, recptr, keysize))
         {
           *matched_bucket = &buckets[idx * bucket_size];
           return UPSERT_DUP;
         }
+      OP_LOG_INFO(logger, "first findprobe");
       old_probe = findprobe(rhh, hasher, idx);
+      OP_LOG_INFO(logger, "finished first findprobe");
       if (probe > old_probe)
         {
           rhh->longest_probes = probe > rhh->longest_probes ?
@@ -317,6 +319,7 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
   const size_t key_inline_size = rhh->key_inline_size;
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
+  OPHeap* heap;
   oplenref_t *recref, *_recref;
   void *recptr;
   size_t recsize;
@@ -328,11 +331,12 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
   int visit;
   uintptr_t visited_idx[VISIT_IDX_CACHE];
 
+  heap = ObtainOPHeap(rhh);
   visit = 0;
   *resized = false;
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
   recref = (oplenref_t*)&bucket_cpy[0];
-  recptr = OPLenRef2Ptr(recref, key_inline_size);
+  recptr = OPLenRef2PtrOnHeap(recref, key_inline_size, heap);
   recsize = OPLenRef2Size(*recref);
   hashed_key = hasher(recptr, recsize);
   while (true)
@@ -402,7 +406,7 @@ PRHHUpsertPushDown(PascalRobinHoodHash* rhh, OPHash hasher,
           memcpy(bucket_cpy, bucket_tmp, bucket_size);
           probe = old_probe + 1;
           recref = (oplenref_t*)&bucket_cpy[0];
-          recptr = OPLenRef2Ptr(recref, key_inline_size);
+          recptr = OPLenRef2PtrOnHeap(recref, key_inline_size, heap);
           recsize = OPLenRef2Size(*recref);
           hashed_key = hasher(recptr, recsize);
           continue;
@@ -728,15 +732,9 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
   const size_t valsize = rhh->valsize;
   const size_t bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
   uint8_t* buckets;
-  uintptr_t idx, premod_idx, candidate_idx;
-  uintptr_t mask;
-  int candidates;
+  uintptr_t idx;
   int record_probe;
   oplenref_t* recref;
-  void* recptr;
-  size_t recsize;
-  uint64_t hashed_rec;
-  uint8_t bucket_tmp[bucket_size];
 
   if (rhh->objcnt < rhh->objcnt_low &&
       rhh->objcnt > 16)
@@ -749,7 +747,6 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
     return NULL;
 
   buckets = OPRef2Ptr(rhh, rhh->bucket_ref);
-  mask = (1ULL << (64 - rhh->capacity_clz)) - 1;
 
   rhh->objcnt--;
   record_probe = findprobe(rhh, hasher, idx);

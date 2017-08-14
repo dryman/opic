@@ -371,13 +371,38 @@ OPLenRefIsDeleted(oplenref_t ref)
 static inline void*
 OPLenRef2Ptr(oplenref_t* ref, size_t container_size)
 {
+  uintptr_t uintref = (uintptr_t)ref;
   if (OPLenRefIsEmpty(*ref) || OPLenRefIsDeleted(*ref))
     return NULL;
   if (OPLenRef2Size(*ref) > container_size)
     return OPRef2Ptr(ObtainOPHeap(ref), OPLenRef2Ref(*ref));
-  return ref + 1;
+  return (void*)(uintref + sizeof(oplenref_t));
 }
 
+/**
+ * @ingroup malloc
+ * @brief Converts an oplenref_t reference to a regular pointer on
+ * specified heap.
+ *
+ * This method is useful when oplenref_t is not on OPHeap, therefore
+ * we need to assist with a specific heap.
+ *
+ * @param ref Pointer to oplenref_t.
+ * @param container_size Size of the container that holds oplenref_t.
+ *   If used without a container, set this parameter to 0.
+ * @param heap Address to OPHeap where the data pointer may locate at.
+ * @return A regular pointer.
+ */
+static inline void*
+OPLenRef2PtrOnHeap(oplenref_t* ref, size_t container_size, OPHeap* heap)
+{
+  uintptr_t uintref = (uintptr_t)ref;
+  if (OPLenRefIsEmpty(*ref) || OPLenRefIsDeleted(*ref))
+    return NULL;
+  if (OPLenRef2Size(*ref) > container_size)
+    return OPRef2Ptr(heap, OPLenRef2Ref(*ref));
+  return (void*)(uintref + sizeof(oplenref_t));
+}
 
 /**
  * @ingroup malloc
@@ -403,6 +428,7 @@ static inline void
 OPLenRefCreate(oplenref_t* ref, void* data, size_t data_size,
                size_t container_size)
 {
+  uintptr_t uintref = (uintptr_t)ref;
   if (data_size > OPLENREF_MAX_LEN)
     {
       *ref = 0;
@@ -418,11 +444,11 @@ OPLenRefCreate(oplenref_t* ref, void* data, size_t data_size,
           return;
         }
       memcpy(ptr, data, data_size);
-      *ref = (oplenref_t)ptr;
+      *ref = (oplenref_t)OPPtr2Ref(ptr);
     }
   else
     {
-      memcpy(ref+1, data, data_size);
+      memcpy((void*)(uintref + sizeof(oplenref_t)), data, data_size);
       *ref = 0;
     }
   *ref |= data_size << OPHEAP_BITS;
