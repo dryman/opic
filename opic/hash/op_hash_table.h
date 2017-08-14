@@ -1,5 +1,5 @@
 /**
- * @file robin_hood.h
+ * @file op_hash_table.h
  * @brief A general hashmap/hashset/hashmultimap implemantation using
  * robin hood hashing.
  * @author Felix Chern
@@ -297,13 +297,13 @@ uint64_t HTCapacity(OPHashTable* table);
  * @relates OPHashTable
  * @brief Obtain the size of the key configured for this hash table.
  */
-size_t HTKeysize(OPHashTable* table);
+size_t HTKeySize(OPHashTable* table);
 
 /**
  * @relates OPHashTable
  * @brief Obtain the size of the value configured for this hash table.
  */
-size_t HTValsize(OPHashTable* table);
+size_t HTValSize(OPHashTable* table);
 
 /**
  * @relates OPHashTable
@@ -412,4 +412,4 @@ OP_END_DECLS
 
 #endif
 
-/* hash_table.h ends here */
+/* op_hash_table.h ends here */

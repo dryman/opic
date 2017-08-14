@@ -55,7 +55,7 @@
 #include <cmocka.h>
 
 #include "opic/common/op_log.h"
-#include "pascal_robin_hood.h"
+#include "pascal_hash_table.h"
 
 OP_LOGGER_FACTORY(logger, "opic.hash.pascal_robin_hood_test");
 
@@ -99,17 +99,17 @@ void CountObjects(void* key, void* val,
 }
 
 static void
-test_RHHNew(void** context)
+test_PHNew(void** context)
 {
   OPHeap* heap;
-  PascalRobinHoodHash* rhh;
+  PascalHashTable* table;
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(PHNew(heap, &table, TEST_OBJECTS,
                       0.95, 0, 0));
-  PRHHDestroy(rhh);
-  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS,
+  PHDestroy(table);
+  assert_true(PHNew(heap, &table, TEST_OBJECTS,
                       0.95, 10, 0));
-  PRHHDestroy(rhh);
+  PHDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -117,32 +117,32 @@ static void
 test_BasicInsert(void** context)
 {
   OPHeap* heap;
-  PascalRobinHoodHash* rhh;
+  PascalHashTable* table;
   size_t keylen;
 
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, 20, 0.80, 0, 0));
-  OP_LOG_DEBUG(logger, "PRHH addr %p", rhh);
+  assert_true(PHNew(heap, &table, 20, 0.80, 0, 0));
+  OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
       //OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
-      PRHHInsert(rhh, uuid, keylen, NULL);
+      PHInsert(table, uuid, keylen, NULL);
     }
-  PRHHPrintStat(rhh);
-  assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
+  PHPrintStat(table);
+  assert_int_equal(TEST_OBJECTS, PHObjcnt(table));
   ResetObjcnt();
-  PRHHIterate(rhh, CountObjects, NULL);
+  PHIterate(table, CountObjects, NULL);
   assert_int_equal(TEST_OBJECTS, objcnt);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
       //OP_LOG_DEBUG(logger, "Querying %s with len %zu", uuid, keylen);
-      assert_non_null(PRHHGet(rhh, uuid, keylen));
+      assert_non_null(PHGet(table, uuid, keylen));
     }
-  PRHHDestroy(rhh);
+  PHDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -150,32 +150,32 @@ static void
 test_BasicInsertWithKeyInline(void** context)
 {
   OPHeap* heap;
-  PascalRobinHoodHash* rhh;
+  PascalHashTable* table;
   size_t keylen;
 
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, 20, 0.80, 8, 0));
-  OP_LOG_DEBUG(logger, "PRHH addr %p", rhh);
+  assert_true(PHNew(heap, &table, 20, 0.80, 8, 0));
+  OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
       //OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
-      PRHHInsert(rhh, uuid, keylen, NULL);
+      PHInsert(table, uuid, keylen, NULL);
     }
-  PRHHPrintStat(rhh);
-  assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
+  PHPrintStat(table);
+  assert_int_equal(TEST_OBJECTS, PHObjcnt(table));
   ResetObjcnt();
-  PRHHIterate(rhh, CountObjects, NULL);
+  PHIterate(table, CountObjects, NULL);
   assert_int_equal(TEST_OBJECTS, objcnt);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
       //OP_LOG_DEBUG(logger, "Querying %s with len %zu", uuid, keylen);
-      assert_non_null(PRHHGet(rhh, uuid, keylen));
+      assert_non_null(PHGet(table, uuid, keylen));
     }
-  PRHHDestroy(rhh);
+  PHDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -183,29 +183,29 @@ static void
 test_BasicDelete(void** context)
 {
   OPHeap* heap;
-  PascalRobinHoodHash* rhh;
+  PascalHashTable* table;
   size_t keylen;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS, 0.95, 0, 0));
+  assert_true(PHNew(heap, &table, TEST_OBJECTS, 0.95, 0, 0));
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      PRHHInsert(rhh, uuid, keylen, NULL);
+      PHInsert(table, uuid, keylen, NULL);
     }
-  assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
+  assert_int_equal(TEST_OBJECTS, PHObjcnt(table));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
       //OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
-      assert_non_null(PRHHDelete(rhh, uuid, keylen));
+      assert_non_null(PHDelete(table, uuid, keylen));
     }
-  assert_int_equal(0, PRHHObjcnt(rhh));
+  assert_int_equal(0, PHObjcnt(table));
   ResetObjcnt();
-  PRHHIterate(rhh, CountObjects, NULL);
+  PHIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
-  PRHHDestroy(rhh);
+  PHDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -213,29 +213,29 @@ static void
 test_BasicDeleteWithKeyInline(void** context)
 {
   OPHeap* heap;
-  PascalRobinHoodHash* rhh;
+  PascalHashTable* table;
   size_t keylen;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS, 0.95, 8, 0));
+  assert_true(PHNew(heap, &table, TEST_OBJECTS, 0.95, 8, 0));
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      PRHHInsert(rhh, uuid, keylen, NULL);
+      PHInsert(table, uuid, keylen, NULL);
     }
-  assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
+  assert_int_equal(TEST_OBJECTS, PHObjcnt(table));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
       //OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
-      assert_non_null(PRHHDelete(rhh, uuid, keylen));
+      assert_non_null(PHDelete(table, uuid, keylen));
     }
-  assert_int_equal(0, PRHHObjcnt(rhh));
+  assert_int_equal(0, PHObjcnt(table));
   ResetObjcnt();
-  PRHHIterate(rhh, CountObjects, NULL);
+  PHIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
-  PRHHDestroy(rhh);
+  PHDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -243,33 +243,33 @@ static void
 test_DistributionForUpdate(void** context)
 {
   OPHeap* heap;
-  PascalRobinHoodHash* rhh;
+  PascalHashTable* table;
   size_t keylen;
 
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, TEST_OBJECTS,
+  assert_true(PHNew(heap, &table, TEST_OBJECTS,
                       0.70, 0, 0));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      PRHHInsert(rhh, uuid, keylen, NULL);
+      PHInsert(table, uuid, keylen, NULL);
     }
-  assert_int_equal(TEST_OBJECTS, PRHHObjcnt(rhh));
+  assert_int_equal(TEST_OBJECTS, PHObjcnt(table));
   // TODO Change API to test the highest probe
-  PRHHPrintStat(rhh);
+  PHPrintStat(table);
 
   for (int i = 0; i < TEST_OBJECTS*9; i++)
     {
       keylen = MutateUUID(i);
       // OP_LOG_DEBUG(logger, "Deleting %s with len %zu", uuid, keylen);
-      PRHHDelete(rhh, uuid, keylen);
+      PHDelete(table, uuid, keylen);
       keylen = MutateUUID(i+TEST_OBJECTS);
       // OP_LOG_DEBUG(logger, "Inserting %s with len %zu", uuid, keylen);
-      PRHHInsert(rhh, uuid, keylen, NULL);
+      PHInsert(table, uuid, keylen, NULL);
     }
-  PRHHPrintStat(rhh);
-  PRHHDestroy(rhh);
+  PHPrintStat(table);
+  PHDestroy(table);
   OPHeapDestroy(heap);
 }
 
@@ -277,20 +277,20 @@ static void
 test_Upsert(void** context)
 {
   OPHeap* heap;
-  PascalRobinHoodHash* rhh;
+  PascalHashTable* table;
   size_t keylen;
   int* val;
   bool is_duplicate;
 
   OP_LOG_INFO(logger, "Starting basic insert");
   assert_true(OPHeapNew(&heap));
-  assert_true(PRHHNew(heap, &rhh, 20, 0.80, 0, sizeof(int)));
-  OP_LOG_DEBUG(logger, "PRHH addr %p", rhh);
+  assert_true(PHNew(heap, &table, 20, 0.80, 0, sizeof(int)));
+  OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      assert_true(PRHHUpsert(rhh, uuid, keylen, (void**)&val, &is_duplicate));
+      assert_true(PHUpsert(table, uuid, keylen, (void**)&val, &is_duplicate));
       assert_false(is_duplicate);
       *val = i;
     }
@@ -298,20 +298,20 @@ test_Upsert(void** context)
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
-      assert_true(PRHHUpsert(rhh, uuid, keylen, (void**)&val, &is_duplicate));
+      assert_true(PHUpsert(table, uuid, keylen, (void**)&val, &is_duplicate));
       assert_true(is_duplicate);
       assert_int_equal(i, *val);
     }
-  PRHHDestroy(rhh);
+  PHDestroy(table);
   OPHeapDestroy(heap);
 }
 
 int
 main (void)
 {
-  const struct CMUnitTest prhh_tests[] =
+  const struct CMUnitTest ptable_tests[] =
     {
-      cmocka_unit_test(test_RHHNew),
+      cmocka_unit_test(test_PHNew),
       cmocka_unit_test(test_BasicInsert),
       cmocka_unit_test(test_BasicDelete),
       cmocka_unit_test(test_BasicInsertWithKeyInline),
@@ -320,7 +320,7 @@ main (void)
       cmocka_unit_test(test_Upsert),
     };
 
-  return cmocka_run_group_tests(prhh_tests, NULL, NULL);
+  return cmocka_run_group_tests(ptable_tests, NULL, NULL);
 }
 
 /* pascal_robin_hood_test.c ends here */

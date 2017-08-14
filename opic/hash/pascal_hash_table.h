@@ -36,26 +36,20 @@ OP_BEGIN_DECLS
 
 /**
  * @ingroup hash
- * @struct PascalRobinHoodHash　
+ * @struct PascalHashTable
  * @brief An opaque object that manages associations of key-value pairs.
- *
- * PascalRobinHoodHash uses pointers to manage keys that has different
- * sizes.  This doesn't make PascalRobinHoodHash harder to serialize,
- * but does create some overhead: allocations and deallocations
- * are invoked during insert and delete. Pointers may also make cache
- * efficiancy worse compare to RobinHoodHash　.
  *
  * This object is not thread safe.
  */
-typedef struct PascalRobinHoodHash PascalRobinHoodHash;
+typedef struct PascalHashTable PascalHashTable;
 
 /**
- * @relates PascalRobinHoodHash　
- * @brief Constructor for PascalRobinHoodHash.
+ * @relates PascalHashTable
+ * @brief Constructor for PascalHashTable.
  *
  * @param heap OPHeap instance.
- * @param rhh_ref reference to the PascalRobinHoodHash pointer for
- * assignging PascalRobinHoodHash instance.
+ * @param rhh_ref reference to the PascalHashTable pointer for
+ * assignging PascalHashTable instance.
  * @param num_objects number of object we decided to put in.
  * @param load (0.0-1.0) how full the table could be before expansion.
  * @param key_inline_size Size to store the key inline. If the key size
@@ -66,27 +60,27 @@ typedef struct PascalRobinHoodHash PascalRobinHoodHash;
  * can be zero for hashset.
  * @return true when the allocation succeeded, false otherwise.
  */
-bool PRHHNew(OPHeap* heap, PascalRobinHoodHash** rhh_ref,
-             uint64_t num_objects, double load,
-             size_t key_inline_size, size_t valsize);
+bool PHNew(OPHeap* heap, PascalHashTable** rhh_ref,
+           uint64_t num_objects, double load,
+           size_t key_inline_size, size_t valsize);
 
 /**
- * @relates PascalRobinHoodHash　
- * @brief Destructor for PascalRobinHoodHash
+ * @relates PascalHashTable
+ * @brief Destructor for PascalHashTable
  *
- * @param rhh PascalRobinHoodHash instance to destroy.
+ * @param rhh PascalHashTable instance to destroy.
  *
  * All the keys managed by this instance will get dealloc as well.
  * User need to manage the value deallocation prior calling this method.
  */
-void PRHHDestroy(PascalRobinHoodHash* rhh);
+void PHDestroy(PascalHashTable* rhh);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Associates the specified key and value with custom
  * hash function.
  *
- * @param rhh PascalRobinHoodHash instance.
+ * @param rhh PascalHashTable instance.
  * @param hasher hash function.
  * @param key pointer the the key
  * @param keysize length of key data, measured in bytes.
@@ -101,11 +95,11 @@ void PRHHDestroy(PascalRobinHoodHash* rhh);
  * configured, the hash table will resized with a larger capacity. If
  * the resize failed, false is returned.
  */
-bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                      void* key, size_t keysize, void* val);
+bool PHInsertCustom(PascalHashTable* rhh, OPHash hasher,
+                    void* key, size_t keysize, void* val);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Update or insert depends on whether the key already exists in
  * the hash table using custom hash function.
  *
@@ -124,33 +118,33 @@ bool PRHHInsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
  * the hash table will resized with a larger capacity. If the resize failed,
  * false is returned.
  */
-bool PRHHUpsertCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                      void* key, size_t keysize, void** val_ref,
-                      bool* is_duplicate);
+bool PHUpsertCustom(PascalHashTable* rhh, OPHash hasher,
+                    void* key, size_t keysize, void** val_ref,
+                    bool* is_duplicate);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Obtain the value associated with the key and hash function.
  * Returns NULL if the key was not found.
  *
- * @param rhh PascalRobinHoodHash instance.
+ * @param rhh PascalHashTable instance.
  * @param hasher hash function.
  * @param key pointer to the key.
  * @param keysize length of the key data. measured in bytes.
  * @return pointer to the value if found, NULL otherwise.
  *
- * If the value size were set to 0, PRHHGetCustom would still return a
+ * If the value size were set to 0, PHGetCustom would still return a
  * pointer to where it would store the value. User can still use the
  * returned value to exam if the key were present in the hash table.
  */
-void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                    void* key, size_t keysize);
+void* PHGetCustom(PascalHashTable* rhh, OPHash hasher,
+                  void* key, size_t keysize);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Deletes the key-value entry with specified hash function.
  *
- * @param rhh PascalRobinHoodHash instance.
+ * @param rhh PascalHashTable instance.
  * @param hasher hash function.
  * @param key pointer to the key.
  * @param keysize length of the key data, measured in bytes.
@@ -159,15 +153,15 @@ void* PRHHGetCustom(PascalRobinHoodHash* rhh, OPHash hasher,
  * The key would get deallocated after deletion. Table will resize
  * when many entries are deleted.
  */
-void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
-                       void* key, size_t keysize);
+void* PHDeleteCustom(PascalHashTable* rhh, OPHash hasher,
+                     void* key, size_t keysize);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Associates the specified key and value using default hash
  * function.
  *
- * @param rhh PascalRobinHoodHash instance.
+ * @param rhh PascalHashTable instance.
  * @param key pointer the the key
  * @param keysize length of key data, measured in bytes.
  * @param val pointer to the value.
@@ -183,13 +177,13 @@ void* PRHHDeleteCustom(PascalRobinHoodHash* rhh, OPHash hasher,
  *
  */
 static inline bool
-PRHHInsert(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
+PHInsert(PascalHashTable* rhh, void* key, size_t keysize, void* val)
 {
-  return PRHHInsertCustom(rhh, OPDefaultHash, key, keysize, val);
+  return PHInsertCustom(rhh, OPDefaultHash, key, keysize, val);
 }
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Update or insert depends on whether the key already exists in
  * the hash table.
  *
@@ -208,38 +202,38 @@ PRHHInsert(PascalRobinHoodHash* rhh, void* key, size_t keysize, void* val)
  * false is returned.
  */
 static inline bool
-PRHHUpsert(PascalRobinHoodHash* rhh, void* key, size_t keysize,
-           void** val_ref, bool* is_duplicate)
+PHUpsert(PascalHashTable* rhh, void* key, size_t keysize,
+         void** val_ref, bool* is_duplicate)
 {
-  return PRHHUpsertCustom(rhh, OPDefaultHash, key, keysize,
-                          val_ref, is_duplicate);
+  return PHUpsertCustom(rhh, OPDefaultHash, key, keysize,
+                        val_ref, is_duplicate);
 }
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Obtain the value associated with the key using default hash
  * function. Returns NULL if the key was not found.
  *
- * @param rhh PascalRobinHoodHash instance.
+ * @param rhh PascalHashTable instance.
  * @param key pointer to the key.
  * @param keysize length of the key data. measured in bytes.
  * @return pointer to the value if found, NULL otherwise.
  *
- * If the value size were set to 0, PRHHGetCustom would still return a
+ * If the value size were set to 0, PHGetCustom would still return a
  * pointer to where it would store the value. User can still use the
  * returned value to exam if the key were present in the hash table.
  */
 static inline void*
-PRHHGet(PascalRobinHoodHash* rhh, void* key, size_t keysize)
+PHGet(PascalHashTable* rhh, void* key, size_t keysize)
 {
-  return PRHHGetCustom(rhh, OPDefaultHash, key, keysize);
+  return PHGetCustom(rhh, OPDefaultHash, key, keysize);
 }
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Deletes the key-value entry using default hash function.
  *
- * @param rhh PascalRobinHoodHash instance.
+ * @param rhh PascalHashTable instance.
  * @param key pointer to the key.
  * @param keysize length of the key data, measured in bytes.
  * @return pointer to the value if found, NULL otherwise.
@@ -248,43 +242,43 @@ PRHHGet(PascalRobinHoodHash* rhh, void* key, size_t keysize)
  * when many entries are deleted.
  */
 static inline void*
-PRHHDelete(PascalRobinHoodHash* rhh, void* key, size_t keysize)
+PHDelete(PascalHashTable* rhh, void* key, size_t keysize)
 {
-  return PRHHDeleteCustom(rhh, OPDefaultHash, key, keysize);
+  return PHDeleteCustom(rhh, OPDefaultHash, key, keysize);
 }
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Obtain the number of objects stored in this hash table.
  */
-uint64_t PRHHObjcnt(PascalRobinHoodHash* rhh);
+uint64_t PHObjcnt(PascalHashTable* rhh);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Obtain the number of objects can be stored in this hash table.
  */
-uint64_t PRHHCapacity(PascalRobinHoodHash* rhh);
+uint64_t PHCapacity(PascalHashTable* rhh);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Obtain the size of the key that can be stored inline in the
  * hash table. If the size of the key is larger than this size, the key
  * would not be inline but allocated somewhere in the OPHeap.
  */
-size_t PRHHKeyInlineSize(PascalRobinHoodHash* rhh);
+size_t PHKeyInlineSize(PascalHashTable* rhh);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Obtain the size of the value configured for this hash table.
  */
-size_t PRHHValsize(PascalRobinHoodHash* rhh);
+size_t PHValSize(PascalHashTable* rhh);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Iterates over all key-value pairs in this hash table with
  * user specified context.
  *
- * @param rhh PascalRobinHoodHash instance.
+ * @param rhh PascalHashTable instance.
  * @param iterator function pointer to user defined iterator function.
  * @param context user defined context.
  *
@@ -304,23 +298,23 @@ size_t PRHHValsize(PascalRobinHoodHash* rhh);
  * // User defined context
  * struct MyStruct my_s;
  *
- * // PRHHIterate takes in a PascalRobinHoodHash object, a fuction pointer
+ * // PHIterate takes in a PascalHashTable object, a fuction pointer
  * // OPHashIterator and a user defined context for iteration.
- * PRHHIterate(rhh, &my_iterator, &my_s);
+ * PHIterate(rhh, &my_iterator, &my_s);
  * @endcode
  */
-void PRHHIterate(PascalRobinHoodHash* rhh,
-                 OPHashIterator iterator, void* context);
+void PHIterate(PascalHashTable* rhh,
+               OPHashIterator iterator, void* context);
 
 /**
- * @relates PascalRobinHoodHash　
+ * @relates PascalHashTable
  * @brief Prints the accumulated count for each probing number.
  */
-void PRHHPrintStat(PascalRobinHoodHash* rhh);
+void PHPrintStat(PascalHashTable* rhh);
 
-uint32_t PRHHMaxProbe(PascalRobinHoodHash* rhh);
+uint32_t PHMaxProbe(PascalHashTable* rhh);
 
-uint32_t PRHHProbeStat(PascalRobinHoodHash* rhh, uint32_t idx);
+uint32_t PHProbeStat(PascalHashTable* rhh, uint32_t idx);
 
 OP_END_DECLS
 

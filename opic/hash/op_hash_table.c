@@ -1,6 +1,6 @@
-/* robin_hood.c ---
+/* op_hash_table.c ---
  *
- * Filename: robin_hood.c
+ * Filename: op_hash_table.c
  * Description:
  * Author: Felix Chern
  * Maintainer:
@@ -61,7 +61,7 @@
 #define DEFAULT_LARGE_DATA_THRESHOLD (1UL << 30)
 #define VISIT_IDX_CACHE 8
 
-OP_LOGGER_FACTORY(logger, "opic.hash.robin_hood");
+OP_LOGGER_FACTORY(logger, "opic.hash.op_hash_table");
 
 enum upsert_result_t
   {
@@ -172,12 +172,12 @@ uint64_t HTCapacity(OPHashTable* table)
   return HTCapacityInternal(table->capacity_clz, table->capacity_ms4b);
 }
 
-size_t HTKeysize(OPHashTable* table)
+size_t HTKeySize(OPHashTable* table)
 {
   return table->keysize;
 }
 
-size_t HTValsize(OPHashTable* table)
+size_t HTValSize(OPHashTable* table)
 {
   return table->valsize;
 }
@@ -1807,4 +1807,4 @@ void HTFunnelDeleteFlush(HTFunnel* funnel)
     }
 }
 
-/* robin_hood.c ends here */
+/* op_hash_table.c ends here */

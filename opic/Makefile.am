@@ -17,4 +17,4 @@ libopic_la_SOURCES = \
   malloc/lookup_helper.c \
   hash/cityhash.c \
   hash/op_hash_table.c \
-  hash/pascal_robin_hood.c
+  hash/pascal_hash_table.c

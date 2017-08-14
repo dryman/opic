@@ -9,5 +9,6 @@ nobase_include_HEADERS = \
   opic/common/op_log.h \
   opic/hash/op_hash.h \
   opic/hash/op_hash_table.h \
+  opic/hash/pascal_hash_table.h \
   opic/hash/largeint.h \
   opic/hash/cityhash.h
