@@ -758,7 +758,7 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = opic opic/common opic/hash/op_hash_table.h \
+INPUT                  = . opic opic/common opic/hash/op_hash_table.h \
                          opic/hash/pascal_hash_table.h opic/hash/op_hash.h
 
 # This tag can be used to specify the character encoding of the source files
