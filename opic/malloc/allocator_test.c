@@ -97,24 +97,6 @@ test_OPHeapObtainHPage_FullSize(void** context)
   assert_memory_equal(test_bmap, heap->header_bmap, sizeof(test_bmap));
   assert_int_equal(0, heap->pcard);
 
-  memset(test_bmap, 0xFF, sizeof(test_bmap));
-
-  atomic_store(&heap->occupy_bmap[0], ~0UL);
-  atomic_store(&heap->header_bmap[0], ~0UL);
-
-  for (int i = 0; i < (HPAGE_BMAP_NUM - 1) * 64; i++)
-    {
-      hpage_base = heap_base + (i + 64) * HPAGE_SIZE;
-      assert_true(OPHeapObtainHPage(heap, &ctx));
-      assert_ptr_equal(hpage_base, ctx.hspan.hpage);
-      assert_int_equal(0, heap->pcard);
-    }
-  assert_memory_equal(test_bmap, heap->occupy_bmap, sizeof(test_bmap));
-  assert_memory_equal(test_bmap, heap->header_bmap, sizeof(test_bmap));
-
-  assert_false(OPHeapObtainHPage(heap, &ctx));
-  assert_int_equal(0, heap->pcard);
-
   OPHeapClose(heap);
 }
 
@@ -541,6 +523,9 @@ test_USpanObtainAddr(void** context)
 
   heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
+  // ensure we get mmap file enlarged
+  assert_true(OPHeapObtainHPage(heap, &ctx));
+  assert_true(OPHeapObtainHPage(heap, &ctx));
 
   /*
    * Object size: 16 bytes; (The smallest raw_type size we can alloc)
@@ -652,6 +637,9 @@ test_USpanObtainAddr_Large(void** context)
 
   heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
+  // ensure we get mmap file enlarged
+  assert_true(OPHeapObtainHPage(heap, &ctx));
+  assert_true(OPHeapObtainHPage(heap, &ctx));
 
   /*
    * Object size: 1024 bytes

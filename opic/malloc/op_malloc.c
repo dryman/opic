@@ -123,6 +123,7 @@ void OPHeapPutFD(OPHeap* heap, int fd)
 void OPHeapDelFD(OPHeap* heap)
 {
   uintptr_t uint_heap, idx_iter, idx, mask;
+  int fd;
   uint_heap = (uintptr_t)heap;
   idx_iter = uint_heap >> HPAGE_BITS;
   mask = FDMAP_SIZE - 1;
@@ -136,6 +137,7 @@ void OPHeapDelFD(OPHeap* heap)
         return;
       if (heap_fd_map[idx].heap == uint_heap)
         {
+          fd = heap_fd_map[idx].fd;
           OP_LOG_DEBUG(logger, "Deleting heap to fd map: %p -> fd %d",
                        heap, fd);
           heap_fd_map[idx].heap = ~0ULL;
@@ -156,10 +158,9 @@ void OPHeapFSync(OPHeap* heap)
     fsync(fd);
 }
 
-static off_t GetFDSize(int fd)
+off_t GetFDSize(int fd)
 {
   struct stat heap_stat;
-  int stat_ret;
   if (fstat(fd, &heap_stat) == -1)
     {
       OP_LOG_ERROR(logger, "Error on fstat: %s",
