@@ -58,6 +58,9 @@
 #include "lookup_helper.h"
 #include "init_helper.h"
 
+extern bool
+OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx);
+
 static void
 test_Sizes(void** context)
 {
@@ -82,6 +85,8 @@ test_HPageInit(void** context)
   uint64_t header_bmap[8] = {0};
 
   heap = OPHeapOpenTmp();
+  // ensure we get mmap file enlarged
+  assert_true(OPHeapObtainHPage(heap, &ctx));
   heap_base = (uintptr_t)heap;
   magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
   ctx.hspan.hpage = &heap->hpage;
@@ -101,6 +106,7 @@ test_HPageInit(void** context)
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, 8 * sizeof(uint64_t));
   assert_memory_equal(header_bmap, hpage->header_bmap, 8 * sizeof(uint64_t));
 
+  assert_true(OPHeapObtainHPage(heap, &ctx));
   ctx.hspan.uintptr = heap_base + HPAGE_SIZE;
   hpage = ctx.hspan.hpage;
   HPageInit(hpage, magic);
@@ -127,6 +133,8 @@ test_USpanInit_RawTypeSmall(void** context)
 
   heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
+  assert_true(OPHeapObtainHPage(heap, &ctx));
+  assert_true(OPHeapObtainHPage(heap, &ctx));
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
   uspan = ctx.sspan.uspan;
   bmap = (uint64_t*)(ctx.sspan.uintptr + sizeof(UnarySpan));
@@ -197,6 +205,8 @@ test_USpanInit_RawTypeSmall_FstPage(void** context)
 
   heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
+  assert_true(OPHeapObtainHPage(heap, &ctx));
+  assert_true(OPHeapObtainHPage(heap, &ctx));
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
   uspan = ctx.sspan.uspan;
   bmap = (uint64_t*)(ctx.sspan.uintptr + sizeof(UnarySpan));
@@ -270,6 +280,8 @@ test_USpanInit_RawTypeLarge(void** context)
 
   heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
+  assert_true(OPHeapObtainHPage(heap, &ctx));
+  assert_true(OPHeapObtainHPage(heap, &ctx));
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
   uspan = ctx.sspan.uspan;
   bmap = (uint64_t*)(ctx.sspan.uintptr + sizeof(UnarySpan));
@@ -328,36 +340,6 @@ test_USpanInit_RawTypeLarge(void** context)
   OPHeapClose(heap);
 }
 
-static void
-test_OPHeapEmptiedBMaps(void** context)
-{
-  OPHeap* heap;
-  uint64_t test_bmap[HPAGE_BMAP_NUM] = {0};
-
-  heap = OPHeapOpenTmp();
-  OPHeapEmptiedBMaps(heap, heap->occupy_bmap, heap->header_bmap);
-  assert_memory_equal(test_bmap, heap->occupy_bmap,
-                      HPAGE_BMAP_NUM * sizeof(uint64_t));
-  assert_memory_equal(test_bmap, heap->header_bmap,
-                      HPAGE_BMAP_NUM * sizeof(uint64_t));
-
-  heap->hpage_num = 1;
-  OPHeapEmptiedBMaps(heap, heap->occupy_bmap, heap->header_bmap);
-  //               7654321076543210
-  test_bmap[0] = 0xFFFFFFFFFFFFFFFEUL;
-  memset(&test_bmap[1], 0xFF, (HPAGE_BMAP_NUM - 1) * sizeof(uint64_t));
-  assert_memory_equal(test_bmap, heap->occupy_bmap,
-                      HPAGE_BMAP_NUM * sizeof(uint64_t));
-
-  heap->hpage_num = 64;
-  OPHeapEmptiedBMaps(heap, heap->occupy_bmap, heap->header_bmap);
-  test_bmap[0] = 0UL;
-  assert_memory_equal(test_bmap, heap->occupy_bmap,
-                      HPAGE_BMAP_NUM * sizeof(uint64_t));
-  heap->hpage_num = HPAGE_BMAP_NUM * 64;
-  OPHeapClose(heap);
-}
-
 int
 main (void)
 {
@@ -368,7 +350,6 @@ main (void)
       cmocka_unit_test(test_USpanInit_RawTypeSmall),
       cmocka_unit_test(test_USpanInit_RawTypeSmall_FstPage),
       cmocka_unit_test(test_USpanInit_RawTypeLarge),
-      cmocka_unit_test(test_OPHeapEmptiedBMaps),
     };
 
   return cmocka_run_group_tests(init_helper_tests, NULL, NULL);
