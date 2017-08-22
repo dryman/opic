@@ -63,7 +63,7 @@ test_ObtainOPHeap(void** state)
   uintptr_t base, header, inner, boundary, out_of_reach;
   OPHeap* heap;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
 
   base = (uintptr_t)heap;
   header = (uintptr_t)&heap->hpage;
@@ -77,7 +77,7 @@ test_ObtainOPHeap(void** state)
   assert_ptr_equal(heap, ObtainOPHeap((void*)boundary));
   assert_ptr_not_equal(heap, ObtainOPHeap((void*)out_of_reach));
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -86,7 +86,7 @@ test_ObtainHPage(void** state)
   uintptr_t heap_base, first_hpage, second_hpage;
   OPHeap* heap;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
 
   heap_base = (uintptr_t)heap;
   first_hpage = (uintptr_t)&heap->hpage;
@@ -117,7 +117,7 @@ test_ObtainHPage(void** state)
      ObtainHPage((void*)(heap_base + HPAGE_SIZE*2 - 1)));
   assert_ptr_equal(second_hpage, ObtainHPage((void*)second_hpage));
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -126,7 +126,7 @@ test_ObtainHugeSpanPtr_firstBMap(void** state)
   OPHeap* heap;
   uintptr_t heap_base, first_hpage, second_hpage, isolated_hpage, hblob;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
 
   // test first hpage
   first_hpage = (uintptr_t)&heap->hpage;
@@ -203,7 +203,7 @@ test_ObtainHugeSpanPtr_firstBMap(void** state)
      ObtainHugeSpanPtr((void*)(heap_base + 20 * HPAGE_SIZE - 1))
      .hpage);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -212,7 +212,7 @@ test_ObtainHugeSpanPtr_crossBMap(void** state)
   OPHeap* heap;
   uintptr_t heap_base, hblob;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
 
   heap_base = (uintptr_t)heap;
   hblob = heap_base + 4 * HPAGE_SIZE;
@@ -244,7 +244,7 @@ test_ObtainHugeSpanPtr_crossBMap(void** state)
     (hblob,
      ObtainHugeSpanPtr((void*)(heap_base + 4 * 64 * HPAGE_SIZE))
      .hpage);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -255,7 +255,7 @@ test_HPageObtainSmallSpanPtr(void** context)
   uintptr_t heap_base, hpage_base,
     first_uspan, isolated_uspan, cross_bmap_uspan;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
   hpage_base = heap_base + HPAGE_SIZE;
   hpage = (HugePage*)hpage_base;
@@ -327,7 +327,7 @@ test_HPageObtainSmallSpanPtr(void** context)
       (void*)(hpage_base + SPAGE_SIZE * 64 * 3 - 1))
      .uspan);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -337,7 +337,7 @@ test_HPageObtainSmallSpanPtr_firstHPage(void** context)
   HugePage* hpage;
   uintptr_t heap_base, cross_bmap_uspan;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
 
   atomic_store(&heap->occupy_bmap[0], 0x01);
@@ -368,7 +368,7 @@ test_HPageObtainSmallSpanPtr_firstHPage(void** context)
       (void*)(heap_base + SPAGE_SIZE * 64 * 3 - 1))
      .uspan);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -379,7 +379,7 @@ test_ObtainUSpanQueue(void** state)
   Magic* magic;
   uintptr_t uspan_base;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
 
   uspan_base = (uintptr_t)heap + HPAGE_SIZE + SPAGE_SIZE;
   magic = (Magic*)uspan_base;
@@ -409,7 +409,7 @@ test_ObtainUSpanQueue(void** state)
   assert_ptr_equal(&heap->raw_type.large_uspan_queue[2],
                    ObtainUSpanQueue(uspan));
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -420,7 +420,7 @@ test_ObtainHPageQueue(void** state)
   Magic* magic;
   uintptr_t hpage_base;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
 
   hpage_base = (uintptr_t)heap + HPAGE_SIZE;
   magic = (Magic*)hpage_base;
@@ -429,7 +429,7 @@ test_ObtainHPageQueue(void** state)
   magic->raw_hpage.pattern = RAW_HPAGE_PATTERN;
   assert_ptr_equal(&heap->raw_type.hpage_queue,
                    ObtainHPageQueue(hpage));
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 int

@@ -68,7 +68,7 @@ test_OPHeapObtainHPage_FullSize(void** context)
   uint64_t test_bmap[HPAGE_BMAP_NUM] = {};
   OPHeapCtx ctx;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
 
   // first hpage
@@ -115,7 +115,7 @@ test_OPHeapObtainHPage_FullSize(void** context)
   assert_false(OPHeapObtainHPage(heap, &ctx));
   assert_int_equal(0, heap->pcard);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -127,7 +127,7 @@ test_OPHeapObtainHPage_SmallSize(void** context)
   uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
   OPHeapCtx ctx;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
   heap->hpage_num = 16;
   OPHeapEmptiedBMaps(heap, heap->occupy_bmap, heap->header_bmap);
@@ -170,7 +170,7 @@ test_OPHeapObtainHPage_SmallSize(void** context)
   assert_int_equal(0, heap->pcard);
 
   heap->hpage_num = HPAGE_BMAP_NUM * 64;
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -182,7 +182,7 @@ test_OPHeapObtainHBlob_Small(void** context)
   uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
   OPHeapCtx ctx;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
 
   // first hpage won't be alloc for hblob
@@ -250,7 +250,7 @@ test_OPHeapObtainHBlob_Small(void** context)
   assert_int_equal(0, heap->pcard);
 
   // TODO need to test out of space case..
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -262,7 +262,7 @@ test_OPHeapObtainHBlob_Large(void** context)
   uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
   OPHeapCtx ctx;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
 
   // first hpage won't be alloc for hblob
@@ -309,7 +309,7 @@ test_OPHeapObtainHBlob_Large(void** context)
   assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
   assert_int_equal(0, heap->pcard);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -323,7 +323,7 @@ test_HPageObtainUSpan(void** context)
   uint64_t occupy_bmap[8] = {0};
   uint64_t header_bmap[8] = {0};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
 
   assert_true(OPHeapObtainHPage(heap, &ctx));
@@ -430,7 +430,7 @@ test_HPageObtainUSpan(void** context)
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -444,7 +444,7 @@ test_HPageObtainSSpan(void** context)
   uint64_t occupy_bmap[8] = {0};
   uint64_t header_bmap[8] = {0};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
 
   assert_true(OPHeapObtainHPage(heap, &ctx));
@@ -525,7 +525,7 @@ test_HPageObtainSSpan(void** context)
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, sizeof(occupy_bmap));
   assert_memory_equal(header_bmap, hpage->header_bmap, sizeof(header_bmap));
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -539,7 +539,7 @@ test_USpanObtainAddr(void** context)
   Magic umagic = {};
   int count;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
 
   /*
@@ -636,7 +636,7 @@ test_USpanObtainAddr(void** context)
   assert_int_equal(SPAN_DEQUEUED, uspan->state);
   assert_ptr_equal(NULL, ctx.uqueue->uspan);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -650,7 +650,7 @@ test_USpanObtainAddr_Large(void** context)
   Magic umagic = {};
   int count;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
 
   /*
@@ -715,7 +715,7 @@ test_USpanObtainAddr_Large(void** context)
   assert_int_equal(SPAN_DEQUEUED, uspan->state);
   assert_ptr_equal(NULL, ctx.uqueue->uspan);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -723,12 +723,12 @@ test_DispatchHPageForSSpan(void** context)
 {
   OPHeap* heap;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
 
   // TODO: configure different kind of init state
   // run dispatch and see if the end state is expected
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 int

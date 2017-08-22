@@ -92,11 +92,11 @@ test_HTNew(void** context)
 {
   OPHeap* heap;
   OPHashTable* table;
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.95, sizeof(int), 0));
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -106,7 +106,7 @@ test_BasicInsert(void** context)
   OPHashTable* table;
 
   OP_LOG_INFO(logger, "Starting basic insert");
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, 20,
                      0.80, sizeof(int), 0));
   OP_LOG_DEBUG(logger, "HT addr %p", table);
@@ -133,7 +133,7 @@ test_BasicInsert(void** context)
     }
 
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -143,7 +143,7 @@ test_BasicDelete(void** context)
   OPHashTable* table;
   int i;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.95, sizeof(int), 0));
   for (i = 0; i < TEST_OBJECTS; i++)
@@ -166,7 +166,7 @@ test_BasicDelete(void** context)
   HTIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -176,7 +176,7 @@ test_DistributionForUpdate(void** context)
   OPHashTable* table;
   int key;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.70, sizeof(int), 0));
 
@@ -196,7 +196,7 @@ test_DistributionForUpdate(void** context)
     }
   HTPrintStat(table);
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -207,7 +207,7 @@ test_Upsert(void** context)
   int* val;
   bool is_duplicate;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, 20,
                      0.7, sizeof(int), sizeof(int)));
 
@@ -225,7 +225,7 @@ test_Upsert(void** context)
       assert_int_equal(i, *val);
     }
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -235,7 +235,7 @@ test_BasicInsertSmall(void** context)
   OPHashTable* table;
 
   OP_LOG_INFO(logger, "Starting basic insert");
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, 20,
                      0.80, sizeof(int), 0));
   OP_LOG_DEBUG(logger, "HT addr %p", table);
@@ -255,7 +255,7 @@ test_BasicInsertSmall(void** context)
       assert_null(HTGet(table, &i));
     }
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -265,7 +265,7 @@ test_BasicDeleteSmall(void** context)
   OPHashTable* table;
   int i;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, SMALL_TEST_OBJECTS,
                      0.95, sizeof(int), 0));
   for (i = 0; i < SMALL_TEST_OBJECTS; i++)
@@ -288,7 +288,7 @@ test_BasicDeleteSmall(void** context)
   HTIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -298,7 +298,7 @@ test_DistributionForUpdateSmall(void** context)
   OPHashTable* table;
   int key;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, SMALL_TEST_OBJECTS,
                      0.70, sizeof(int), 0));
 
@@ -318,7 +318,7 @@ test_DistributionForUpdateSmall(void** context)
     }
   HTPrintStat(table);
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -329,7 +329,7 @@ test_UpsertSmall(void** context)
   int* val;
   bool is_duplicate;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, 20,
                      0.7, sizeof(int), sizeof(int)));
 
@@ -356,7 +356,7 @@ test_FunnelInsert(void** context)
   HTFunnel* funnel;
 
   OP_LOG_INFO(logger, "Starting funnel insert");
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.80, sizeof(int), 0));
   funnel = HTFunnelNew(table, NULL, 2048, 2048);
@@ -378,7 +378,7 @@ test_FunnelInsert(void** context)
       assert_int_equal(1, objmap[i]);
     }
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 void upsert_empty_bucket(void* key,
@@ -418,7 +418,7 @@ test_FunnelUpsert(void** context)
   OPHashTable* table;
   HTFunnel* funnel;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.8, sizeof(int), sizeof(int)));
   funnel = HTFunnelNew(table, upsert_empty_bucket, 2048, 2048);
@@ -450,7 +450,7 @@ test_FunnelUpsert(void** context)
   HTFunnelUpsertFlush(funnel);
   HTFunnelDestroy(funnel);
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 void funnel_count_objects(void* key, void* value, void* ctx,
@@ -484,7 +484,7 @@ test_FunnelGet(void** context)
   OPHashTable* table;
   HTFunnel* funnel;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.8, sizeof(int), sizeof(int)));
 
@@ -541,7 +541,7 @@ test_FunnelGet(void** context)
     }
 
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -551,7 +551,7 @@ test_FunnelDelete(void** context)
   OPHashTable* table;
   HTFunnel* funnel;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   assert_true(HTNew(heap, &table, TEST_OBJECTS,
                      0.8, sizeof(int), sizeof(int)));
 
@@ -578,7 +578,7 @@ test_FunnelDelete(void** context)
   assert_int_equal(0, objcnt);
 
   HTDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 int

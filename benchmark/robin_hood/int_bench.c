@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
 
   printf("running elements %" PRIu64 "\n", num);
 
-  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
+  heap = OPHeapOpenTmp();
 
   for (int i = 0; i < repeat; i++)
     {
@@ -265,6 +265,8 @@ int main(int argc, char* argv[])
     }
   if (stat_stream)
     fclose(stat_stream);
+
+  OPHeapClose(heap);
 
   return 0;
 }

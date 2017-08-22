@@ -156,35 +156,23 @@ typedef uintptr_t oplenref_t;
  * @endcode
  *
  */
-bool OPHeapNew(OPHeap** heap_ref);
+OPHeap* OPHeapOpen(const char* path, int flags);
 
 /**
  * @relates OPHeap
- * @brief Writes the heap data to a file.
+ * @brief OPHeap constructor.
+ * @param heap_ref reference to a OPHeap pointer. The pointer is set
+ *        when the allocation succeeded.
+ * @return true when allocation succeeded, false otherwise.
  *
- * The file sizes would be multiple of 2MB. This is due to the internal
- * huge pages of OPHeap are 2MB, and OPHeap writes out file base on the
- * huge pages.
+ * @code
+ *   OPHeap* heap;
+ *   assert(OPHeapNew(&heap));
+ *   // now the heap pointer is set.
+ * @endcode
  *
- * @param heap OPHeap instance.
- * @param stream an opened FILE pointer.
  */
-void OPHeapWrite(OPHeap* heap, FILE* stream);
-
-/**
- * @relates OPHeap
- * @brief Memory map a file as an OPHeap instance. (read only)
- *
- * We only support read only access for now. The memory footprint of
- * the read OPHeap instance would have the same size as the file.
- * Write support and resizing the heap is on our roadmap.
- *
- * @param heap_ref reference to the heap pointer for assigning OPHeap
- *        instance.
- * @param stream an opened FILE pointer.
- * @return true when the read succeeded, false otherwise.
- */
-bool OPHeapRead(OPHeap** heap_ref, FILE* stream);
+OPHeap* OPHeapOpenTmp();
 
 /**
  * @relates OPHeap
@@ -192,7 +180,15 @@ bool OPHeapRead(OPHeap** heap_ref, FILE* stream);
  *
  * @param heap the OPHeap instance to destroy.
  */
-void OPHeapDestroy(OPHeap* heap);
+void OPHeapFSync(OPHeap* heap);
+
+/**
+ * @relates OPHeap
+ * @brief Destroy the OPHeap instance
+ *
+ * @param heap the OPHeap instance to destroy.
+ */
+void OPHeapClose(OPHeap* heap);
 
 /**
  * @relates OPHeap

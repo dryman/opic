@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
           break;
         }
     }
-  OPHeapNew(&heap);
+  heap = OPHeapOpenTmp();
   if (use_rhh)
     {
       OPHashTable* rhh;
@@ -370,7 +370,7 @@ int main(int argc, char* argv[])
         }
       TableDestroy(table);
     }
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 

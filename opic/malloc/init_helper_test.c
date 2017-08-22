@@ -81,7 +81,7 @@ test_HPageInit(void** context)
   uint64_t occupy_bmap[8] = {0};
   uint64_t header_bmap[8] = {0};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
   magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
   ctx.hspan.hpage = &heap->hpage;
@@ -111,7 +111,7 @@ test_HPageInit(void** context)
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, 8 * sizeof(uint64_t));
   assert_memory_equal(header_bmap, hpage->header_bmap, 8 * sizeof(uint64_t));
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -125,7 +125,7 @@ test_USpanInit_RawTypeSmall(void** context)
   uint64_t* bmap;
   uint64_t test_bmap[4] = {0};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
   uspan = ctx.sspan.uspan;
@@ -181,7 +181,7 @@ test_USpanInit_RawTypeSmall(void** context)
   //               7654321076543210
   test_bmap[2] = 0xFFFFFC0000000000UL;
   assert_memory_equal(test_bmap, bmap, 3 * sizeof(uint64_t));
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -195,7 +195,7 @@ test_USpanInit_RawTypeSmall_FstPage(void** context)
   uint64_t* bmap;
   uint64_t test_bmap[8] = {0};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
   uspan = ctx.sspan.uspan;
@@ -253,7 +253,7 @@ test_USpanInit_RawTypeSmall_FstPage(void** context)
   //               7654321076543210
   test_bmap[2] = 0xFFFFFC0000000000UL;
   assert_memory_equal(test_bmap, bmap, 3 * sizeof(uint64_t));
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 
@@ -268,7 +268,7 @@ test_USpanInit_RawTypeLarge(void** context)
   uint64_t* bmap;
   uint64_t test_bmap[8] = {0};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
   uspan = ctx.sspan.uspan;
@@ -325,7 +325,7 @@ test_USpanInit_RawTypeLarge(void** context)
   test_bmap[0] = 0xFFFFFFFF00000001UL;
   assert_memory_equal(test_bmap, bmap, 1 * sizeof(uint64_t));
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -334,7 +334,7 @@ test_OPHeapEmptiedBMaps(void** context)
   OPHeap* heap;
   uint64_t test_bmap[HPAGE_BMAP_NUM] = {0};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
   OPHeapEmptiedBMaps(heap, heap->occupy_bmap, heap->header_bmap);
   assert_memory_equal(test_bmap, heap->occupy_bmap,
                       HPAGE_BMAP_NUM * sizeof(uint64_t));
@@ -355,7 +355,7 @@ test_OPHeapEmptiedBMaps(void** context)
   assert_memory_equal(test_bmap, heap->occupy_bmap,
                       HPAGE_BMAP_NUM * sizeof(uint64_t));
   heap->hpage_num = HPAGE_BMAP_NUM * 64;
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 int

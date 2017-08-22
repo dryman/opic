@@ -301,7 +301,7 @@ int main(int argc, char* argv[])
   num = 1UL << num_power;
   printf("running elements %" PRIu64 "\n", num);
 
-  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
+  heap = OPHeapOpenTmp();
 
   for (int i = 0; i < repeat; i++)
     {
@@ -337,6 +337,7 @@ int main(int argc, char* argv[])
       rhh_destroy(rhh);
     }
   printf("objcnt: %d val_sum: %" PRIu64 "\n", objcnt, val_sum);
+  OPHeapClose(heap);
 
   return 0;
 }
