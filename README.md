@@ -12,17 +12,15 @@ deserialization is simply a mmap syscall.
 
 
 OPIC is suitable for building database indexes, key-value store, or even search
-engines. At the moment of writing we provide a POC hash table to demonstrate how
+engines. At the moment of writing we provide a hash table to demonstrate how
 easy it is to build an embedded key-value store engine.
-
-TODO: link to post or tutorial for the hash table.
 
 SYNOPSIS
 --------
 
 ```c
-#include <stdio.h>
 #include "opic/op_malloc.h"
+#include "opic/hash/op_hash_table.h"
 
 struct S1
 {
@@ -37,7 +35,6 @@ struct S2
 void simple_object_database(char* filename)
 {
   OPHeap* heap1, heap2;
-  FILE* fd;
 
   OPHeapNew(&heap1);
 
@@ -52,6 +49,7 @@ void simple_object_database(char* filename)
 
   // Serialize the heap to a file
   OPHeapStorePtr(heap1, s1, 0);
+
   fd = fopen(filename, "w");
   OPHeapWrite(heap1, fd)
   fclose(fd);
@@ -101,13 +99,6 @@ make
 sudo make install
 ```
 
-User who runs OPIC on linux need to disable overcommit accounting.  This is
-because OPIC pre-allocates large memory in 64bit memory space.
-
-```bash
-sudo sysctl vm.overcommit_memory=1
-```
-
 DATA STRUCTURES INCLUDED
 ------------------------
 
@@ -154,17 +145,17 @@ Cityhash is included in this project. Here is the copyright statements for
 cityhash:
 
     Copyright (c) 2011 Google, Inc.
-    
+
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE

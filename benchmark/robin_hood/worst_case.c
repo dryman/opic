@@ -232,7 +232,7 @@ int main(int argc, char* argv[])
 
   if (use_rhh)
     {
-      HTNew(heap, &rhh, num, load, k_len, 8);
+      rhh = HTNew(heap, num, load, k_len, 8);
       key_func(num_power, HTPutWrap, rhh, hasher);
       allkeys_iter = allkeys;
       HTIterate(rhh, RecordHashKey, &allkeys_iter);

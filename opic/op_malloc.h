@@ -55,7 +55,7 @@ OP_BEGIN_DECLS
 /**
  * @ingroup malloc
  * @struct OPHeap
- * @brief Opaque object for memory allocation.
+ * @brief Memory allocator object with persistent storage on disk.
  */
 typedef struct OPHeap OPHeap;
 
@@ -144,15 +144,35 @@ typedef uintptr_t oplenref_t;
 
 /**
  * @relates OPHeap
- * @brief OPHeap constructor.
- * @param heap_ref reference to a OPHeap pointer. The pointer is set
- *        when the allocation succeeded.
- * @return true when allocation succeeded, false otherwise.
+ * @brief OPHeap constructor which opens a memory mapped file to hold
+ * the heap.
+ *
+ * Opens a memory mapped file to hold the heap. User can use the flags
+ * to control the behavior for opening the file. The flag must include
+ * one of the following modes: `O_RDONLY`, `O_WRONLY`, or `O_RDWR`.
+ * These flags coresponds to read-only, write-only, or read/write.
+ * In addition, user can bitwise-or the other flags open() supports.
+ * (system dependent). See man OPEN(2) for more details.
+ *
+ * To create an empty heap with new file, use the `O_CREAT` flag.
+ * For using previous saved OPHeap file, simply specify the path
+ * to the existing OPHeap file and you're all set.
+ *
+ * If there were any errors on opening the file, the errno would
+ * be set appropriately.
+ *
+ * This constructor is thread safe.
+ *
+ * @param path Path to file that holds the heap.
+ * @param flags flags passed to the open() system call.
+ * @return An OPHeap instance if succeeded, otherwise NULL.
  *
  * @code
  *   OPHeap* heap;
- *   assert(OPHeapNew(&heap));
- *   // now the heap pointer is set.
+ *   // creates new file if the file wasn't present.
+ *   heap = OPHeapOpen("/path/to/my/opheap", O_RDWR | O_CREAT);
+ *   // work on the heap
+ *   OPHeapClose(heap);
  * @endcode
  *
  */
@@ -160,15 +180,23 @@ OPHeap* OPHeapOpen(const char* path, int flags);
 
 /**
  * @relates OPHeap
- * @brief OPHeap constructor.
- * @param heap_ref reference to a OPHeap pointer. The pointer is set
- *        when the allocation succeeded.
- * @return true when allocation succeeded, false otherwise.
+ * @brief OPHeap constructor which uses a temporal file to hold the heap.
+ *
+ * The temporal file would get deleted after the heap is closed or the
+ * process finished.
+ *
+ * If there were any errors on opening the file, the errno would
+ * be set appropriately.
+ *
+ * This constructor is thread safe.
+ *
+ * @return An OPHeap instance if succeeded, otherwise NULL.
  *
  * @code
  *   OPHeap* heap;
- *   assert(OPHeapNew(&heap));
- *   // now the heap pointer is set.
+ *   heap = OPHeapOpenTmp();
+ *   // work on the heap
+ *   OPHeapClose(heap);
  * @endcode
  *
  */
@@ -176,17 +204,24 @@ OPHeap* OPHeapOpenTmp();
 
 /**
  * @relates OPHeap
- * @brief Destroy the OPHeap instance
+ * @brief Flushes changes in OPHeap to the file that holds the heap.
  *
- * @param heap the OPHeap instance to destroy.
+ * This method would block until the synchronization is complete.
+ * If there were any error on msync, the errno would be set
+ * appropriately.
+ *
+ * This method is thread safe.
+ *
+ * @param heap the OPHeap instance to synchronize memory to disk.
  */
 void OPHeapMSync(OPHeap* heap);
 
 /**
  * @relates OPHeap
- * @brief Destroy the OPHeap instance
+ * @brief Flushes the changes in OPHeap to disk, closes the file, and
+ * un-maps the memory.
  *
- * @param heap the OPHeap instance to destroy.
+ * @param heap the OPHeap instance to close.
  */
 void OPHeapClose(OPHeap* heap);
 

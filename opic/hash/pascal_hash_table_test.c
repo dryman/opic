@@ -104,11 +104,9 @@ test_PHNew(void** context)
   OPHeap* heap;
   PascalHashTable* table;
   heap = OPHeapOpenTmp();
-  assert_true(PHNew(heap, &table, TEST_OBJECTS,
-                      0.95, 0, 0));
+  table = PHNew(heap, TEST_OBJECTS, 0.95, 0, 0);
   PHDestroy(table);
-  assert_true(PHNew(heap, &table, TEST_OBJECTS,
-                      0.95, 10, 0));
+  table = PHNew(heap, TEST_OBJECTS, 0.95, 10, 0);
   PHDestroy(table);
   OPHeapClose(heap);
 }
@@ -122,7 +120,7 @@ test_BasicInsert(void** context)
 
   OP_LOG_INFO(logger, "Starting basic insert");
   heap = OPHeapOpenTmp();
-  assert_true(PHNew(heap, &table, 20, 0.80, 0, 0));
+  table = PHNew(heap, 20, 0.80, 0, 0);
   OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -155,7 +153,7 @@ test_BasicInsertWithKeyInline(void** context)
 
   OP_LOG_INFO(logger, "Starting basic insert");
   heap = OPHeapOpenTmp();
-  assert_true(PHNew(heap, &table, 20, 0.80, 8, 0));
+  table = PHNew(heap, 20, 0.80, 8, 0);
   OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -187,7 +185,7 @@ test_BasicDelete(void** context)
   size_t keylen;
 
   heap = OPHeapOpenTmp();
-  assert_true(PHNew(heap, &table, TEST_OBJECTS, 0.95, 0, 0));
+  table = PHNew(heap, TEST_OBJECTS, 0.95, 0, 0);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
@@ -217,7 +215,7 @@ test_BasicDeleteWithKeyInline(void** context)
   size_t keylen;
 
   heap = OPHeapOpenTmp();
-  assert_true(PHNew(heap, &table, TEST_OBJECTS, 0.95, 8, 0));
+  table = PHNew(heap, TEST_OBJECTS, 0.95, 8, 0);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
@@ -247,8 +245,7 @@ test_DistributionForUpdate(void** context)
   size_t keylen;
 
   heap = OPHeapOpenTmp();
-  assert_true(PHNew(heap, &table, TEST_OBJECTS,
-                      0.70, 0, 0));
+  table = PHNew(heap, TEST_OBJECTS, 0.70, 0, 0);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -284,7 +281,7 @@ test_Upsert(void** context)
 
   OP_LOG_INFO(logger, "Starting basic insert");
   heap = OPHeapOpenTmp();
-  assert_true(PHNew(heap, &table, 20, 0.80, 0, sizeof(int)));
+  table = PHNew(heap, 20, 0.80, 0, sizeof(int));
   OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)

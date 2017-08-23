@@ -96,10 +96,11 @@ struct PascalHashTable
   opref_t bucket_ref;
 };
 
-bool PHNew(OPHeap* heap, PascalHashTable** table,
-           uint64_t num_objects, double load,
-           size_t key_inline_size, size_t valsize)
+PascalHashTable*
+PHNew(OPHeap* heap, uint64_t num_objects, double load,
+      size_t key_inline_size, size_t valsize)
 {
+  PascalHashTable* table;
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
   size_t bucket_size;
@@ -117,24 +118,24 @@ bool PHNew(OPHeap* heap, PascalHashTable** table,
 
   bucket_size = sizeof(oplenref_t) + key_inline_size + valsize;
 
-  *table = OPCalloc(heap, 1, sizeof(PascalHashTable));
-  if (!*table)
-    return false;
+  table = OPCalloc(heap, 1, sizeof(PascalHashTable));
+  if (!table)
+    return NULL;
   bucket_ptr = OPCalloc(heap, 1, bucket_size * capacity);
   if (!bucket_ptr)
     {
       OPDealloc(table);
-      return false;
+      return NULL;
     }
-  (*table)->bucket_ref = OPPtr2Ref(bucket_ptr);
-  (*table)->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
-  (*table)->capacity_clz = capacity_clz;
-  (*table)->capacity_ms4b = capacity_ms4b;
-  (*table)->objcnt_high = (uint64_t)(capacity * load);
-  (*table)->objcnt_low = capacity * 2 / 10;
-  (*table)->key_inline_size = key_inline_size;
-  (*table)->valsize = valsize;
-  return true;
+  table->bucket_ref = OPPtr2Ref(bucket_ptr);
+  table->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
+  table->capacity_clz = capacity_clz;
+  table->capacity_ms4b = capacity_ms4b;
+  table->objcnt_high = (uint64_t)(capacity * load);
+  table->objcnt_low = capacity * 2 / 10;
+  table->key_inline_size = key_inline_size;
+  table->valsize = valsize;
+  return table;
 }
 
 void PHDestroy(PascalHashTable* table)

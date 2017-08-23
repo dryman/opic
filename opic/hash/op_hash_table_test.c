@@ -93,8 +93,7 @@ test_HTNew(void** context)
   OPHeap* heap;
   OPHashTable* table;
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, TEST_OBJECTS,
-                     0.95, sizeof(int), 0));
+  table = HTNew(heap, TEST_OBJECTS, 0.95, sizeof(int), 0);
   HTDestroy(table);
   OPHeapClose(heap);
 }
@@ -107,8 +106,7 @@ test_BasicInsert(void** context)
 
   OP_LOG_INFO(logger, "Starting basic insert");
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, 20,
-                     0.80, sizeof(int), 0));
+  table = HTNew(heap, 20, 0.80, sizeof(int), 0);
   OP_LOG_DEBUG(logger, "HT addr %p", table);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -144,8 +142,7 @@ test_BasicDelete(void** context)
   int i;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, TEST_OBJECTS,
-                     0.95, sizeof(int), 0));
+  table = HTNew(heap,TEST_OBJECTS, 0.95, sizeof(int), 0);
   for (i = 0; i < TEST_OBJECTS; i++)
     {
       HTInsert(table, &i, NULL);
@@ -177,8 +174,7 @@ test_DistributionForUpdate(void** context)
   int key;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, TEST_OBJECTS,
-                     0.70, sizeof(int), 0));
+  table = HTNew(heap, TEST_OBJECTS, 0.70, sizeof(int), 0);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -208,8 +204,7 @@ test_Upsert(void** context)
   bool is_duplicate;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, 20,
-                     0.7, sizeof(int), sizeof(int)));
+  table = HTNew(heap, 20, 0.7, sizeof(int), sizeof(int));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -236,8 +231,7 @@ test_BasicInsertSmall(void** context)
 
   OP_LOG_INFO(logger, "Starting basic insert");
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, 20,
-                     0.80, sizeof(int), 0));
+  table = HTNew(heap, 20, 0.80, sizeof(int), 0);
   OP_LOG_DEBUG(logger, "HT addr %p", table);
   for (int i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
@@ -266,8 +260,7 @@ test_BasicDeleteSmall(void** context)
   int i;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, SMALL_TEST_OBJECTS,
-                     0.95, sizeof(int), 0));
+  table = HTNew(heap, SMALL_TEST_OBJECTS, 0.95, sizeof(int), 0);
   for (i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
       HTInsert(table, &i, NULL);
@@ -299,8 +292,7 @@ test_DistributionForUpdateSmall(void** context)
   int key;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, SMALL_TEST_OBJECTS,
-                     0.70, sizeof(int), 0));
+  table = HTNew(heap, SMALL_TEST_OBJECTS, 0.70, sizeof(int), 0);
 
   for (int i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
@@ -330,8 +322,7 @@ test_UpsertSmall(void** context)
   bool is_duplicate;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, 20,
-                     0.7, sizeof(int), sizeof(int)));
+  table = HTNew(heap, 20, 0.7, sizeof(int), sizeof(int));
 
   for (int i = 0; i < SMALL_TEST_OBJECTS; i++)
     {
@@ -357,8 +348,7 @@ test_FunnelInsert(void** context)
 
   OP_LOG_INFO(logger, "Starting funnel insert");
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, TEST_OBJECTS,
-                     0.80, sizeof(int), 0));
+  table = HTNew(heap, TEST_OBJECTS, 0.80, sizeof(int), 0);
   funnel = HTFunnelNew(table, NULL, 2048, 2048);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -419,8 +409,7 @@ test_FunnelUpsert(void** context)
   HTFunnel* funnel;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, TEST_OBJECTS,
-                     0.8, sizeof(int), sizeof(int)));
+  table = HTNew(heap, TEST_OBJECTS, 0.8, sizeof(int), sizeof(int));
   funnel = HTFunnelNew(table, upsert_empty_bucket, 2048, 2048);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -485,8 +474,7 @@ test_FunnelGet(void** context)
   HTFunnel* funnel;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, TEST_OBJECTS,
-                     0.8, sizeof(int), sizeof(int)));
+  table = HTNew(heap, TEST_OBJECTS, 0.8, sizeof(int), sizeof(int));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -552,8 +540,7 @@ test_FunnelDelete(void** context)
   HTFunnel* funnel;
 
   heap = OPHeapOpenTmp();
-  assert_true(HTNew(heap, &table, TEST_OBJECTS,
-                     0.8, sizeof(int), sizeof(int)));
+  table = HTNew(heap, TEST_OBJECTS, 0.8, sizeof(int), sizeof(int));
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {

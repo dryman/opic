@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
   if (use_rhh)
     {
       OPHashTable* rhh;
-      HTNew(heap, &rhh, num, load, 8, 8);
+      rhh = HTNew(heap, num, load, 8, 8);
 
       printf("iteration %d\n", 0);
       sprintf(fname, "%s_%02d", fname_base, 0);
