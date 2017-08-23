@@ -58,8 +58,8 @@
 #include "lookup_helper.h"
 #include "init_helper.h"
 
-extern bool
-OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx);
+extern void
+OPHeapCheckExpandSize(OPHeap* heap, size_t size);
 
 static void
 test_Sizes(void** context)
@@ -85,8 +85,6 @@ test_HPageInit(void** context)
   uint64_t header_bmap[8] = {0};
 
   heap = OPHeapOpenTmp();
-  // ensure we get mmap file enlarged
-  assert_true(OPHeapObtainHPage(heap, &ctx));
   heap_base = (uintptr_t)heap;
   magic.raw_hpage.pattern = RAW_HPAGE_PATTERN;
   ctx.hspan.hpage = &heap->hpage;
@@ -106,7 +104,7 @@ test_HPageInit(void** context)
   assert_memory_equal(occupy_bmap, hpage->occupy_bmap, 8 * sizeof(uint64_t));
   assert_memory_equal(header_bmap, hpage->header_bmap, 8 * sizeof(uint64_t));
 
-  assert_true(OPHeapObtainHPage(heap, &ctx));
+  OPHeapCheckExpandSize(heap, 2 * HPAGE_SIZE);
   ctx.hspan.uintptr = heap_base + HPAGE_SIZE;
   hpage = ctx.hspan.hpage;
   HPageInit(hpage, magic);
@@ -133,8 +131,7 @@ test_USpanInit_RawTypeSmall(void** context)
 
   heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
-  assert_true(OPHeapObtainHPage(heap, &ctx));
-  assert_true(OPHeapObtainHPage(heap, &ctx));
+  OPHeapCheckExpandSize(heap, 2 * HPAGE_SIZE);
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
   uspan = ctx.sspan.uspan;
   bmap = (uint64_t*)(ctx.sspan.uintptr + sizeof(UnarySpan));
@@ -205,8 +202,7 @@ test_USpanInit_RawTypeSmall_FstPage(void** context)
 
   heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
-  assert_true(OPHeapObtainHPage(heap, &ctx));
-  assert_true(OPHeapObtainHPage(heap, &ctx));
+  OPHeapCheckExpandSize(heap, 2 * HPAGE_SIZE);
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + sizeof(HugePage);
   uspan = ctx.sspan.uspan;
   bmap = (uint64_t*)(ctx.sspan.uintptr + sizeof(UnarySpan));
@@ -280,8 +276,7 @@ test_USpanInit_RawTypeLarge(void** context)
 
   heap = OPHeapOpenTmp();
   heap_base = (uintptr_t)heap;
-  assert_true(OPHeapObtainHPage(heap, &ctx));
-  assert_true(OPHeapObtainHPage(heap, &ctx));
+  OPHeapCheckExpandSize(heap, 2 * HPAGE_SIZE);
   ctx.sspan.uintptr = heap_base + HPAGE_SIZE + SPAGE_SIZE;
   uspan = ctx.sspan.uspan;
   bmap = (uint64_t*)(ctx.sspan.uintptr + sizeof(UnarySpan));

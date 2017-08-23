@@ -9,7 +9,6 @@ check_PROGRAMS = lookup_helper_test init_helper_test allocator_test \
 
 lookup_helper_test_SOURCES = \
   ../common/op_log.c \
-  allocator.c \
   lookup_helper_test.c \
   lookup_helper.c \
   init_helper.c \
@@ -21,7 +20,6 @@ lookup_helper_test_LDFLAGS = -static
 
 init_helper_test_SOURCES = \
   ../common/op_log.c \
-  allocator.c \
   init_helper.c \
   init_helper_test.c \
   lookup_helper.c \

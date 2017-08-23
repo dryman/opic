@@ -57,8 +57,8 @@
 #include "lookup_helper.h"
 #include "init_helper.h"
 
-extern bool
-OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx);
+extern void
+OPHeapCheckExpandSize(OPHeap* heap, size_t size);
 
 static void
 test_ObtainOPHeap(void** state)
@@ -258,11 +258,8 @@ test_HPageObtainSmallSpanPtr(void** context)
   uintptr_t heap_base, hpage_base,
     first_uspan, isolated_uspan, cross_bmap_uspan;
 
-  OPHeapCtx ctx;
-
   heap = OPHeapOpenTmp();
-  assert_true(OPHeapObtainHPage(heap, &ctx));
-  assert_true(OPHeapObtainHPage(heap, &ctx));
+  OPHeapCheckExpandSize(heap, 2 * HPAGE_SIZE);
 
   heap_base = (uintptr_t)heap;
   hpage_base = heap_base + HPAGE_SIZE;
@@ -386,11 +383,9 @@ test_ObtainUSpanQueue(void** state)
   UnarySpan* uspan;
   Magic* magic;
   uintptr_t uspan_base;
-  OPHeapCtx ctx;
 
   heap = OPHeapOpenTmp();
-  assert_true(OPHeapObtainHPage(heap, &ctx));
-  assert_true(OPHeapObtainHPage(heap, &ctx));
+  OPHeapCheckExpandSize(heap, 2 * HPAGE_SIZE);
 
   uspan_base = (uintptr_t)heap + HPAGE_SIZE + SPAGE_SIZE;
   magic = (Magic*)uspan_base;
@@ -430,11 +425,9 @@ test_ObtainHPageQueue(void** state)
   HugePage* hpage;
   Magic* magic;
   uintptr_t hpage_base;
-  OPHeapCtx ctx;
 
   heap = OPHeapOpenTmp();
-  assert_true(OPHeapObtainHPage(heap, &ctx));
-  assert_true(OPHeapObtainHPage(heap, &ctx));
+  OPHeapCheckExpandSize(heap, 2 * HPAGE_SIZE);
 
   hpage_base = (uintptr_t)heap + HPAGE_SIZE;
   magic = (Magic*)hpage_base;

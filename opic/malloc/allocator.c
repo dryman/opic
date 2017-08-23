@@ -47,9 +47,6 @@
 
 #include <string.h>
 #include <inttypes.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_atomic.h"
 #include "opic/common/op_log.h"
@@ -65,10 +62,7 @@ OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 static __thread int thread_id = -1;
 static a_uint32_t round_robin = 0;
 
-// implemented in op_malloc.c
-extern int OPHeapGetFD(OPHeap* heap);
-extern off_t GetFDSize(int fd);
-
+extern void OPHeapCheckExpandSize(OPHeap* heap, size_t size);
 
 void*
 OPMalloc(OPHeap* heap, size_t size)
@@ -575,10 +569,10 @@ HPageObtainUSpan(OPHeapCtx* ctx, unsigned int spage_cnt, bool use_full_span)
 bool
 OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
 {
-  int hpage_bmidx, hpage_bmbit, cmp_result, heap_fd;
+  int hpage_bmidx, hpage_bmbit, cmp_result;
   uint64_t old_bmap, new_bmap;
   uintptr_t heap_base;
-  off_t heap_size, hpage_boundary;
+  size_t hpage_boundary;
 
   uint64_t empty_occupy_bmap[HPAGE_BMAP_NUM];
 
@@ -618,29 +612,7 @@ OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
                   ctx->hspan.uintptr = heap_base +
                     (64 * hpage_bmidx + hpage_bmbit) * HPAGE_SIZE;
                   hpage_boundary = ctx->hspan.uintptr + HPAGE_SIZE - heap_base;
-                  heap_fd = OPHeapGetFD(heap);
-                  heap_size = GetFDSize(heap_fd);
-                  if (heap_size < hpage_boundary)
-                    {
-                      OP_LOG_DEBUG(logger,
-                                   "Expanding OPHeap %p size to %" PRIx64,
-                                   heap, (uint64_t)hpage_boundary);
-                      if (ftruncate(heap_fd, hpage_boundary) == -1)
-                        {
-                          OP_LOG_FATAL(logger, "Expanding fd %d failed. %s",
-                                       heap_fd, strerror(errno));
-                          op_assert(0, "Fatal error");
-                        }
-                      if (mmap((void*)(heap_base + heap_size),
-                               hpage_boundary - heap_size,
-                               PROT_READ | PROT_WRITE,
-                               MAP_FILE | MAP_SHARED | MAP_FIXED,
-                               heap_fd, heap_size) == MAP_FAILED)
-                        {
-                          OP_LOG_FATAL(logger, "Expand OPHeap %p failed. %s",
-                                       heap, strerror(errno));
-                        }
-                    }
+                  OPHeapCheckExpandSize(heap, hpage_boundary);
                 }
               return true;
             }
@@ -670,8 +642,7 @@ OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
 {
   bool result;
   uintptr_t heap_base;
-  off_t hpage_boundary, heap_size;
-  int heap_fd;
+  size_t hpage_boundary;
 
   heap_base = (uintptr_t)heap;
 
@@ -690,30 +661,8 @@ OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
   if (!result) return result;
 
   hpage_boundary = ctx->hspan.uintptr + HPAGE_SIZE * hpage_cnt - heap_base;
-  heap_fd = OPHeapGetFD(heap);
-  heap_size = GetFDSize(heap_fd);
 
-  if (heap_size < hpage_boundary)
-    {
-      OP_LOG_DEBUG(logger,
-                   "Expanding OPHeap %p size to %" PRIx64,
-                   heap, (uint64_t)hpage_boundary);
-      if (ftruncate(heap_fd, hpage_boundary) == -1)
-        {
-          OP_LOG_FATAL(logger, "Expanding fd %d failed. %s",
-                       heap_fd, strerror(errno));
-          op_assert(0, "Fatal error");
-        }
-      if (mmap((void*)(heap_base + heap_size),
-               hpage_boundary - heap_size,
-               PROT_READ | PROT_WRITE,
-               MAP_FILE | MAP_SHARED | MAP_FIXED,
-               heap_fd, heap_size) == MAP_FAILED)
-        {
-          OP_LOG_FATAL(logger, "Expand OPHeap %p failed. %s",
-                       heap, strerror(errno));
-        }
-    }
+  OPHeapCheckExpandSize(heap, hpage_boundary);
   return result;
 }
 

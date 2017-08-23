@@ -180,7 +180,7 @@ OPHeap* OPHeapOpenTmp();
  *
  * @param heap the OPHeap instance to destroy.
  */
-void OPHeapFSync(OPHeap* heap);
+void OPHeapMSync(OPHeap* heap);
 
 /**
  * @relates OPHeap

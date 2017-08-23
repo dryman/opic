@@ -59,7 +59,6 @@
 #include "init_helper.h"
 #include "allocator.h"
 
-
 static void
 test_OPHeapObtainHPage_FullSize(void** context)
 {
