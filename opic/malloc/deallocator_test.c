@@ -60,6 +60,9 @@
 #include "allocator.h"
 #include "deallocator.h"
 
+extern void
+OPHeapCheckExpandSize(OPHeap* heap, size_t size);
+
 static void
 test_OPHeapReleaseHSpan_1Page(void** context)
 {
@@ -71,6 +74,8 @@ test_OPHeapReleaseHSpan_1Page(void** context)
   Magic raw_hpage_magic = {}, hblob_magic = {};
 
   heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 68 * HPAGE_SIZE);
+
   heap_base = (uintptr_t)heap;
 
   occupy_bmap[0] = 0x0F;
@@ -172,6 +177,7 @@ test_OPHeapReleaseHSpan_smallHBlob(void** context)
   HugeSpanPtr hspan[4];
 
   heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 97 * HPAGE_SIZE);
   heap_base = (uintptr_t)heap;
 
   //                                    7654321076543210
@@ -242,6 +248,7 @@ test_OPHeapReleaseHSpan_lageHBlob(void** context)
   HugeSpanPtr hspan[4];
 
   heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 256 * HPAGE_SIZE);
   heap_base = (uintptr_t)heap;
 
   //                                    7654321076543210
@@ -337,6 +344,7 @@ test_HPageReleaseSSpan(void** context)
   uint64_t header_bmap[8] = {0};
 
   heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 4 * HPAGE_SIZE);
   heap_base = (uintptr_t)heap;
   atomic_store(&heap->occupy_bmap[0], 0x07);
   atomic_store(&heap->header_bmap[0], 0x07);
@@ -454,6 +462,7 @@ test_USpanReleaseAddr(void** context)
   OPHeapCtx ctx;
 
   heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 4 * HPAGE_SIZE);
   heap_base = (uintptr_t)heap;
   atomic_store(&heap->occupy_bmap[0], 0x02UL);
   atomic_store(&heap->header_bmap[0], 0x02UL);
