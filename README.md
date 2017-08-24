@@ -23,12 +23,12 @@ SYNOPSIS
 Using OPIC we can quickly draft out a poor man's key value store.
 OPIC provides two types of hash table: `OPHashTable` for fixed length
 key (like `CHAR(20)` in database), and `PascalHashTable` for length
-varying key. `PascalHashTable` provide a short string optimization
+varying key. `PascalHashTable` provides a short string optimization
 similar to what [C++ does][sso]. Instead of using 24 bytes for inline
 string in hash table buckets, user can specify the size of the inline
 buffer. If the size of the key exceeds the inline buffer, extra space
 is allocated in OPIC to hold the key and the bucket would represent as
-pointer to key instead of inline key.
+pointer to key instead of inlined key.
 
 See the example below on how to write a mini key-value store in
 few lines of C.
