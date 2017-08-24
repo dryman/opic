@@ -17,7 +17,8 @@ map the file into memory region. The data is not loaded into memory
 until the program access it. For writing, `msync()` is quite fast as
 well.
 
-SYNOPSIS --------
+SYNOPSIS
+--------
 
 Using OPIC we can quickly draft out a poor man's key value store.
 OPIC provides two types of hash table: `OPHashTable` for fixed length
