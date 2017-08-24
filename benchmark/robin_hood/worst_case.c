@@ -228,11 +228,11 @@ int main(int argc, char* argv[])
          num, percent);
   allkeys = malloc(k_len * num);
 
-  OPHeapNew(&heap);
+  heap = OPHeapOpenTmp();
 
   if (use_rhh)
     {
-      HTNew(heap, &rhh, num, load, k_len, 8);
+      rhh = HTNew(heap, num, load, k_len, 8);
       key_func(num_power, HTPutWrap, rhh, hasher);
       allkeys_iter = allkeys;
       HTIterate(rhh, RecordHashKey, &allkeys_iter);
@@ -298,7 +298,7 @@ int main(int argc, char* argv[])
       printf("probe mean: %f\n", (float)probe_sum/(float)items);
     }
   printf("val_sum: %" PRIu64 "\n",  val_sum);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
   free(allkeys);
 }
 

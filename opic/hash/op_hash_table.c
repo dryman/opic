@@ -114,10 +114,11 @@ struct HTFunnel
 static inline
 uint64_t HTCapacityInternal(uint8_t capacity_clz, uint8_t capacity_ms4b);
 
-bool
-HTNew(OPHeap* heap, OPHashTable** table,
-      uint64_t num_objects, double load, size_t keysize, size_t valsize)
+OPHashTable*
+HTNew(OPHeap* heap, uint64_t num_objects, double load,
+      size_t keysize, size_t valsize)
 {
+  OPHashTable* table;
   uint64_t capacity;
   uint32_t capacity_clz, capacity_ms4b, capacity_msb;
   size_t bucket_size;
@@ -135,24 +136,24 @@ HTNew(OPHeap* heap, OPHashTable** table,
 
   bucket_size = keysize + valsize + 1;
 
-  *table = OPCalloc(heap, 1, sizeof(OPHashTable));
-  if (!*table)
-    return false;
+  table = OPCalloc(heap, 1, sizeof(OPHashTable));
+  if (!table)
+    return NULL;
   bucket_ptr = OPCalloc(heap, 1, bucket_size * capacity);
   if (!bucket_ptr)
     {
       OPDealloc(table);
-      return false;
+      return NULL;
     }
-  (*table)->bucket_ref = OPPtr2Ref(bucket_ptr);
-  (*table)->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
-  (*table)->capacity_clz = capacity_clz;
-  (*table)->capacity_ms4b = capacity_ms4b;
-  (*table)->objcnt_high = (uint64_t)(capacity * load);
-  (*table)->objcnt_low = capacity * 2 / 10;
-  (*table)->keysize = keysize;
-  (*table)->valsize = valsize;
-  return true;
+  table->bucket_ref = OPPtr2Ref(bucket_ptr);
+  table->large_data_threshold = DEFAULT_LARGE_DATA_THRESHOLD;
+  table->capacity_clz = capacity_clz;
+  table->capacity_ms4b = capacity_ms4b;
+  table->objcnt_high = (uint64_t)(capacity * load);
+  table->objcnt_low = capacity * 2 / 10;
+  table->keysize = keysize;
+  table->valsize = valsize;
+  return table;
 }
 
 void

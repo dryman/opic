@@ -23,8 +23,9 @@ install:
 - sudo dpkg -i libcmocka0_1.0.1-3_amd64.deb
 - sudo dpkg -i libcmocka-dev_1.0.1-3_amd64.deb
 - cd ..
-before_script:
-- sudo sysctl vm.overcommit_memory=1
+# After version 8, we should not require overcommit memory anymore
+# before_script:
+# - sudo sysctl vm.overcommit_memory=1
 script:
 - autoreconf -vif
 - ./configure

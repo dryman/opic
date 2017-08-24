@@ -70,9 +70,6 @@ typedef uint64_t (*HashFunc)(void* key, void* context, OPHash hasher);
 typedef void (*RunKey)(int size, HashFunc hash_func,
                        void* context, OPHash hasher);
 
-typedef bool (*HTNew_t)(OPHeap* heap, void* rhh,
-                         uint64_t num_objects, double load,
-                         size_t keysize, size_t valsize);
 typedef void (*HTDestroy_t)(void* rhh);
 typedef void (*HTPrintStat_t)(void* rhh);
 
@@ -193,7 +190,6 @@ int main(int argc, char* argv[])
   bool print_stat = false;
   HTFunnel* funnel;
 
-  HTNew_t rhh_new = (HTNew_t)HTNew;
   HTDestroy_t rhh_destroy = (HTDestroy_t)HTDestroy;
   HashFunc rhh_put = HTFunnelInsertWrap;
   HashFunc rhh_get = HTFunnelGetWrap;
@@ -204,7 +200,7 @@ int main(int argc, char* argv[])
 
   num_power = 20;
 
-  while ((opt = getopt(argc, argv, "a:b:n:r:k:i:l:f:ph")) > -1)
+  while ((opt = getopt(argc, argv, "a:b:n:r:k:l:f:ph")) > -1)
     {
       switch (opt)
         {
@@ -243,23 +239,6 @@ int main(int argc, char* argv[])
             }
           else
             help(argv[0]);
-          break;
-        case 'i':
-          /* if (!strcmp("rhh", optarg)) */
-          /*   { */
-          /*     printf("Using official robin_hood\n"); */
-          /*   } */
-          /* else if (!strcmp("rhh_b_k_v", optarg)) */
-          /*   { */
-          /*     printf("Using rhh_b_k_v\n"); */
-          /*     rhh_new = (HTNew_t)HT_b_k_v_New; */
-          /*     rhh_destroy = (HTDestroy_t)HT_b_k_v_Destroy; */
-          /*     rhh_put = HT_b_k_v_PutWrap; */
-          /*     rhh_get = HT_b_k_v_GetWrap; */
-          /*     rhh_printstat = (HTPrintStat_t)HT_b_k_v_PrintStat; */
-          /*   } */
-          /* else */
-          /*   help(argv[0]); */
           break;
         case 'l':
           load = atof(optarg);
@@ -301,13 +280,12 @@ int main(int argc, char* argv[])
   num = 1UL << num_power;
   printf("running elements %" PRIu64 "\n", num);
 
-  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
+  heap = OPHeapOpenTmp();
 
   for (int i = 0; i < repeat; i++)
     {
       printf("attempt %d\n", i + 1);
-      op_assert(rhh_new(heap, &rhh, num,
-                        load, k_len, 8), "Create OPHashTable\n");
+      rhh = HTNew(heap, num, load, k_len, 8);
 
       funnel = HTFunnelNewCustom(rhh, hasher, NULL,
                                   funnel_slotsize, funnel_partition_size);
@@ -337,6 +315,7 @@ int main(int argc, char* argv[])
       rhh_destroy(rhh);
     }
   printf("objcnt: %d val_sum: %" PRIu64 "\n", objcnt, val_sum);
+  OPHeapClose(heap);
 
   return 0;
 }

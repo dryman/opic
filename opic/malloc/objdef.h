@@ -172,7 +172,8 @@ struct OPHeap
 {
   uint32_t version;
   a_int16_t pcard;
-  uint16_t hpage_num;
+  uint16_t hpage_num;   // Deprecated. We now use file size to determine
+                        // how many huge pages we use.
   opref_t root_ptrs[8];
   a_uint64_t occupy_bmap[HPAGE_BMAP_NUM];
   a_uint64_t header_bmap[HPAGE_BMAP_NUM];

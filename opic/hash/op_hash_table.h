@@ -70,18 +70,16 @@ typedef struct HTFunnel HTFunnel;
  * @brief Constructor for OPHashTable.
  *
  * @param heap OPHeap instance.
- * @param table_ref reference to the OPHashTable pointer for assigining
- * OPHashTable instance.
  * @param num_objects number of objects we decided to put in.
  * @param load (0.0-1.0) how full the hash table could be
  * before expansion.
  * @param keysize length of key measured in bytes. Cannot be zero.
  * @param valsize length of value measured in bytes. This vlaue
  * can be zero and the hash table would work like a hash set.
- * @return true when the allocation succeeded, false otherwise.
+ * @return OPHashTable instance if allocation succeeded, else return NULL.
  */
-bool HTNew(OPHeap* heap, OPHashTable** table_ref, uint64_t num_objects,
-           double load, size_t keysize, size_t valsize);
+OPHashTable* HTNew(OPHeap* heap, uint64_t num_objects,
+                   double load, size_t keysize, size_t valsize);
 
 /**
  * @relates OPHashTable

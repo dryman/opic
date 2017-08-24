@@ -42,10 +42,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <pthread.h>
 #include <errno.h>
 #include "opic/op_malloc.h"
 #include "opic/common/op_assert.h"
@@ -63,167 +68,97 @@
 
 OP_LOGGER_FACTORY(logger, "opic.malloc.op_malloc");
 
-bool
-OPHeapNew(OPHeap** heap_ref)
+static pthread_mutex_t op_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+struct HeapFdEntry
 {
-  void *addr, *map_addr;
-  MINCORE_VEC page_check[1] = {0};
-  int mincore_status;
-  addr = NULL + OPHEAP_SIZE;
-  map_addr = MAP_FAILED;
-  for (int i = 0; i < (1<<15); i++)
+  uintptr_t heap;
+  int fd;
+};
+
+#define FDMAP_SIZE (1ULL<<12)
+static struct HeapFdEntry heap_fd_map[FDMAP_SIZE];
+
+static int OPHeapGetFD(OPHeap* heap);
+static void OPHeapPutFD(OPHeap* heap, int fd);
+static void OPHeapDelFD(OPHeap* heap);
+static off_t GetFDSize(int fd);
+static inline OPHeap* OPHeapOpenInternal(int fd);
+
+
+OPHeap* OPHeapOpen(const char *path, int flags)
+{
+  OPHeap* heap;
+  int fd;
+  pthread_mutex_lock(&op_mutex);
+
+  fd = open(path, flags, S_IRUSR | S_IWUSR);
+  if (fd == -1)
     {
-      errno = 0;
-      page_check[0] = 0;
-      mincore_status = mincore(addr, SPAGE_SIZE, page_check);
-      if (page_check[0] ||
-          (mincore_status == -1 && errno != ENOMEM))
-        {
-          OP_LOG_DEBUG(logger, "Addr %p not available: "
-                       "page_check %d errno %d",
-                       addr, page_check[0], errno);
-          goto next_heap;
-        }
-      map_addr = mmap(addr, OPHEAP_SIZE,
-                      PROT_READ | PROT_WRITE,
-                      MAP_ANON | MAP_PRIVATE | MAP_FIXED,
-                      -1, 0);
-      if (map_addr != MAP_FAILED)
-        {
-          *heap_ref = map_addr;
-          memset(*heap_ref, 0, sizeof(OPHeap));
-          (*heap_ref)->version = OPHEAP_VERSION;
-          (*heap_ref)->hpage_num = HPAGE_BMAP_NUM * 64;
-          return true;
-        }
-      else
-        {
-        next_heap:
-          addr += OPHEAP_SIZE;
-          printf("addr %p\n", addr);
-        }
+      OP_LOG_ERROR(logger, "Failed to open %s. %s",
+                   path, strerror(errno));
+      pthread_mutex_unlock(&op_mutex);
+      return NULL;
     }
-  return false;
+  heap = OPHeapOpenInternal(fd);
+  if (heap)
+    OPHeapPutFD(heap, fd);
+  pthread_mutex_unlock(&op_mutex);
+  return heap;
 }
 
-bool
-OPHeapRead(OPHeap** heap_ref, FILE* stream)
+OPHeap* OPHeapOpenTmp()
 {
-  OPHeap heap_header;
-  void *addr, *map_addr;
-  MINCORE_VEC page_check[1] = {0};
-  int mincore_status;
-  addr = NULL + OPHEAP_SIZE;
-  map_addr = MAP_FAILED;
+  OPHeap* heap;
+  int fd;
+  FILE* pfile;
+  pthread_mutex_lock(&op_mutex);
 
-  fread(&heap_header, sizeof(OPHeap), 1, stream);
-  fseek(stream, 0, SEEK_SET);
-
-  for (int i = 0; i < (1<<15); i++)
+  pfile = tmpfile();
+  if (pfile == NULL)
     {
-      errno = 0;
-      page_check[0] = 0;
-      mincore_status = mincore(addr, SPAGE_SIZE, page_check);
-      if (page_check[0] ||
-          (mincore_status == -1 && errno != ENOMEM))
-        {
-          OP_LOG_DEBUG(logger, "Addr %p not available: "
-                       "page_check %d errno %d",
-                       addr, page_check[0], errno);
-          goto next_heap;
-        }
-      map_addr = mmap(addr, heap_header.hpage_num * HPAGE_SIZE,
-                      PROT_READ,
-                      MAP_SHARED | MAP_FIXED,
-                      fileno(stream), 0);
-      if (map_addr != MAP_FAILED)
-        {
-          *heap_ref = map_addr;
-          return true;
-        }
-      else
-        {
-        next_heap:
-          addr += OPHEAP_SIZE;
-        }
+      OP_LOG_ERROR(logger, "Failed to create tmp file: %s",
+                   strerror(errno));
+      pthread_mutex_unlock(&op_mutex);
+      return NULL;
     }
-  return false;
+  fd = fileno(pfile);
+  heap = OPHeapOpenInternal(fd);
+  if (heap)
+    OPHeapPutFD(heap, fd);
+  pthread_mutex_unlock(&op_mutex);
+  return heap;
 }
 
-void
-OPHeapShrinkCopy(OPHeap* heap)
+void OPHeapMSync(OPHeap* heap)
 {
-  int max_hpage;
-  int hpage_bmidx, hpage_bmbit, bm_padding_bit;
-  uint64_t bmap;
+  int fd;
+  off_t heap_size;
+  pthread_mutex_lock(&op_mutex);
 
-  hpage_bmidx = (heap->hpage_num - 1) / 64;
-  bm_padding_bit = heap->hpage_num % 64;
-
-  bmap = atomic_load_explicit(&heap->occupy_bmap[hpage_bmidx],
-                              memory_order_relaxed);
-  if (bm_padding_bit)
+  fd = OPHeapGetFD(heap);
+  op_assert(fd != -1,
+            "All OPHeap should have a matching fd.\n");
+  heap_size = GetFDSize(fd);
+  if (!msync(heap, (size_t)heap_size, MS_SYNC))
     {
-      bmap &= ((1UL << bm_padding_bit) - 1);
-      if (bmap)
-        {
-          hpage_bmbit = 64 - __builtin_clzl(bmap);
-          max_hpage = hpage_bmidx * 64 + hpage_bmbit;
-          goto found_max_hpage;
-        }
+      OP_LOG_ERROR(logger, "msync on %p failed: %s",
+                   heap, strerror(errno));
     }
 
-  for (int i = hpage_bmidx; i >= 0; i--)
-    {
-      if ((bmap = atomic_load_explicit(&heap->occupy_bmap[i],
-                                       memory_order_relaxed)))
-        {
-          hpage_bmbit = 64 - __builtin_clzl(bmap);
-          max_hpage = i * 64 + hpage_bmbit;
-          goto found_max_hpage;
-        }
-    }
-  max_hpage = 1;
-
- found_max_hpage:
-  hpage_bmidx = max_hpage / 64;
-  hpage_bmbit = max_hpage % 64;
-
-  if (hpage_bmidx < HPAGE_BMAP_NUM)
-    {
-      if (hpage_bmbit)
-        atomic_fetch_or_explicit(&heap->occupy_bmap[hpage_bmidx],
-                                 ~((1UL << hpage_bmbit) - 1),
-                                 memory_order_relaxed);
-
-      for (int bmidx = round_up_div(max_hpage, 64);
-           bmidx < HPAGE_BMAP_NUM;
-           bmidx++)
-        {
-          //printf("bmidx: %d\n", bmidx);
-          atomic_store_explicit(&heap->occupy_bmap[bmidx], ~0ULL,
-                                memory_order_relaxed);
-        }
-    }
-  heap->hpage_num = max_hpage;
+  pthread_mutex_unlock(&op_mutex);
 }
 
-void
-OPHeapWrite(OPHeap* heap, FILE* stream)
+void OPHeapClose(OPHeap* heap)
 {
-  OPHeap heap_copy;
-  uintptr_t heap_base;
-  heap_base = (uintptr_t)heap;
-  memcpy(&heap_copy, heap, sizeof(OPHeap));
-  OPHeapShrinkCopy(&heap_copy);
+  OPHeapMSync(heap);
 
-  fwrite(&heap_copy, sizeof(OPHeap), 1, stream);
-  fwrite((void*)(heap_base + sizeof(OPHeap)),
-         HPAGE_SIZE - sizeof(OPHeap), 1, stream);
-  if (heap_copy.hpage_num > 1)
-    fwrite((void*)(heap_base + HPAGE_SIZE),
-           HPAGE_SIZE, heap_copy.hpage_num - 1, stream);
+  pthread_mutex_lock(&op_mutex);
+  OPHeapDelFD(heap);
+  munmap(heap, OPHEAP_SIZE);
+  pthread_mutex_unlock(&op_mutex);
 }
+
 
 void OPHeapStorePtr(OPHeap* heap, void* ptr, int pos)
 {
@@ -241,10 +176,205 @@ void* OPHeapRestorePtr(OPHeap* heap, int pos)
   return OPRef2Ptr(heap, heap->root_ptrs[pos]);
 }
 
-void
-OPHeapDestroy(OPHeap* heap)
+// Used by allocator to expand the heap size.
+void OPHeapCheckExpandSize(OPHeap* heap, size_t size)
 {
-  munmap(heap, heap->hpage_num * HPAGE_SIZE);
+  int heap_fd;
+  off_t heap_size, expand_boundary;
+  uintptr_t heap_base;
+
+  pthread_mutex_lock(&op_mutex);
+
+  heap_fd = OPHeapGetFD(heap);
+  heap_size = GetFDSize(heap_fd);
+  expand_boundary = (off_t)size;
+  heap_base = (uintptr_t)heap;
+
+  if (heap_size < expand_boundary)
+    {
+      OP_LOG_DEBUG(logger,
+                   "Expanding OPHeap %p size to %" PRIx64,
+                   heap, (uint64_t)expand_boundary);
+      if (ftruncate(heap_fd, expand_boundary) == -1)
+        {
+          OP_LOG_FATAL(logger, "Expanding fd %d failed. %s",
+                       heap_fd, strerror(errno));
+          op_assert(0, "Fatal error");
+        }
+      if (mmap((void*)(heap_base + heap_size),
+               expand_boundary - heap_size,
+               PROT_READ | PROT_WRITE,
+               MAP_FILE | MAP_SHARED | MAP_FIXED,
+               heap_fd, heap_size) == MAP_FAILED)
+        {
+          OP_LOG_FATAL(logger, "Expand OPHeap %p failed. %s",
+                       heap, strerror(errno));
+          op_assert(0, "Fatal error");
+        }
+    }
+  pthread_mutex_unlock(&op_mutex);
+}
+
+static int OPHeapGetFD(OPHeap* heap)
+{
+  uintptr_t uint_heap, idx_iter, idx, mask;
+  uint_heap = (uintptr_t)heap;
+  idx_iter = uint_heap >> HPAGE_BITS;
+  mask = FDMAP_SIZE - 1;
+
+  for (int i = 0; i < 2048; i++)
+    {
+      idx_iter++;
+      idx = idx_iter & mask;
+      if (heap_fd_map[idx].heap == 0)
+        return -1;
+      if (heap_fd_map[idx].heap == ~0ULL)
+        continue;
+      if (heap_fd_map[idx].heap == uint_heap)
+        return heap_fd_map[idx].fd;
+    }
+  return -1;
+}
+
+static void OPHeapPutFD(OPHeap* heap, int fd)
+{
+  uintptr_t uint_heap, idx_iter, idx, mask;
+  uint_heap = (uintptr_t)heap;
+  idx_iter = uint_heap >> HPAGE_BITS;
+  mask = FDMAP_SIZE - 1;
+  for (int i = 0; i < 2048; i++)
+    {
+      idx_iter++;
+      idx = idx_iter & mask;
+      if (heap_fd_map[idx].heap == 0 ||
+          heap_fd_map[idx].heap == ~0ULL ||
+          heap_fd_map[idx].heap == uint_heap)
+        {
+          OP_LOG_DEBUG(logger, "Storing heap to fd map: %p -> fd %d",
+                       heap, fd);
+          heap_fd_map[idx].heap = uint_heap;
+          heap_fd_map[idx].fd = fd;
+          return;
+        }
+    }
+}
+
+static void OPHeapDelFD(OPHeap* heap)
+{
+  uintptr_t uint_heap, idx_iter, idx, mask;
+  int fd;
+  uint_heap = (uintptr_t)heap;
+  idx_iter = uint_heap >> HPAGE_BITS;
+  mask = FDMAP_SIZE - 1;
+
+  for (int i = 0; i <= 2048; i++)
+    {
+      idx_iter++;
+      idx = idx_iter & mask;
+      if (heap_fd_map[idx].heap == 0 ||
+          heap_fd_map[idx].heap == ~0ULL)
+        return;
+      if (heap_fd_map[idx].heap == uint_heap)
+        {
+          fd = heap_fd_map[idx].fd;
+          OP_LOG_DEBUG(logger, "Deleting heap to fd map: %p -> fd %d",
+                       heap, fd);
+          heap_fd_map[idx].heap = ~0ULL;
+          close(heap_fd_map[idx].fd);
+          return;
+        }
+    }
+  return;
+}
+
+static off_t GetFDSize(int fd)
+{
+  struct stat heap_stat;
+  if (fstat(fd, &heap_stat) == -1)
+    {
+      OP_LOG_ERROR(logger, "Error on fstat: %s",
+                   strerror(errno));
+      return ~0ULL;
+    }
+  return heap_stat.st_size;
+}
+
+static inline
+OPHeap* OPHeapOpenInternal(int fd)
+{
+  OPHeap* heap;
+  void *addr, *map_addr;
+  MINCORE_VEC page_check[1] = {0};
+  int mincore_status;
+  off_t heap_size;
+  addr = NULL + OPHEAP_SIZE;
+  map_addr = MAP_FAILED;
+
+  heap_size = GetFDSize(fd);
+
+  for (int i = 0; i < (1<<15); i++)
+    {
+      errno = 0;
+      page_check[0] = 0;
+      mincore_status = mincore(addr, SPAGE_SIZE, page_check);
+      if (page_check[0] ||
+          (mincore_status == -1 && errno != ENOMEM))
+        {
+          OP_LOG_DEBUG(logger,
+                       "Addr %p not available for OPHeap: "
+                       "mincore check %d, error %s",
+                       addr, page_check[0], strerror(errno));
+          goto next_heap;
+        }
+
+      map_addr = mmap(addr, OPHEAP_SIZE, PROT_NONE,
+                      MAP_ANON | MAP_PRIVATE | MAP_FIXED,
+                      -1, 0);
+      if (map_addr == MAP_FAILED)
+        {
+          OP_LOG_WARN(logger,
+                      "Addr %p failed to reserve 64GB for OPHeap, "
+                      "trying next available addresses.",
+                      addr);
+        next_heap:
+          addr += OPHEAP_SIZE;
+          continue;
+        }
+      OP_LOG_DEBUG(logger, "Reserved heap space at %p", addr);
+
+      if (heap_size == 0)  // Create file case
+        {
+          ftruncate(fd, HPAGE_SIZE);
+          map_addr = mmap(addr, HPAGE_SIZE, PROT_READ | PROT_WRITE,
+                          MAP_FILE | MAP_SHARED | MAP_FIXED,
+                          fd, 0);
+          if (map_addr == MAP_FAILED)
+            {
+              OP_LOG_DEBUG(logger, "Failed to mmap heap at %p",
+                           addr);
+              munmap(addr, OPHEAP_SIZE);
+              return NULL;
+            }
+          heap = map_addr;
+          heap->version = OPHEAP_VERSION;
+        }
+      else  // open existing file case
+        {
+          map_addr = mmap(addr, heap_size, PROT_READ | PROT_WRITE,
+                          MAP_FILE | MAP_SHARED | MAP_FIXED,
+                          fd, 0);
+          if (map_addr == MAP_FAILED)
+            {
+              OP_LOG_DEBUG(logger, "Failed to mmap heap at %p, %s",
+                           addr, strerror(errno));
+              munmap(addr, OPHEAP_SIZE);
+              return NULL;
+            }
+          heap = map_addr;
+        }
+      return heap;
+    }
+  return NULL;
 }
 
 /* op_malloc.c ends here */

@@ -150,11 +150,11 @@ int main(int argc, char* argv[])
           break;
         }
     }
-  OPHeapNew(&heap);
+  heap = OPHeapOpenTmp();
   if (use_rhh)
     {
       OPHashTable* rhh;
-      HTNew(heap, &rhh, num, load, 8, 8);
+      rhh = HTNew(heap, num, load, 8, 8);
 
       printf("iteration %d\n", 0);
       sprintf(fname, "%s_%02d", fname_base, 0);
@@ -370,7 +370,7 @@ int main(int argc, char* argv[])
         }
       TableDestroy(table);
     }
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 

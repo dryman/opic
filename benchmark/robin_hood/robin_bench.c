@@ -116,6 +116,15 @@ uint64_t farm(void* key, size_t size)
   return farmhash64(key, size);
 }
 
+bool RHHNewWrap(OPHeap* heap, void* rhh,
+                uint64_t num_objects, double load,
+                size_t keysize, size_t valsize)
+{
+  OPHashTable** table = rhh;
+  *table = HTNew(heap, num_objects, load, keysize, valsize);
+  return *table != NULL;
+}
+
 uint64_t RHHPutWrap(void* key, void* context, OPHash hash_impl)
 {
   static uint64_t val = 0;
@@ -195,7 +204,7 @@ int main(int argc, char* argv[])
   char* stat_header = "RHH";
   FILE* stat_stream = NULL;
 
-  RHHNew_t rhh_new = (RHHNew_t)HTNew;
+  RHHNew_t rhh_new = RHHNewWrap;
   RHHDestroy_t rhh_destroy = (RHHDestroy_t)HTDestroy;
   HashFunc rhh_put = RHHPutWrap;
   HashFunc rhh_get = RHHGetWrap;
@@ -353,7 +362,7 @@ int main(int argc, char* argv[])
   num = 1UL << num_power;
   printf("running elements %" PRIu64 "\n", num);
 
-  op_assert(OPHeapNew(&heap), "Create OPHeap\n");
+  heap = OPHeapOpenTmp();
 
   for (int i = 0; i < repeat; i++)
     {
@@ -412,6 +421,7 @@ int main(int argc, char* argv[])
   if (stat_stream)
     fclose(stat_stream);
 
+  OPHeapClose(heap);
   return 0;
 }
 

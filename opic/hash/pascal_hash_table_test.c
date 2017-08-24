@@ -103,14 +103,12 @@ test_PHNew(void** context)
 {
   OPHeap* heap;
   PascalHashTable* table;
-  assert_true(OPHeapNew(&heap));
-  assert_true(PHNew(heap, &table, TEST_OBJECTS,
-                      0.95, 0, 0));
+  heap = OPHeapOpenTmp();
+  table = PHNew(heap, TEST_OBJECTS, 0.95, 0, 0);
   PHDestroy(table);
-  assert_true(PHNew(heap, &table, TEST_OBJECTS,
-                      0.95, 10, 0));
+  table = PHNew(heap, TEST_OBJECTS, 0.95, 10, 0);
   PHDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -121,8 +119,8 @@ test_BasicInsert(void** context)
   size_t keylen;
 
   OP_LOG_INFO(logger, "Starting basic insert");
-  assert_true(OPHeapNew(&heap));
-  assert_true(PHNew(heap, &table, 20, 0.80, 0, 0));
+  heap = OPHeapOpenTmp();
+  table = PHNew(heap, 20, 0.80, 0, 0);
   OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -143,7 +141,7 @@ test_BasicInsert(void** context)
       assert_non_null(PHGet(table, uuid, keylen));
     }
   PHDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -154,8 +152,8 @@ test_BasicInsertWithKeyInline(void** context)
   size_t keylen;
 
   OP_LOG_INFO(logger, "Starting basic insert");
-  assert_true(OPHeapNew(&heap));
-  assert_true(PHNew(heap, &table, 20, 0.80, 8, 0));
+  heap = OPHeapOpenTmp();
+  table = PHNew(heap, 20, 0.80, 8, 0);
   OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -176,7 +174,7 @@ test_BasicInsertWithKeyInline(void** context)
       assert_non_null(PHGet(table, uuid, keylen));
     }
   PHDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -186,8 +184,8 @@ test_BasicDelete(void** context)
   PascalHashTable* table;
   size_t keylen;
 
-  assert_true(OPHeapNew(&heap));
-  assert_true(PHNew(heap, &table, TEST_OBJECTS, 0.95, 0, 0));
+  heap = OPHeapOpenTmp();
+  table = PHNew(heap, TEST_OBJECTS, 0.95, 0, 0);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
@@ -206,7 +204,7 @@ test_BasicDelete(void** context)
   PHIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
   PHDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -216,8 +214,8 @@ test_BasicDeleteWithKeyInline(void** context)
   PascalHashTable* table;
   size_t keylen;
 
-  assert_true(OPHeapNew(&heap));
-  assert_true(PHNew(heap, &table, TEST_OBJECTS, 0.95, 8, 0));
+  heap = OPHeapOpenTmp();
+  table = PHNew(heap, TEST_OBJECTS, 0.95, 8, 0);
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
       keylen = MutateUUID(i);
@@ -236,7 +234,7 @@ test_BasicDeleteWithKeyInline(void** context)
   PHIterate(table, CountObjects, NULL);
   assert_int_equal(0, objcnt);
   PHDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -246,9 +244,8 @@ test_DistributionForUpdate(void** context)
   PascalHashTable* table;
   size_t keylen;
 
-  assert_true(OPHeapNew(&heap));
-  assert_true(PHNew(heap, &table, TEST_OBJECTS,
-                      0.70, 0, 0));
+  heap = OPHeapOpenTmp();
+  table = PHNew(heap, TEST_OBJECTS, 0.70, 0, 0);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
     {
@@ -270,7 +267,7 @@ test_DistributionForUpdate(void** context)
     }
   PHPrintStat(table);
   PHDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -283,8 +280,8 @@ test_Upsert(void** context)
   bool is_duplicate;
 
   OP_LOG_INFO(logger, "Starting basic insert");
-  assert_true(OPHeapNew(&heap));
-  assert_true(PHNew(heap, &table, 20, 0.80, 0, sizeof(int)));
+  heap = OPHeapOpenTmp();
+  table = PHNew(heap, 20, 0.80, 0, sizeof(int));
   OP_LOG_DEBUG(logger, "PH addr %p", table);
 
   for (int i = 0; i < TEST_OBJECTS; i++)
@@ -303,7 +300,7 @@ test_Upsert(void** context)
       assert_int_equal(i, *val);
     }
   PHDestroy(table);
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 int

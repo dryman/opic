@@ -202,12 +202,13 @@ int main(int argc, char **argv)
     assert(desc.blk_array != NULL);
     memset(desc.blk_array, 0, num_blks * sizeof(unsigned char *));
 
-    assert(OPHeapNew(&heap));
+    heap = OPHeapOpenTmp();
+    assert(heap);
 
     start_bench(&desc);
     stop_bench(&desc);
 
-    OPHeapDestroy(heap);
+    OPHeapClose(heap);
     /*
 TODO: create a cross platform high resolution timer.
     struct timespec start, end;

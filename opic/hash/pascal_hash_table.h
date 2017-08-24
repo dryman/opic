@@ -48,8 +48,6 @@ typedef struct PascalHashTable PascalHashTable;
  * @brief Constructor for PascalHashTable.
  *
  * @param heap OPHeap instance.
- * @param rhh_ref reference to the PascalHashTable pointer for
- * assignging PascalHashTable instance.
  * @param num_objects number of object we decided to put in.
  * @param load (0.0-1.0) how full the table could be before expansion.
  * @param key_inline_size Size to store the key inline. If the key size
@@ -58,11 +56,10 @@ typedef struct PascalHashTable PascalHashTable;
  *   is always used.
  * @param valsize length of the value measured in bytes. This value
  * can be zero for hashset.
- * @return true when the allocation succeeded, false otherwise.
+ * @return PascalHashTable instance if allocation succeeded, else return NULL.
  */
-bool PHNew(OPHeap* heap, PascalHashTable** rhh_ref,
-           uint64_t num_objects, double load,
-           size_t key_inline_size, size_t valsize);
+PascalHashTable* PHNew(OPHeap* heap, uint64_t num_objects, double load,
+                       size_t key_inline_size, size_t valsize);
 
 /**
  * @relates PascalHashTable

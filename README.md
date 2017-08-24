@@ -3,68 +3,93 @@ Object Persistence In C (Beta)
 
 [![Build Status](https://travis-ci.org/dryman/opic.svg?branch=master)](https://travis-ci.org/dryman/opic)
 
-OPIC is a revolutionary serialization framework for C.  Unlike traditional
-approaches which walk through the in-memory objects and write it to disk, OPIC
-itself is a memory allocator where all the objects created with it have the same
-representation in memory and on disk. "Serializing/deserializing" is extreme
-cheap with OPIC, because the memory can write directly to disk, and the
-deserialization is simply a mmap syscall.
 
-
-OPIC is suitable for building database indexes, key-value store, or even search
-engines. At the moment of writing we provide a POC hash table to demonstrate how
-easy it is to build an embedded key-value store engine.
-
-TODO: link to post or tutorial for the hash table.
+OPIC is a revolutionary serialization framework for C.  Unlike
+traditional approaches which walk through the in-memory objects and
+write it to disk, OPIC itself is a memory allocator where all the
+objects created are backed by a memory mapped file.  To save the
+current snapshot of objects , simply call `OPHeapMSync()` and all the
+changes are flushed to disk. Regular serialization may take several
+seconds, even up to minutes to write large amont of data.  In
+contrast, OPIC only takes few milliseconds to perform both read and
+write.  For reading, `mmap()` system call only takes 0.0005 seconds to
+map the file into memory region. The data is not loaded into memory
+until the program access it. For writing, `msync()` is quite fast as
+well.
 
 SYNOPSIS
 --------
 
+Using OPIC we can quickly draft out a poor man's key value store.
+OPIC provides two types of hash table: `OPHashTable` for fixed length
+key (like `CHAR(20)` in database), and `PascalHashTable` for length
+varying key. `PascalHashTable` provide a short string optimization
+similar to what [C++ does][sso]. Instead of using 24 bytes for inline
+string in hash table buckets, user can specify the size of the inline
+buffer. If the size of the key exceeds the inline buffer, extra space
+is allocated in OPIC to hold the key and the bucket would represent as
+pointer to key instead of inline key.
+
+See the example below on how to write a mini key-value store in
+few lines of C.
+
+[sso]: https://stackoverflow.com/questions/21694302/what-are-the-mechanics-of-short-string-optimization-in-libc?answertab=active#tab-top
+
 ```c
-#include <stdio.h>
-#include "opic/op_malloc.h"
+// gcc -lopic $(log4c-config --libs) opic_write.c -o opic_write
+#include <opic/op_malloc.h>
+#include <opic/hash/pascal_hash_table.h>
 
-struct S1
+int main(int argc, char** argv)
 {
-  opref_t s2_ref;
-};
+  uint64_t data = 10;
+  OPHeap* heap = OPHeapOpen("myheap", O_RDWR | O_CREAT);
+  PascalHashTable* table = PHNew(heap,
+                                 20,     // table size: 20 elements
+                                 0.7,    // table load: 70%
+                                 10,     // inline size for key
+                                 sizeof(data)); // value size
+  // store table ptr at slot 0
+  OPHeapStorePtr(heap, table, 0);
 
-struct S2
+  // "ABC" stored inline in table.
+  PHInsert(table,   // Object oriented C. The object instance is the first arg.
+           "ABC",   // The key we want to store
+           4,       // Length of the key (3 char + 1 NULL)
+           &data);  // pointer to value, value would get copied to table.
+  data++;
+  PHInsert(table, "DEF", 4, &data);  // DEF stored inline in table.
+  data++;
+  PHInsert(table, "This is a long string", 22, &data);
+  // key stored as pointer to a string with length of 22 (last byte NULL).
+
+  OPHeapClose(heap);
+  return 0;
+}
+
+// gcc-6 -lopic $(log4c-config --libs) opic_read.c -o opic_read
+#include <inttypes.h>
+#include <opic/op_malloc.h>
+#include <opic/hash/pascal_hash_table.h>
+
+int main(int argc, char** argv)
 {
-  char[1024] data;
-};
+  OPHeap* heap = OPHeapOpen("myheap", O_RDWR);
+  // restore table pointer from slot 0
+  PascalHashTable* table = OPHeapRestorePtr(heap, 0);
 
-void simple_object_database(char* filename)
-{
-  OPHeap* heap1, heap2;
-  FILE* fd;
+  uint64_t* val;
+  val = PHGet(table, "ABC", 4);
+  printf("ABC -> %" PRIu64 "\n", *val);
+  val = PHGet(table, "DEF", 4);
+  printf("DEF -> %" PRIu64 "\n", *val);
+  val = PHGet(table, "This is a long string", 22);
+  printf("This is a long string -> %" PRIu64 "\n", *val);
+  val = PHGet(table, "NAN", 4);
+  printf("Nan -> %p\n", val);
 
-  OPHeapNew(&heap1);
-
-  struct S1* s1 = (struct S1*)OPMalloc(heap1, sizeof(struct S1));
-  struct S2* s2 = (struct S2*)OPMalloc(heap1, sizeof(struct S2));
-
-  // object relationships in OPIC must convert to opref_t
-  s1->s2_ref = OPPtr2Ref(s2);
-
-  // opref_t can convert back to pointer via OPRef2Ptr
-  struct S2* s2_ptr = OPRef2Ptr(heap1, s1->s2ref);
-
-  // Serialize the heap to a file
-  OPHeapStorePtr(heap1, s1, 0);
-  fd = fopen(filename, "w");
-  OPHeapWrite(heap1, fd)
-  fclose(fd);
-  OPHeapDestroy(heap1);
-
-  // Deserialize the heap and restore the objects
-  fd = fopen(filename, "r");
-  OPHeapRead(&heap2, fd);
-  fclose(fd);
-
-  s1 = (struct S1*)OPHeapRestorePtr(heap2, 0);
-  s2 = s2_ptr = OPRef2Ptr(heap2, s1->s2_ref);
-  OPHeapDestroy(heap2);
+  OPHeapClose(heap);
+  return 0;
 }
 ```
 
@@ -72,11 +97,9 @@ DEPENDENCY
 ----------
 
 * C compiler with support of C11 atomics.
-  - gcc 4.9, gcc 5, gcc 6
+  - gcc 4.9, gcc 5, gcc 6, and above
   - TODO: figure out which versions of clang support C11 atomics.
 * [log4c (>= 1.2.4)](http://log4c.sourceforge.net)
-  - I guess 1.2.1 also works, but 1.2.4 was released since 2008. Getting
-  it on most distros shouldn't be hard.
 * [cmocka (>= 1.0.1)](https://cmocka.org)
   - Required for unit testing.
 * GNU Autotools for people who want to build from head
@@ -101,21 +124,24 @@ make
 sudo make install
 ```
 
-User who runs OPIC on linux need to disable overcommit accounting.  This is
-because OPIC pre-allocates large memory in 64bit memory space.
+HOW DOES IT WORK?
+-----------------
 
-```bash
-sudo sysctl vm.overcommit_memory=1
-```
+I wrote a initial draft to explain how it works. Check out my blog post:
+http://www.idryman.org/blog/2017/06/28/opic-a-memory-allocator-for-fast-serialization/
 
 DATA STRUCTURES INCLUDED
 ------------------------
 
-* RobinHoodHash, can be used as
+* OPHashTable. For fixed length key. Can be used as
   - HashMap
   - HashSet
   - HashMultimap
-  - TODO: document benchmark results
+
+* PascalHashTable. For length varying key. Can be used as
+  - HashMap
+  - HashSet
+  - HashMultimap
 
 * TODO (like a wishlist):
   - Integer DS which support predecessor quries
@@ -154,17 +180,17 @@ Cityhash is included in this project. Here is the copyright statements for
 cityhash:
 
     Copyright (c) 2011 Google, Inc.
-    
+
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE

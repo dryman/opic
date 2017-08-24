@@ -62,6 +62,8 @@ OP_LOGGER_FACTORY(logger, "opic.malloc.allocator");
 static __thread int thread_id = -1;
 static a_uint32_t round_robin = 0;
 
+extern void OPHeapCheckExpandSize(OPHeap* heap, size_t size);
+
 void*
 OPMalloc(OPHeap* heap, size_t size)
 {
@@ -570,6 +572,7 @@ OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
   int hpage_bmidx, hpage_bmbit, cmp_result;
   uint64_t old_bmap, new_bmap;
   uintptr_t heap_base;
+  size_t hpage_boundary;
 
   uint64_t empty_occupy_bmap[HPAGE_BMAP_NUM];
 
@@ -601,10 +604,16 @@ OPHeapObtainHPage(OPHeap* heap, OPHeapCtx* ctx)
               atomic_check_out(&heap->pcard);
 
               if (hpage_bmidx == 0 && hpage_bmbit == 0)
-                ctx->hspan.hpage = &heap->hpage;
+                {
+                  ctx->hspan.hpage = &heap->hpage;
+                }
               else
-                ctx->hspan.uintptr = heap_base +
-                  (64 * hpage_bmidx + hpage_bmbit) * HPAGE_SIZE;
+                {
+                  ctx->hspan.uintptr = heap_base +
+                    (64 * hpage_bmidx + hpage_bmbit) * HPAGE_SIZE;
+                  hpage_boundary = ctx->hspan.uintptr + HPAGE_SIZE - heap_base;
+                  OPHeapCheckExpandSize(heap, hpage_boundary);
+                }
               return true;
             }
         }
@@ -632,14 +641,28 @@ bool
 OPHeapObtainHBlob(OPHeap* heap, OPHeapCtx* ctx, unsigned int hpage_cnt)
 {
   bool result;
+  uintptr_t heap_base;
+  size_t hpage_boundary;
+
+  heap_base = (uintptr_t)heap;
 
   if (hpage_cnt <= 32)
-    return OPHeapObtainSmallHBlob(heap, ctx, hpage_cnt);
+    {
+      result = OPHeapObtainSmallHBlob(heap, ctx, hpage_cnt);
+    }
+  else
+    {
+      while (!atomic_check_in_book(&heap->pcard))
+        ;
+      result = OPHeapObtainLargeHBlob(heap, ctx, hpage_cnt);
+      atomic_exit_check_out(&heap->pcard);
+    }
 
-  while (!atomic_check_in_book(&heap->pcard))
-    ;
-  result = OPHeapObtainLargeHBlob(heap, ctx, hpage_cnt);
-  atomic_exit_check_out(&heap->pcard);
+  if (!result) return result;
+
+  hpage_boundary = ctx->hspan.uintptr + HPAGE_SIZE * hpage_cnt - heap_base;
+
+  OPHeapCheckExpandSize(heap, hpage_boundary);
   return result;
 }
 

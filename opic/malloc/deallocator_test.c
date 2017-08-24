@@ -60,6 +60,9 @@
 #include "allocator.h"
 #include "deallocator.h"
 
+extern void
+OPHeapCheckExpandSize(OPHeap* heap, size_t size);
+
 static void
 test_OPHeapReleaseHSpan_1Page(void** context)
 {
@@ -70,7 +73,9 @@ test_OPHeapReleaseHSpan_1Page(void** context)
   HugeSpanPtr hspan[8];
   Magic raw_hpage_magic = {}, hblob_magic = {};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 68 * HPAGE_SIZE);
+
   heap_base = (uintptr_t)heap;
 
   occupy_bmap[0] = 0x0F;
@@ -159,7 +164,7 @@ test_OPHeapReleaseHSpan_1Page(void** context)
   assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
   assert_int_equal(0, heap->pcard);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -171,7 +176,8 @@ test_OPHeapReleaseHSpan_smallHBlob(void** context)
   uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
   HugeSpanPtr hspan[4];
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 97 * HPAGE_SIZE);
   heap_base = (uintptr_t)heap;
 
   //                                    7654321076543210
@@ -229,7 +235,7 @@ test_OPHeapReleaseHSpan_smallHBlob(void** context)
   assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
   assert_int_equal(0, heap->pcard);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -241,7 +247,8 @@ test_OPHeapReleaseHSpan_lageHBlob(void** context)
   uint64_t header_bmap[HPAGE_BMAP_NUM] = {};
   HugeSpanPtr hspan[4];
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 256 * HPAGE_SIZE);
   heap_base = (uintptr_t)heap;
 
   //                                    7654321076543210
@@ -319,7 +326,7 @@ test_OPHeapReleaseHSpan_lageHBlob(void** context)
   assert_memory_equal(header_bmap, heap->header_bmap, sizeof(header_bmap));
   assert_int_equal(0, heap->pcard);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -336,7 +343,8 @@ test_HPageReleaseSSpan(void** context)
   uint64_t occupy_bmap[8] = {0};
   uint64_t header_bmap[8] = {0};
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 4 * HPAGE_SIZE);
   heap_base = (uintptr_t)heap;
   atomic_store(&heap->occupy_bmap[0], 0x07);
   atomic_store(&heap->header_bmap[0], 0x07);
@@ -434,7 +442,7 @@ test_HPageReleaseSSpan(void** context)
   assert_int_equal(0x02UL, heap->occupy_bmap[0]);
   assert_int_equal(0x02UL, heap->header_bmap[0]);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 static void
@@ -453,7 +461,8 @@ test_USpanReleaseAddr(void** context)
   void* addr2;
   OPHeapCtx ctx;
 
-  assert_true(OPHeapNew(&heap));
+  heap = OPHeapOpenTmp();
+  OPHeapCheckExpandSize(heap, 4 * HPAGE_SIZE);
   heap_base = (uintptr_t)heap;
   atomic_store(&heap->occupy_bmap[0], 0x02UL);
   atomic_store(&heap->header_bmap[0], 0x02UL);
@@ -507,7 +516,7 @@ test_USpanReleaseAddr(void** context)
   assert_int_equal(0x04UL, hpage->occupy_bmap[1]);
   assert_int_equal(0x04UL, hpage->header_bmap[1]);
 
-  OPHeapDestroy(heap);
+  OPHeapClose(heap);
 }
 
 int
