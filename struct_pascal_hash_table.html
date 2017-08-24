@@ -73,9 +73,9 @@ $(function() {
 Related Functions</h2></td></tr>
 <tr><td class="ititle" colspan="2"><p>(Note that these are not member functions.) </p>
 </td></tr>
-<tr class="memitem:a32ef6eca381b8aac400594046230ba50"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a32ef6eca381b8aac400594046230ba50">PHNew</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, <a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> **rhh_ref, uint64_t num_objects, double load, size_t key_inline_size, size_t valsize)</td></tr>
-<tr class="memdesc:a32ef6eca381b8aac400594046230ba50"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor for <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a>.  <a href="#a32ef6eca381b8aac400594046230ba50">More...</a><br /></td></tr>
-<tr class="separator:a32ef6eca381b8aac400594046230ba50"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4739e077d58bccd9b9b0ee7ab34021d2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a4739e077d58bccd9b9b0ee7ab34021d2">PHNew</a> (<a class="el" href="struct_o_p_heap.html">OPHeap</a> *heap, uint64_t num_objects, double load, size_t key_inline_size, size_t valsize)</td></tr>
+<tr class="memdesc:a4739e077d58bccd9b9b0ee7ab34021d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor for <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a>.  <a href="#a4739e077d58bccd9b9b0ee7ab34021d2">More...</a><br /></td></tr>
+<tr class="separator:a4739e077d58bccd9b9b0ee7ab34021d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a815a6559c92eac1a870ea2cf12c8d966"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a815a6559c92eac1a870ea2cf12c8d966">PHDestroy</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
 <tr class="memdesc:a815a6559c92eac1a870ea2cf12c8d966"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destructor for <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a>.  <a href="#a815a6559c92eac1a870ea2cf12c8d966">More...</a><br /></td></tr>
 <tr class="separator:a815a6559c92eac1a870ea2cf12c8d966"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -113,7 +113,7 @@ uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="
 <tr class="separator:a44b9907f3bc458d537d4565a7c5bcf07"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8efeb48e3d0cee60468595a22a5e9488"><td class="memItemLeft" align="right" valign="top"><a id="a8efeb48e3d0cee60468595a22a5e9488"></a>
 size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a8efeb48e3d0cee60468595a22a5e9488">PHKeyInlineSize</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
-<tr class="memdesc:a8efeb48e3d0cee60468595a22a5e9488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the size of the key that can be stored inline in the hash table. If the size of the key is larger than this size, the key would not be inline but allocated somewhere in the <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a>. <br /></td></tr>
+<tr class="memdesc:a8efeb48e3d0cee60468595a22a5e9488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain the size of the key that can be stored inline in the hash table. If the size of the key is larger than this size, the key would not be inline but allocated somewhere in the <a class="el" href="struct_o_p_heap.html" title="Memory allocator object with persistent storage on disk. ">OPHeap</a>. <br /></td></tr>
 <tr class="separator:a8efeb48e3d0cee60468595a22a5e9488"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a114da62ecd749108f5c737b14fff0f6f"><td class="memItemLeft" align="right" valign="top"><a id="a114da62ecd749108f5c737b14fff0f6f"></a>
 size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_pascal_hash_table.html#a114da62ecd749108f5c737b14fff0f6f">PHValSize</a> (<a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> *rhh)</td></tr>
@@ -131,8 +131,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <div class="textblock"><p>An opaque object that manages associations of key-value pairs. </p>
 <p>This object is not thread safe. </p>
 </div><h2 class="groupheader">Friends And Related Function Documentation</h2>
-<a id="a32ef6eca381b8aac400594046230ba50"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a32ef6eca381b8aac400594046230ba50">&#9670;&nbsp;</a></span>PHNew()</h2>
+<a id="a4739e077d58bccd9b9b0ee7ab34021d2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4739e077d58bccd9b9b0ee7ab34021d2">&#9670;&nbsp;</a></span>PHNew()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -141,16 +141,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool PHNew </td>
+          <td class="memname"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> * PHNew </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="struct_o_p_heap.html">OPHeap</a> *&#160;</td>
           <td class="paramname"><em>heap</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="struct_pascal_hash_table.html">PascalHashTable</a> **&#160;</td>
-          <td class="paramname"><em>rhh_ref</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -192,16 +186,15 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>Constructor for <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> instance. </td></tr>
-    <tr><td class="paramname">rhh_ref</td><td>reference to the <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> pointer for assignging <a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance. </td></tr>
+    <tr><td class="paramname">heap</td><td><a class="el" href="struct_o_p_heap.html" title="Memory allocator object with persistent storage on disk. ">OPHeap</a> instance. </td></tr>
     <tr><td class="paramname">num_objects</td><td>number of object we decided to put in. </td></tr>
     <tr><td class="paramname">load</td><td>(0.0-1.0) how full the table could be before expansion. </td></tr>
-    <tr><td class="paramname">key_inline_size</td><td>Size to store the key inline. If the key size is larger than this value, the key would be copied to <a class="el" href="struct_o_p_heap.html" title="Opaque object for memory allocation. ">OPHeap</a> and get referenced by a pointer. If key_inline_size is set to 0, pointer is always used. </td></tr>
+    <tr><td class="paramname">key_inline_size</td><td>Size to store the key inline. If the key size is larger than this value, the key would be copied to <a class="el" href="struct_o_p_heap.html" title="Memory allocator object with persistent storage on disk. ">OPHeap</a> and get referenced by a pointer. If key_inline_size is set to 0, pointer is always used. </td></tr>
     <tr><td class="paramname">valsize</td><td>length of the value measured in bytes. This value can be zero for hashset. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>true when the allocation succeeded, false otherwise. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd><a class="el" href="struct_pascal_hash_table.html" title="An opaque object that manages associations of key-value pairs. ">PascalHashTable</a> instance if allocation succeeded, else return NULL. </dd></dl>
 
 </div>
 </div>
@@ -567,7 +560,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>The content pointed by key and val will be copied into the hash table. If the value size were 0, only the key get copied. When there's a key collision, the coresponding value get replaced.</p>
 <p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00180">180</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00177">177</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
 
 </div>
 </div>
@@ -638,7 +631,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <p>This method does not insert the value automatically, instead it provides the pointer to the address where value can be inserted or overriden.</p>
 <p>If the inserted key-value pairs exceeded the original size user configured, the hash table will resized with a larger capacity. If the resize failed, false is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00205">205</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00202">202</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
 
 </div>
 </div>
@@ -694,7 +687,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, NULL otherwise.</dd></dl>
 <p>If the value size were set to 0, PHGetCustom would still return a pointer to where it would store the value. User can still use the returned value to exam if the key were present in the hash table. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00227">227</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00224">224</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
 
 </div>
 </div>
@@ -750,7 +743,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 <dl class="section return"><dt>Returns</dt><dd>pointer to the value if found, NULL otherwise.</dd></dl>
 <p>The key would get deallocated after deletion. Table will resize when many entries are deleted. </p>
 
-<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00245">245</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="pascal__hash__table_8h_source.html#l00242">242</a> of file <a class="el" href="pascal__hash__table_8h_source.html">pascal_hash_table.h</a>.</p>
 
 </div>
 </div>
@@ -812,7 +805,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="stru
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Aug 14 2017 18:27:28 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Aug 24 2017 08:46:45 for OPIC by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.13
 </small></address>

@@ -10,7 +10,7 @@ var searchData=
   ['htinsertcustom',['HTInsertCustom',['../struct_o_p_hash_table.html#a5755079a778c60879c24d951857e970b',1,'OPHashTable']]],
   ['htiterate',['HTIterate',['../struct_o_p_hash_table.html#a64dabbf862f8a32e769deb7d74862fc8',1,'OPHashTable']]],
   ['htkeysize',['HTKeySize',['../struct_o_p_hash_table.html#a81770f540849c6666ce9c8d61fdedb3a',1,'OPHashTable']]],
-  ['htnew',['HTNew',['../struct_o_p_hash_table.html#a879ed59adb193c3e6e36a99db447b8d4',1,'OPHashTable']]],
+  ['htnew',['HTNew',['../struct_o_p_hash_table.html#a25d7370b5be333ab85937872433e2808',1,'OPHashTable']]],
   ['htobjcnt',['HTObjcnt',['../struct_o_p_hash_table.html#a6030775a67c3b16b116860742586804e',1,'OPHashTable']]],
   ['htprintstat',['HTPrintStat',['../struct_o_p_hash_table.html#aa8451f081d69eb3116fb6fa6e4d957ba',1,'OPHashTable']]],
   ['htupsert',['HTUpsert',['../struct_o_p_hash_table.html#a3888fcf7067ee48f19ba798c7aea609d',1,'OPHashTable']]],
