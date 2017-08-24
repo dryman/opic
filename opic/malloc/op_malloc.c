@@ -92,7 +92,7 @@ OPHeap* OPHeapOpen(const char *path, int flags)
   int fd;
   pthread_mutex_lock(&op_mutex);
 
-  fd = open(path, flags);
+  fd = open(path, flags, S_IRUSR | S_IWUSR);
   if (fd == -1)
     {
       OP_LOG_ERROR(logger, "Failed to open %s. %s",

@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <fcntl.h>
 #include <string.h>
 #include "opic/common/op_assert.h"
 #include "opic/common/op_macros.h"
@@ -88,8 +89,7 @@ typedef struct OPHeap OPHeap;
  *   int x;
  * };
  *
- * OPHeap* heap;
- * OPHeapNew(&heap);
+ * OPHeap* heap = OPHeapOpenTmp();
  *
  * struct A* a = OPMalloc(heap, sizeof(struct A));
  * struct B* b = OPMalloc(heap, sizeof(struct B));
